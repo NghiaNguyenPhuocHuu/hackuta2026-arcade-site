@@ -1,8 +1,10 @@
 # HackUTA Arcade site
 
-Standalone site for the HackUTA points games. Read `docs/ARCADE_PLAN.md` first:
-it has the design, the decisions already made, the step plan and its status, and
-the open items. Don't re-open decisions recorded there without the user.
+Standalone site for the HackUTA points games. Read these first:
+- `docs/HANDOFF.md`: where the work stands, open items waiting on the user, and
+  the detailed next step. Update it at the end of each working session.
+- `docs/ARCADE_PLAN.md`: the design, the decisions already made, the step plan.
+  Don't re-open decisions recorded there without the user.
 
 ## Safety rules (non-negotiable)
 
