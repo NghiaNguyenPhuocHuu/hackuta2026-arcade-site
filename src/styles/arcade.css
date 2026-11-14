@@ -4,6 +4,47 @@
  * the top are copied from profile's index.css so the status screens match its
  * sign-in page.
  */
+/*
+ * Theme colors the frame animates between. Registering them as <color> lets the
+ * sidebar gradient and the starry background fade, which plain gradients can't.
+ * Browsers without @property just switch instantly.
+ */
+@property --arcade-sky {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #f6eddf;
+}
+
+@property --arcade-sidebar-top {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #eee3d2;
+}
+
+@property --arcade-sidebar-bottom {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #ded0bc;
+}
+
+@property --arcade-star {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --arcade-star-gold {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --arcade-glow {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
 @layer components {
   /* ---- Copied from hackuta-2026-profile src/styles/index.css ---- */
   .sign-in-card {
@@ -493,6 +534,49 @@
    * night palette. ArcadeLayout adds .arcade-theme--night and sets
    * html[data-arcade-theme="night"].
    */
+  /* Day values; .arcade-theme--night swaps them and the frame fades between the two. */
+  .participant-dashboard {
+    --arcade-theme-fade: 0.5s var(--ease-out);
+    --arcade-sky: var(--color-light);
+    --arcade-sidebar-top: var(--color-clay);
+    --arcade-sidebar-bottom: var(--color-sand);
+    --arcade-star: transparent;
+    --arcade-star-gold: transparent;
+    --arcade-glow: transparent;
+
+    background: var(--arcade-sky);
+    transition:
+      --arcade-sky var(--arcade-theme-fade),
+      --arcade-sidebar-top var(--arcade-theme-fade),
+      --arcade-sidebar-bottom var(--arcade-theme-fade),
+      --arcade-star var(--arcade-theme-fade),
+      --arcade-star-gold var(--arcade-theme-fade),
+      --arcade-glow var(--arcade-theme-fade),
+      color var(--arcade-theme-fade);
+  }
+
+  .participant-dashboard__sidebar {
+    background: linear-gradient(180deg, var(--arcade-sidebar-top) 0%, var(--arcade-sidebar-bottom) 100%);
+  }
+
+  /* Hard-edged pixel stars, like the game's sky; transparent by day. */
+  .participant-dashboard__main {
+    background:
+      radial-gradient(1.5px 1.5px at 12% 18%, var(--arcade-star) 99%, transparent),
+      radial-gradient(1.5px 1.5px at 78% 9%, var(--arcade-star-gold) 99%, transparent),
+      radial-gradient(1px 1px at 41% 63%, var(--arcade-star) 99%, transparent),
+      radial-gradient(1px 1px at 88% 47%, var(--arcade-star) 99%, transparent),
+      radial-gradient(1.5px 1.5px at 23% 84%, var(--arcade-star) 99%, transparent),
+      radial-gradient(120% 60% at 50% -10%, var(--arcade-glow) 0%, transparent 60%),
+      var(--arcade-sky);
+    background-size: 420px 420px, 520px 520px, 360px 360px, 300px 300px, 460px 460px, 100% 100%, auto;
+    background-attachment: local;
+  }
+
+  html {
+    transition: background-color 0.5s var(--ease-out);
+  }
+
   html[data-arcade-theme="night"] {
     background: #071526;
   }
@@ -506,28 +590,58 @@
     --night-faint: rgb(246 237 223 / 0.12);
     --night-gold: #ffd23f;
 
+    --arcade-sky: var(--night-sky);
+    --arcade-sidebar-top: #0e2540;
+    --arcade-sidebar-bottom: var(--night-panel);
+    --arcade-star: rgb(246 237 223 / 0.45);
+    --arcade-star-gold: rgb(255 210 63 / 0.55);
+    --arcade-glow: #12304f;
+
     color-scheme: dark;
-    background: var(--night-sky);
     color: var(--night-marble);
   }
 
   .arcade-theme--night .participant-dashboard__sidebar {
     border-right-color: var(--night-faint);
-    background: linear-gradient(180deg, #0e2540 0%, var(--night-panel) 100%);
   }
 
-  /* Hard-edged pixel stars, like the game's sky. */
-  .arcade-theme--night .participant-dashboard__main {
-    background:
-      radial-gradient(1.5px 1.5px at 12% 18%, rgb(246 237 223 / 0.5) 99%, transparent),
-      radial-gradient(1.5px 1.5px at 78% 9%, rgb(255 210 63 / 0.55) 99%, transparent),
-      radial-gradient(1px 1px at 41% 63%, rgb(246 237 223 / 0.4) 99%, transparent),
-      radial-gradient(1px 1px at 88% 47%, rgb(246 237 223 / 0.35) 99%, transparent),
-      radial-gradient(1.5px 1.5px at 23% 84%, rgb(246 237 223 / 0.3) 99%, transparent),
-      radial-gradient(120% 60% at 50% -10%, #12304f 0%, transparent 60%),
-      var(--night-sky);
-    background-size: 420px 420px, 520px 520px, 360px 360px, 300px 300px, 460px 460px, 100% 100%, auto;
-    background-attachment: local;
+  /* Everything else that changes color with the theme fades with it. */
+  .participant-dashboard__sidebar,
+  .participant-brand,
+  .participant-brand__wordmark,
+  .participant-brand__static,
+  .arcade-brand__tag,
+  .arcade-nav__soon,
+  .arcade-nav__profile,
+  .participant-dashboard__account,
+  .participant-avatar,
+  .participant-dashboard__account-email,
+  .participant-dashboard__sign-out,
+  .participant-frieze,
+  .participant-frieze__art,
+  .participant-meander,
+  .participant-page-title,
+  .participant-dashboard__panel-title,
+  .participant-page-header__description,
+  .participant-dashboard__notice,
+  .participant-dashboard__notice-copy,
+  .participant-home__points,
+  .participant-dashboard__cta,
+  .arcade-back {
+    transition:
+      color var(--arcade-theme-fade, 0.5s),
+      background-color var(--arcade-theme-fade, 0.5s),
+      border-color var(--arcade-theme-fade, 0.5s),
+      opacity var(--arcade-theme-fade, 0.5s),
+      filter var(--arcade-theme-fade, 0.5s);
+  }
+
+  /* Nav items also fade with the theme, but hover stays quick. */
+  .participant-dashboard__nav-item {
+    transition:
+      color 0.25s var(--ease-out),
+      background-color 0.25s var(--ease-out),
+      box-shadow 0.25s var(--ease-out);
   }
 
   .arcade-theme--night .participant-brand,
@@ -654,9 +768,25 @@
   }
 
   @media (max-width: 900px) {
+    .participant-dashboard {
+      --arcade-sidebar-top: var(--color-light);
+      --arcade-sidebar-bottom: var(--color-light);
+    }
+
+    .participant-dashboard__sidebar {
+      border-bottom: 1px solid transparent;
+      transition:
+        color var(--arcade-theme-fade, 0.5s),
+        border-color var(--arcade-theme-fade, 0.5s);
+    }
+
+    .arcade-theme--night {
+      --arcade-sidebar-top: var(--night-panel);
+      --arcade-sidebar-bottom: var(--night-panel);
+    }
+
     .arcade-theme--night .participant-dashboard__sidebar {
-      background: var(--night-panel);
-      border-bottom: 1px solid var(--night-faint);
+      border-bottom-color: var(--night-faint);
     }
 
     .arcade-theme--night .participant-dashboard__nav-item:hover,
@@ -669,6 +799,98 @@
     .arcade-theme--night .participant-brand__static {
       color: var(--night-marble);
     }
+  }
+
+  /*
+   * Entrances. Each page rises in; lobby sections and game cards follow one
+   * after another. "backwards" fill only holds the start frame during a delay,
+   * so nothing keeps a transform afterwards (the game's full screen needs that).
+   * theme.css turns all of this off for prefers-reduced-motion.
+   */
+  @keyframes arcade-rise {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+
+  @keyframes arcade-fade {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes arcade-pop {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.97);
+    }
+  }
+
+  .arcade-lobby > .participant-frieze,
+  .arcade-play > .participant-frieze {
+    animation: arcade-rise 0.5s var(--ease-out) backwards;
+  }
+
+  .arcade-lobby__inner > *,
+  .arcade-play > :not(.participant-frieze) {
+    animation: arcade-rise 0.55s var(--ease-out) backwards;
+    animation-delay: calc(90ms + var(--arcade-step, 0) * 80ms);
+  }
+
+  .arcade-lobby__inner > :nth-child(2) {
+    --arcade-step: 1;
+  }
+
+  .arcade-lobby__inner > :nth-child(3) {
+    --arcade-step: 4;
+  }
+
+  /* Cards come in after their section heading. */
+  .arcade-game-grid > li {
+    animation: arcade-rise 0.55s var(--ease-out) backwards;
+    animation-delay: calc(260ms + var(--arcade-step, 0) * 90ms);
+  }
+
+  .arcade-game-grid > li:nth-child(2) {
+    --arcade-step: 1;
+  }
+
+  .arcade-game-grid > li:nth-child(3) {
+    --arcade-step: 2;
+  }
+
+  .arcade-game-grid > li:nth-child(n + 4) {
+    --arcade-step: 3;
+  }
+
+  /* The game fades in once it has mounted; the loading line waits a beat so a
+     fast load doesn't flash it. */
+  .arcade-stage__mount {
+    opacity: 0;
+    transition: opacity 0.45s var(--ease-out);
+  }
+
+  .arcade-stage__mount--ready {
+    opacity: 1;
+  }
+
+  .arcade-stage__loading {
+    animation: arcade-fade 0.3s var(--ease-out) 0.2s backwards;
+  }
+
+  /* Status screens: temple drawing fades up, card pops in. */
+  .arcade-screen__temple {
+    animation: arcade-fade 1.2s var(--ease-out) backwards;
+  }
+
+  .arcade-screen__card {
+    animation: arcade-pop 0.6s var(--ease-out) 0.1s backwards;
+  }
+
+  /* Points pill keeps a steady width as the balance changes. */
+  .participant-home__points {
+    font-variant-numeric: tabular-nums;
   }
 
   /* Readability: a step up from profile's smallest text (portal.css stays verbatim). */

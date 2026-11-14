@@ -40,7 +40,7 @@ export default function PlayPage() {
         : null;
 
   return (
-    <section className="arcade-play" aria-labelledby="arcade-play-title">
+    <section key={game.key} className="arcade-play" aria-labelledby="arcade-play-title">
       <PageHeader
         id="arcade-play-title"
         eyebrow={back}
@@ -109,7 +109,7 @@ function GameStage({ game }: { game: GameEntry }) {
           {error}
         </p>
       ) : null}
-      <div ref={ref} className="arcade-stage__mount" />
+      <div ref={ref} className={`arcade-stage__mount${ready ? " arcade-stage__mount--ready" : ""}`} />
     </div>
   );
 }
