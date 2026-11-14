@@ -504,5 +504,28 @@
     .arcade-status {
       flex-wrap: wrap;
     }
+
+    /* Play page on phones: a short header so the game starts near the top. The
+       game shows its own balance, so the points pill is hidden while it runs. */
+    .arcade-play .participant-page-header {
+      padding: 0.85rem 1rem 0.6rem;
+    }
+
+    .arcade-play .participant-frieze .participant-page-title {
+      font-size: 1.85rem;
+    }
+
+    .arcade-play .arcade-eyebrow {
+      margin-bottom: 0.2rem;
+    }
+
+    .arcade-play .participant-page-header__description,
+    .arcade-play:has(.arcade-stage) .participant-page-header__actions {
+      display: none;
+    }
+
+    .arcade-play .participant-frieze__art {
+      height: 9rem;
+    }
   }
 }

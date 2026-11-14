@@ -1189,12 +1189,63 @@
   .minigame__spin {
     min-height: 64px;
   }
+
+  /* Keep the reels, wager and SPIN on one screen: flatten the machine and panel
+     into the layout column and put Techno's dialog after SPIN, above the payouts. */
+  .minigame__layout {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .minigame__machine,
+  .minigame__panel {
+    display: contents;
+  }
+
+  .minigame__temple {
+    order: 0;
+  }
+
+  .minigame__panel > [data-tut="balance"] {
+    order: 1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .minigame__panel > [data-tut="wager"] {
+    order: 2;
+  }
+
+  .minigame__spin {
+    order: 3;
+  }
+
+  .minigame__dialog--techno {
+    order: 4;
+  }
+
+  .minigame__panel > [data-tut="payouts"] {
+    order: 5;
+  }
 }
 
 @media (max-width: 600px) {
   .minigame {
     gap: 14px;
     padding: 20px 14px;
+  }
+
+  .minigame__header {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .minigame__tagline {
+    display: none;
   }
 }
 
