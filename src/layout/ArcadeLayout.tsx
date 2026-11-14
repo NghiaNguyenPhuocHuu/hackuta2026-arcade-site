@@ -55,7 +55,7 @@ export function ArcadeLayout({ session }: { session: ArcadeSession }) {
               key={game.key}
               to={`/play/${game.key}`}
               label={game.name}
-              shortLabel={game.name.split(" ").at(-1)}
+              shortLabel={game.shortName}
               icon={game.icon}
               soon={!game.load}
             />

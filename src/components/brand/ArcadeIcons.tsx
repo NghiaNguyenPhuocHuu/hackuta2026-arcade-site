@@ -62,6 +62,23 @@ export function NavCardsIcon({ className }: IconProps) {
   );
 }
 
+/** Wheel of the Fates: a wheel with a hub, spokes and the ball resting in a pocket. */
+export function NavWheelIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="12" cy="12" r="2.25" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M12 9.75V5.5M12 14.25v4.25M9.75 12H5.5M14.25 12h4.25"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <circle cx="16.4" cy="7.6" r="1.1" fill="currentColor" />
+    </Svg>
+  );
+}
+
 /** Opens in another site (profile). */
 export function ExternalIcon({ className }: IconProps) {
   return (

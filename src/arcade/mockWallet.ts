@@ -1,22 +1,21 @@
-import type { RecentSpin } from "../games/olympus-slots/types";
+import type { MockWalletPort } from "../games/types";
 
 /**
- * Mock points for the whole visit, until the Convex adapter (step 3 of
- * docs/ARCADE_PLAN.md) reads the real balance. Without it every game mount
- * started a fresh 200-point wallet, so leaving Slots and coming back reset
- * the balance and history, and the lobby's points pill never moved.
+ * Mock points for the whole visit, until the Convex adapters (step 3 of
+ * docs/ARCADE_PLAN.md) read the real balance. One balance is shared by every
+ * game and the lobby's points pill, and each game keeps its own saved data
+ * (history and so on), so leaving a game and coming back changes nothing.
  */
-export type MockWallet = { balance: number; recentSpins: RecentSpin[] };
+export type MockWallet = { balance: number; saved: Readonly<Record<string, unknown>> };
 
-let wallet: MockWallet = { balance: 200, recentSpins: [] };
+let wallet: MockWallet = { balance: 200, saved: {} };
 const listeners = new Set<() => void>();
 
 export function getMockWallet(): MockWallet {
   return wallet;
 }
 
-export function setMockWallet(next: MockWallet): void {
-  if (next.balance === wallet.balance && next.recentSpins === wallet.recentSpins) return;
+function setMockWallet(next: MockWallet): void {
   wallet = next;
   for (const listener of listeners) listener();
 }
@@ -25,5 +24,17 @@ export function subscribeMockWallet(listener: () => void): () => void {
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
+  };
+}
+
+/** The wallet as one game sees it. */
+export function mockWalletPort(gameKey: string): MockWalletPort {
+  return {
+    balance: wallet.balance,
+    saved: wallet.saved[gameKey],
+    save({ balance, saved }) {
+      if (balance === wallet.balance && saved === wallet.saved[gameKey]) return;
+      setMockWallet({ balance, saved: { ...wallet.saved, [gameKey]: saved } });
+    },
   };
 }

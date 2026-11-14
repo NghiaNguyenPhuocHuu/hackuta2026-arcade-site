@@ -4,8 +4,7 @@ import { PageHeader, PointsPill } from "../components/PageHeader";
 import { BackIcon } from "../components/brand/ArcadeIcons";
 import { formatClock, type ArcadeSession } from "../arcade/useArcadeSession";
 import { findGame, type GameEntry } from "../games/registry";
-import { createMockAdapter } from "../games/olympus-slots/adapters/mockAdapter";
-import { getMockWallet, setMockWallet } from "../arcade/mockWallet";
+import { mockWalletPort } from "../arcade/mockWallet";
 
 export default function PlayPage() {
   const session = useOutletContext<ArcadeSession>();
@@ -73,17 +72,15 @@ function GameStage({ game }: { game: GameEntry }) {
     if (!game.load) return;
     let unmount: (() => void) | undefined;
     let cancelled = false;
-    // Start from the visit's wallet and write every change back, so the balance
-    // and history survive leaving the game and the lobby's points pill follows.
-    const adapter = createMockAdapter(getMockWallet());
-    const stopSync = adapter.subscribe(({ balance, recentSpins }) => setMockWallet({ balance, recentSpins }));
     setReady(false);
     setError(null);
     game
       .load()
-      .then((mount) => {
+      .then((module) => {
         if (cancelled || !ref.current) return;
-        unmount = mount(ref.current, { adapter });
+        // The visit's shared mock wallet: balance and history survive leaving the
+        // game, and the lobby's points pill follows.
+        unmount = module.mountMock(ref.current, mockWalletPort(game.key));
         setReady(true);
       })
       .catch(() => {
@@ -92,8 +89,6 @@ function GameStage({ game }: { game: GameEntry }) {
     return () => {
       cancelled = true;
       unmount?.();
-      stopSync();
-      adapter.dispose();
     };
   }, [game]);
 
