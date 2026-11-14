@@ -1,0 +1,10 @@
+{
+  "profileRepo": "../hackuta-2026-profile",
+  "commit": "4ec88927be9c4ab2c2b802f8261e59c519c42905",
+  "note": "Exact backend deployed on brazen-peccary-506 (merge of profile PR #26, media disclosure). Verified: function-spec of peccary == this tree (143 functions/routes, nothing extra).",
+  "modified": {
+    "convex/schema.ts": "ec9ef3fc8eae449fc54065ce2510c0c992b312de5bc88a42e8514755eac09ca8",
+    "convex/admin/pointsLedger.ts": "c0f1996c9c498e600bd0ec654c06470583664fee78b77ca86e9375fc5855130f",
+    "convex/admin/fields.ts": "7aa0d17a5c1ef2bff0d115946dcf948d1424d570f89e4cfa3726e204d91ee27b"
+  }
+}

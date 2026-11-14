@@ -1,0 +1,14 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Convex codegen output and local data backups
+convex/_generated/
+backups/
+
+# Assembled backend (scripts/assemble-backend.mjs) and saved function specs
+build/

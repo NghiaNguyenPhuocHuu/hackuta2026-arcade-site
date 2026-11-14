@@ -1,0 +1,172 @@
+/**
+ * Points minigame (Olympus Slots) — pure game rules, outcome-first, 4 reels.
+ *
+ * TypeScript port of the prototype's `shared/minigame/slotRules.js`; the two
+ * tables must stay identical (the prototype repo has a parity test). The server
+ * is the only place a real spin is rolled.
+ */
+import { ConvexError } from "convex/values";
+
+export type SlotOutcomeId = "big" | "win" | "push" | "lose";
+export type SlotSymbol = "hera" | "apollo" | "athena" | "poseidon" | "hermes" | "aphrodite" | "odysseus" | "zeus";
+export type SlotOutcome = {
+  readonly id: SlotOutcomeId;
+  readonly label: string;
+  readonly weight: number;
+  readonly multiplier: number;
+};
+/** Returns a number in [0, 1), like Math.random. */
+export type RandomFn = () => number;
+
+/** Odds table. Weights are out of SLOT_WEIGHT_TOTAL; multiplier is the gross payout (wager included). */
+export const SLOT_OUTCOMES: readonly SlotOutcome[] = Object.freeze([
+  Object.freeze({ id: "big", label: "Big win", weight: 5, multiplier: 5 }),
+  Object.freeze({ id: "win", label: "Win", weight: 20, multiplier: 2 }),
+  Object.freeze({ id: "push", label: "Money back", weight: 25, multiplier: 1 }),
+  Object.freeze({ id: "lose", label: "No win", weight: 50, multiplier: 0 }),
+] as const);
+
+export const SLOT_WEIGHT_TOTAL = 100;
+export const SLOT_WAGERS: readonly number[] = Object.freeze([5, 10, 25, 50]);
+export const SLOT_DEFAULT_WAGER = 10;
+export const SLOT_SPIN_COOLDOWN_MS = 2000;
+export const SLOT_REEL_COUNT = 4;
+export const SLOT_SYMBOLS: readonly SlotSymbol[] = Object.freeze([
+  "hera", "apollo", "athena", "poseidon", "hermes", "aphrodite", "odysseus", "zeus",
+] as const);
+export const SLOT_JACKPOT_SYMBOL: SlotSymbol = "zeus";
+
+/** Longest spin idempotency key a client may send. */
+export const SLOT_SPIN_ID_MAX_LENGTH = 64;
+/** Longest organizer window. */
+export const SLOT_WINDOW_MAX_MS = 6 * 60 * 60 * 1000;
+/** How long after a window ends the game still reports "closed" instead of "none". */
+export const SLOT_CLOSED_GRACE_MS = 12 * 60 * 60 * 1000;
+/** Longest organizer window label. */
+export const SLOT_WINDOW_LABEL_MAX_LENGTH = 80;
+
+const REGULAR_SYMBOLS: readonly SlotSymbol[] = Object.freeze(
+  SLOT_SYMBOLS.filter((symbol) => symbol !== SLOT_JACKPOT_SYMBOL),
+);
+
+/** Integer in [0, max). Clamps a misbehaving RNG so it never indexes past the end. */
+function randomInt(random: RandomFn, max: number): number {
+  const value = Math.floor(random() * max);
+  if (!Number.isFinite(value) || value < 0) return 0;
+  return value >= max ? max - 1 : value;
+}
+
+function shuffle<T>(items: readonly T[], random: RandomFn): T[] {
+  const result = items.slice();
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = randomInt(random, i + 1);
+    [result[i], result[j]] = [result[j]!, result[i]!];
+  }
+  return result;
+}
+
+function pickDistinct<T>(pool: readonly T[], count: number, random: RandomFn): T[] {
+  return shuffle(pool, random).slice(0, count);
+}
+
+/** Rolls one outcome from the odds table. */
+export function rollOutcome(random: RandomFn = Math.random): SlotOutcome {
+  let r = randomInt(random, SLOT_WEIGHT_TOTAL);
+  for (const outcome of SLOT_OUTCOMES) {
+    if (r < outcome.weight) return outcome;
+    r -= outcome.weight;
+  }
+  return SLOT_OUTCOMES[SLOT_OUTCOMES.length - 1]!;
+}
+
+/**
+ * Display symbols for an outcome (4 reels):
+ *   big  = four jackpot symbols
+ *   win  = three of one regular symbol + one different symbol
+ *   push = two pairs of two different regular symbols
+ *   lose = no win pattern: at most one pair, jackpot symbol at most once
+ */
+export function symbolsFor(outcomeId: SlotOutcomeId, random: RandomFn = Math.random): SlotSymbol[] {
+  switch (outcomeId) {
+    case "big":
+      return Array.from({ length: SLOT_REEL_COUNT }, () => SLOT_JACKPOT_SYMBOL);
+    case "win": {
+      const [main] = pickDistinct(REGULAR_SYMBOLS, 1, random) as [SlotSymbol];
+      const others = SLOT_SYMBOLS.filter((symbol) => symbol !== main);
+      const odd = others[randomInt(random, others.length)]!;
+      return shuffle([main, main, main, odd], random);
+    }
+    case "push": {
+      const [a, b] = pickDistinct(REGULAR_SYMBOLS, 2, random) as [SlotSymbol, SlotSymbol];
+      return shuffle([a, a, b, b], random);
+    }
+    case "lose": {
+      const withPair = randomInt(random, 2) === 1;
+      if (withPair) {
+        const [pair] = pickDistinct(REGULAR_SYMBOLS, 1, random) as [SlotSymbol];
+        const rest = pickDistinct(SLOT_SYMBOLS.filter((symbol) => symbol !== pair), 2, random);
+        return shuffle([pair, pair, ...rest], random);
+      }
+      return pickDistinct(SLOT_SYMBOLS, SLOT_REEL_COUNT, random);
+    }
+    default:
+      throw new Error(`Unknown slot outcome: ${String(outcomeId)}`);
+  }
+}
+
+/** True when `wager` is one of the presets (balance is checked separately). */
+export function isAllowedWager(wager: unknown): wager is number {
+  return typeof wager === "number" && Number.isInteger(wager) && SLOT_WAGERS.includes(wager);
+}
+
+/** True when `wager` is an allowed preset and the balance covers it. */
+export function isValidWager(wager: unknown, balance: unknown): boolean {
+  if (!isAllowedWager(wager)) return false;
+  return typeof balance === "number" && Number.isSafeInteger(balance) && balance >= wager;
+}
+
+/** Gross payout (wager included) for a spin. */
+export function payoutFor(wager: number, outcome: SlotOutcome): number {
+  return wager * outcome.multiplier;
+}
+
+/** Long-run return to player implied by the odds table (0.9 = 90%). */
+export function expectedRtp(): number {
+  return SLOT_OUTCOMES.reduce((sum, outcome) => sum + (outcome.weight / SLOT_WEIGHT_TOTAL) * outcome.multiplier, 0);
+}
+
+// ---- organizer window errors (thrown by admin window functions) ----
+
+export type SlotWindowErrorCode =
+  | "SLOT_WINDOW_INVALID"
+  | "SLOT_WINDOW_TOO_LONG"
+  | "SLOT_WINDOW_OVERLAP"
+  | "SLOT_WINDOW_NOT_FOUND"
+  | "SLOT_WINDOW_NOT_EDITABLE";
+
+export const SLOT_WINDOW_ERROR_MESSAGES: Readonly<Record<SlotWindowErrorCode, string>> = {
+  SLOT_WINDOW_INVALID: "The window must close after it opens, and end in the future.",
+  SLOT_WINDOW_TOO_LONG: "A minigame window can be at most 6 hours long.",
+  SLOT_WINDOW_OVERLAP: "This window overlaps another scheduled minigame window.",
+  SLOT_WINDOW_NOT_FOUND: "That minigame window no longer exists.",
+  SLOT_WINDOW_NOT_EDITABLE: "Only windows that have not ended or been cancelled can change.",
+};
+
+export function slotWindowError(code: SlotWindowErrorCode) {
+  return new ConvexError({ code, message: SLOT_WINDOW_ERROR_MESSAGES[code] });
+}
+
+/** Trims a label; empty becomes undefined. Throws when too long. */
+export function normalizeSlotWindowLabel(label: string | undefined): string | undefined {
+  const trimmed = (label ?? "").trim();
+  if (!trimmed) return undefined;
+  if (trimmed.length > SLOT_WINDOW_LABEL_MAX_LENGTH) throw slotWindowError("SLOT_WINDOW_INVALID");
+  return trimmed;
+}
+
+/** Validates a window's times against `now`. */
+export function assertSlotWindowTimes(opensAt: number, closesAt: number, now: number) {
+  if (!Number.isSafeInteger(opensAt) || !Number.isSafeInteger(closesAt)) throw slotWindowError("SLOT_WINDOW_INVALID");
+  if (closesAt <= opensAt || closesAt <= now) throw slotWindowError("SLOT_WINDOW_INVALID");
+  if (closesAt - opensAt > SLOT_WINDOW_MAX_MS) throw slotWindowError("SLOT_WINDOW_TOO_LONG");
+}

@@ -1,0 +1,280 @@
+/**
+ * Checked-in attendee points ledger — **internal helpers only** (not Convex entry points).
+ *
+ * These functions trust their caller for authorization. They do **not** replace
+ * `requireVolunteerAccess`, `requireVolunteerCapability`, or
+ * `requireVolunteerEventAccess`. See [VOLUNTEER_AUTHORIZATION.md](./VOLUNTEER_AUTHORIZATION.md).
+ */
+import type { DocumentByName } from "convex/server";
+import type { GenericId } from "convex/values";
+import type { DataModel, MutationCtx, QueryCtx } from "../lib/dataModel";
+import { adminError } from "../../shared/admin/errors";
+import {
+  assertAdjustmentDelta,
+  assertPointBalance,
+  normalizeAdjustmentReason,
+} from "../../shared/admin/volunteerRules";
+import { historyRefs, requireCheckedInForParticipant, type CheckedInDoc } from "./checkedInLookup";
+
+type ParticipantId = GenericId<"participants">;
+type CheckedInId = GenericId<"checkedIn">;
+type EventId = GenericId<"events">;
+type AdminId = GenericId<"admins">;
+type EventDoc = DocumentByName<DataModel, "events">;
+
+/** Log actions whose `pointsDelta` counts toward the balance. Event awards count from their own table. */
+const LEDGER_DELTA_ACTIONS = new Set<string>(["admin_adjust", "shop_purchase", "shop_refund"]);
+
+async function requireStoredEvent(ctx: MutationCtx, eventId: EventId) {
+  const event = await ctx.db.get(eventId);
+  if (!event) {
+    throw adminError("EVENT_NOT_FOUND");
+  }
+  if (!event.active) {
+    throw adminError("EVENT_INACTIVE");
+  }
+  return event;
+}
+
+/**
+ * Eligibility comes from the linked application review, not from the
+ * participant row existing. A missing review row is not eligible.
+ */
+export async function isParticipantEligible(
+  ctx: QueryCtx | MutationCtx,
+  participant: { applicationId: GenericId<"applications"> },
+) {
+  const review = await ctx.db
+    .query("applicationReviews")
+    .withIndex("by_application", (q) => q.eq("applicationId", participant.applicationId))
+    .unique();
+  return review?.status === "accepted";
+}
+
+/** Throwing variant for callers whose failures should roll back the transaction. */
+export async function requireEligibleParticipant(ctx: MutationCtx, participantId: ParticipantId) {
+  const participant = await ctx.db.get(participantId);
+  if (!participant) {
+    throw adminError("PARTICIPANT_NOT_FOUND");
+  }
+  if (!await isParticipantEligible(ctx, participant)) {
+    throw adminError("PARTICIPANT_NOT_ELIGIBLE");
+  }
+  return participant;
+}
+
+/**
+ * Awards an event's fixed points once. **Not an auth boundary.**
+ *
+ * Does not verify session, volunteer role, capability, or event assignment.
+ * Public scan mutations must call `requireVolunteerEventAccess` (and capability
+ * guards) first, then pass `actorAdminId` from the guard result.
+ *
+ * The event must be switched on. Schedule times are not checked. Award row,
+ * balance, and log are written in the caller's mutation transaction.
+ */
+export async function awardEventPoints(
+  ctx: MutationCtx,
+  args: {
+    actorAdminId: AdminId;
+    participantId: ParticipantId;
+    eventId: EventId;
+    now: number;
+  },
+) {
+  await requireEligibleParticipant(ctx, args.participantId);
+  const checkedIn = await requireCheckedInForParticipant(ctx, args.participantId);
+  const event = await requireStoredEvent(ctx, args.eventId);
+  const result = await applyEventAward(ctx, {
+    actorAdminId: args.actorAdminId,
+    checkedIn,
+    event,
+    now: args.now,
+  });
+  if (result.status === "already_awarded") {
+    throw adminError("POINTS_ALREADY_AWARDED");
+  }
+  const { previousPoints, newPoints, pointsAwarded } = result;
+  return { previousPoints, newPoints, pointsAwarded };
+}
+
+/**
+ * Award core for a checked-in attendee and event the caller has already loaded
+ * and checked. **Not an auth boundary.** Returns `already_awarded` instead of
+ * throwing so scan mutations keep their rate-limit rows.
+ *
+ * The amount always comes from the stored event. The award lookup and all
+ * writes run in the caller's transaction: if two scans race, Convex retries
+ * the loser, which then sees the first award and returns `already_awarded`.
+ */
+export async function applyEventAward(
+  ctx: MutationCtx,
+  args: {
+    actorAdminId: AdminId;
+    checkedIn: CheckedInDoc;
+    event: EventDoc;
+    now: number;
+  },
+) {
+  const { checkedIn, event } = args;
+  if (!Number.isSafeInteger(event.pointsAwarded) || event.pointsAwarded <= 0) {
+    throw adminError("INVALID_EVENT");
+  }
+
+  const existing = await ctx.db
+    .query("participantEventAwards")
+    .withIndex("by_checkedIn_event", (q) =>
+      q.eq("checkedInId", checkedIn._id).eq("eventId", event._id),
+    )
+    .first();
+  if (existing) {
+    return { status: "already_awarded" as const };
+  }
+
+  const previousPoints = assertPointBalance(
+    checkedIn.points ?? await computeLedgerPoints(ctx, checkedIn._id),
+  );
+  const pointsAwarded = event.pointsAwarded;
+  const newPoints = assertPointBalance(previousPoints + pointsAwarded);
+
+  await ctx.db.insert("participantEventAwards", {
+    ...historyRefs(checkedIn._id),
+    eventId: event._id,
+    pointsAwarded,
+    awardedBy: args.actorAdminId,
+    awardedAt: args.now,
+  });
+  await ctx.db.patch(checkedIn._id, pointBalancePatch(previousPoints, newPoints, args.now));
+  await ctx.db.insert("volunteerActionLogs", {
+    actorAdminId: args.actorAdminId,
+    ...historyRefs(checkedIn._id),
+    action: "point_scan",
+    eventId: event._id,
+    pointsDelta: pointsAwarded,
+    previousPoints,
+    newPoints,
+    createdAt: args.now,
+  });
+
+  return { status: "success" as const, previousPoints, newPoints, pointsAwarded };
+}
+
+/**
+ * Once one award exists `events.pointsAwarded` is locked, so every participant
+ * gets the same amount. Past award rows keep their own `pointsAwarded` either
+ * way; corrections go through `adjustPoints`.
+ */
+export async function eventHasAwards(ctx: QueryCtx | MutationCtx, eventId: EventId) {
+  const award = await ctx.db
+    .query("participantEventAwards")
+    .withIndex("by_event", (q) => q.eq("eventId", eventId))
+    .first();
+  return award !== null;
+}
+
+/**
+ * Signed point adjustment. **Not a session auth boundary** — only checks that
+ * `actorAdminId` refers to an active admin row. Public mutations must call
+ * `requireAdminRole` first and pass that admin's id.
+ */
+export async function adjustPoints(
+  ctx: MutationCtx,
+  args: {
+    actorAdminId: AdminId;
+    participantId: ParticipantId;
+    delta: number;
+    reason: string;
+  },
+) {
+  const actor = await ctx.db.get(args.actorAdminId);
+  if (!actor?.active || actor.role !== "admin") {
+    throw adminError("ADMIN_ONLY");
+  }
+
+  const participant = await ctx.db.get(args.participantId);
+  if (!participant) {
+    throw adminError("PARTICIPANT_NOT_FOUND");
+  }
+  const checkedIn = await requireCheckedInForParticipant(ctx, args.participantId);
+
+  const delta = assertAdjustmentDelta(args.delta);
+  const reason = normalizeAdjustmentReason(args.reason);
+  const previousPoints = assertPointBalance(checkedIn.points ?? 0);
+  const newPoints = assertPointBalance(previousPoints + delta);
+  const now = Date.now();
+
+  await ctx.db.patch(checkedIn._id, pointBalancePatch(previousPoints, newPoints, now));
+  await ctx.db.insert("volunteerActionLogs", {
+    actorAdminId: args.actorAdminId,
+    ...historyRefs(checkedIn._id),
+    action: "admin_adjust",
+    pointsDelta: delta,
+    previousPoints,
+    newPoints,
+    reason,
+    createdAt: now,
+  });
+
+  return { previousPoints, newPoints, pointsDelta: delta };
+}
+
+/**
+ * Awards plus signed `admin_adjust`, `shop_purchase`, and `shop_refund` deltas,
+ * plus minigame `slotSpins` deltas. `point_scan` logs are not added again.
+ */
+export async function computeLedgerPoints(
+  ctx: QueryCtx | MutationCtx,
+  checkedInId: CheckedInId,
+) {
+  const awards = await ctx.db
+    .query("participantEventAwards")
+    .withIndex("by_checkedIn_event", (q) => q.eq("checkedInId", checkedInId))
+    .collect();
+  const logs = await ctx.db
+    .query("volunteerActionLogs")
+    .withIndex("by_checkedIn", (q) => q.eq("checkedInId", checkedInId))
+    .collect();
+
+  let total = 0;
+  for (const award of awards) {
+    if (!Number.isSafeInteger(award.pointsAwarded)) {
+      throw adminError("INVALID_POINTS");
+    }
+    total += award.pointsAwarded;
+  }
+  for (const log of logs) {
+    if (!LEDGER_DELTA_ACTIONS.has(log.action) || log.pointsDelta === undefined) {
+      continue;
+    }
+    if (!Number.isSafeInteger(log.pointsDelta)) {
+      throw adminError("INVALID_POINTS");
+    }
+    total += log.pointsDelta;
+  }
+  const spins = await ctx.db
+    .query("slotSpins")
+    .withIndex("by_checkedIn_createdAt", (q) => q.eq("checkedInId", checkedInId))
+    .collect();
+  for (const spin of spins) {
+    if (!Number.isSafeInteger(spin.pointsDelta)) {
+      throw adminError("INVALID_POINTS");
+    }
+    total += spin.pointsDelta;
+  }
+  return assertPointBalance(total);
+}
+
+/**
+ * Patch for a cached balance write. Sets `pointsReachedAt` only when the total
+ * actually changes to a positive value; clears it at 0. Duplicate scans and
+ * no-op adjustments never call this with a new total.
+ */
+export function pointBalancePatch(previousPoints: number, newPoints: number, now: number) {
+  if (newPoints === previousPoints) {
+    return { points: newPoints, updatedAt: now };
+  }
+  if (newPoints > 0) {
+    return { points: newPoints, updatedAt: now, pointsReachedAt: now };
+  }
+  return { points: newPoints, updatedAt: now, pointsReachedAt: undefined };
+}

@@ -1,0 +1,1208 @@
+/*
+ * Olympus Slots: 16-bit, 2D pixel-art styles for the minigame SPA.
+ * Everything is scoped under .minigame and the SPA ships its own fonts, so
+ * nothing depends on (or leaks into) the host page. Hard edges only: no blur,
+ * no soft gradients. Injected on mount, removed on unmount.
+ */
+@font-face {
+  font-family: "Press Start 2P";
+  src: url("./fonts/press-start-2p-latin-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pixelify Sans";
+  src: url("./fonts/pixelify-sans-latin-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pixelify Sans";
+  src: url("./fonts/pixelify-sans-latin-600.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+.minigame {
+  --mg-night: #0b1d33;
+  --mg-deep: #102f46;
+  --mg-ocean: #305873;
+  --mg-mist: #8ca1aa;
+  --mg-marble: #f6eddf;
+  --mg-sand: #eadcc2;
+  --mg-sand-shade: #c9b48f;
+  --mg-ink: #1a1028;
+  --mg-gold: #ffd23f;
+  --mg-gold-dark: #c98a1a;
+  --mg-gold-light: #fff2b3;
+  --mg-rust: #b5481c;
+  --mg-clay: #c8553d;
+  --mg-red: #d8483f;
+  --mg-dialog: #1f3f8a;
+  --mg-cyan: #5ce1e6;
+  --mg-win: #7ee081;
+  --mg-loss: #ffa49b;
+  --mg-display: "Press Start 2P", ui-monospace, monospace;
+  --mg-body: "Pixelify Sans", ui-monospace, monospace;
+
+  container: minigame / inline-size;
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  overflow: hidden;
+  padding: 24px 28px;
+  background: var(--mg-night);
+  border: 4px solid var(--mg-ink);
+  color: var(--mg-marble);
+  font-family: var(--mg-body);
+  font-size: 17px;
+  line-height: 1.3;
+  -webkit-font-smoothing: none;
+}
+
+.minigame *,
+.minigame *::before,
+.minigame *::after {
+  box-sizing: border-box;
+}
+
+.minigame [hidden] {
+  display: none !important;
+}
+
+:where(.minigame) p,
+:where(.minigame) h1,
+:where(.minigame) h2,
+:where(.minigame) ul,
+:where(.minigame) dl,
+:where(.minigame) dd {
+  margin: 0;
+  padding: 0;
+}
+
+:where(.minigame) ul {
+  list-style: none;
+}
+
+:where(.minigame) button {
+  appearance: none;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+:where(.minigame) button:disabled {
+  cursor: not-allowed;
+}
+
+.minigame button:focus-visible {
+  outline: 4px solid var(--mg-cyan);
+  outline-offset: 3px;
+}
+
+.minigame__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@keyframes minigame-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes minigame-pop {
+  0% {
+    transform: translate(-50%, 12px);
+  }
+  30% {
+    transform: translate(-50%, -6px);
+  }
+  60%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes minigame-land {
+  0% {
+    transform: translateY(-6px);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* ---- night sky ---- */
+.minigame__stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.minigame__star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #4f7391;
+}
+
+.minigame__star--big {
+  width: 4px;
+  height: 4px;
+}
+
+.minigame__star--gold {
+  background: var(--mg-gold);
+}
+
+.minigame__header,
+.minigame__layout,
+.minigame__history {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- header ---- */
+.minigame__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.minigame__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.minigame__brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.minigame__title {
+  font-family: var(--mg-display);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--mg-gold);
+  text-shadow:
+    3px 3px 0 var(--mg-rust),
+    6px 6px 0 var(--mg-ink);
+}
+
+.minigame__tagline {
+  font-size: 17px;
+  color: var(--mg-mist);
+}
+
+.minigame__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.minigame__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  font-family: var(--mg-display);
+  font-size: 11px;
+  border: 3px solid var(--mg-ink);
+  box-shadow: 3px 3px 0 #000;
+}
+
+.minigame__badge--live {
+  background: var(--mg-red);
+  color: #ffffff;
+}
+
+.minigame__badge--soon {
+  background: var(--mg-gold);
+  color: var(--mg-ink);
+}
+
+.minigame__badge--closed {
+  background: var(--mg-mist);
+  color: var(--mg-ink);
+}
+
+.minigame__badge-dot {
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+}
+
+.minigame__badge--live .minigame__badge-dot,
+.minigame__badge--soon .minigame__badge-dot {
+  animation: minigame-blink 1s steps(1) infinite;
+}
+
+.minigame__clock {
+  padding: 9px 12px;
+  background: var(--mg-deep);
+  border: 3px solid var(--mg-ocean);
+  font-family: var(--mg-display);
+  font-size: 11px;
+  color: var(--mg-marble);
+}
+
+/* ---- layout ---- */
+.minigame__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 276px;
+  gap: 24px;
+  align-items: start;
+}
+
+.minigame__machine {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* ---- temple ---- */
+.minigame__temple {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.minigame__roof {
+  height: 16px;
+  background: var(--mg-marble);
+  border: 4px solid var(--mg-ink);
+  border-bottom: 0;
+}
+
+.minigame__roof--1 {
+  width: 24%;
+}
+
+.minigame__roof--2 {
+  width: 56%;
+}
+
+.minigame__roof--3 {
+  width: 88%;
+}
+
+.minigame__frieze {
+  width: 100%;
+  padding: 9px 8px;
+  background: var(--mg-clay);
+  border: 4px solid var(--mg-ink);
+  font-family: var(--mg-display);
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-align: center;
+  color: var(--mg-marble);
+  text-shadow: 2px 2px 0 var(--mg-ink);
+}
+
+/* The win pop sits over the frieze; hide the frieze text while it shows. */
+.minigame--celebrating .minigame__frieze {
+  color: transparent;
+  text-shadow: none;
+}
+
+.minigame__bay {
+  display: flex;
+  align-items: stretch;
+  width: 94%;
+  background: var(--mg-deep);
+  border: 4px solid var(--mg-ink);
+  border-top: 0;
+}
+
+.minigame__column {
+  flex: 0 0 22px;
+  background: repeating-linear-gradient(90deg, var(--mg-marble) 0 5px, var(--mg-sand-shade) 5px 7px);
+}
+
+.minigame__column:first-child {
+  border-right: 4px solid var(--mg-ink);
+}
+
+.minigame__column:last-child {
+  border-left: 4px solid var(--mg-ink);
+}
+
+.minigame__reels-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 18px 16px 14px;
+}
+
+.minigame__payline {
+  position: absolute;
+  top: 74px;
+  width: 12px;
+  height: 20px;
+  fill: var(--mg-red);
+}
+
+.minigame__payline--left {
+  left: 2px;
+}
+
+.minigame__payline--right {
+  right: 2px;
+}
+
+.minigame__reels {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 110px));
+  justify-content: center;
+  gap: 10px;
+}
+
+.minigame__reel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.minigame__reel-window {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 110 / 128;
+  background: var(--mg-sand);
+  border: 4px solid var(--mg-ink);
+  box-shadow:
+    inset 0 -8px 0 var(--mg-sand-shade),
+    inset 0 8px 0 #fffaf0;
+}
+
+.minigame__reel-window .minigame__sprite {
+  width: 96px;
+  max-width: 88%;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.minigame__reel-label {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--mg-display);
+  font-size: 9px;
+  text-overflow: clip;
+  white-space: nowrap;
+  color: var(--mg-marble);
+}
+
+.minigame__reel--landed .minigame__reel-window {
+  animation: minigame-land 160ms steps(3) 1;
+}
+
+.minigame__reel--win .minigame__reel-window {
+  background: #ffe08a;
+  box-shadow:
+    inset 0 -8px 0 #e0b03c,
+    inset 0 8px 0 #fff6cf,
+    0 0 0 4px var(--mg-gold);
+}
+
+.minigame__reel--win .minigame__reel-label {
+  color: var(--mg-gold);
+}
+
+.minigame--teaser .minigame__reel-window {
+  background: #16324a;
+  box-shadow:
+    inset 0 -8px 0 #0f2638,
+    inset 0 8px 0 #1f4260;
+}
+
+.minigame__step {
+  height: 10px;
+  border: 4px solid var(--mg-ink);
+  border-top: 0;
+}
+
+.minigame__step--1 {
+  width: 97%;
+  background: var(--mg-sand);
+}
+
+.minigame__step--2 {
+  width: 100%;
+  background: var(--mg-sand-shade);
+}
+
+/* ---- jackpot / win pop ---- */
+.minigame__pop {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  z-index: 2;
+  transform: translateX(-50%);
+  font-family: var(--mg-display);
+  font-size: 24px;
+  white-space: nowrap;
+  color: var(--mg-win);
+  text-shadow:
+    3px 3px 0 #1b5e20,
+    6px 6px 0 var(--mg-ink);
+  animation: minigame-pop 420ms steps(4) 1;
+  pointer-events: none;
+}
+
+.minigame__pop--jackpot {
+  top: -36px;
+  font-size: 34px;
+  color: var(--mg-gold);
+  text-shadow:
+    4px 4px 0 var(--mg-rust),
+    8px 8px 0 var(--mg-ink);
+}
+
+.minigame__sparkles {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.minigame__sparkle {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: var(--mg-gold);
+  box-shadow:
+    5px 0 0 var(--mg-gold),
+    -5px 0 0 var(--mg-gold),
+    0 5px 0 var(--mg-gold),
+    0 -5px 0 var(--mg-gold);
+  animation: minigame-blink 0.7s steps(1) infinite;
+}
+
+.minigame__sparkle:nth-child(even) {
+  background: var(--mg-gold-light);
+  box-shadow:
+    5px 0 0 var(--mg-gold-light),
+    -5px 0 0 var(--mg-gold-light),
+    0 5px 0 var(--mg-gold-light),
+    0 -5px 0 var(--mg-gold-light);
+}
+
+/* ---- RPG dialog box ---- */
+.minigame__dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 84px;
+  margin: 4px;
+  padding: 14px 40px 14px 18px;
+  background: var(--mg-dialog);
+  border: 4px solid var(--mg-marble);
+  outline: 4px solid var(--mg-ink);
+}
+
+.minigame__dialog-title {
+  font-family: var(--mg-display);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--mg-cyan);
+}
+
+.minigame__dialog-title--gold {
+  color: var(--mg-gold);
+}
+
+.minigame__dialog-title--green {
+  color: var(--mg-win);
+}
+
+.minigame__dialog-title--cyan {
+  color: var(--mg-cyan);
+}
+
+.minigame__dialog-title--marble {
+  color: var(--mg-marble);
+}
+
+.minigame__dialog-title--coral {
+  color: var(--mg-loss);
+}
+
+.minigame__dialog-line {
+  font-size: 20px;
+  color: var(--mg-marble);
+}
+
+/* Techno's dialog: name tag, portrait, typed line, tutorial controls. */
+.minigame__dialog--techno {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 16px 40px 14px 16px;
+}
+
+.minigame__nametag {
+  position: absolute;
+  top: -20px;
+  left: 12px;
+  padding: 5px 8px;
+  background: var(--mg-cyan);
+  color: var(--mg-ink);
+  border: 3px solid var(--mg-ink);
+  font-family: var(--mg-display);
+  font-size: 9px;
+  line-height: 1;
+}
+
+.minigame__portrait {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
+  background: var(--mg-night);
+  border: 4px solid var(--mg-ink);
+  box-shadow: inset 0 0 0 2px var(--mg-ocean);
+}
+
+.minigame__hacker-wrap {
+  display: block;
+  width: 80px;
+  height: 80px;
+}
+
+.minigame__hacker-wrap .minigame__hacker {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.minigame__dialog-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.minigame__dialog--techno .minigame__dialog-line {
+  min-height: 52px;
+  font-size: 19px;
+  line-height: 1.35;
+}
+
+.minigame__tutorial {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.minigame__tut-btn {
+  min-height: 44px;
+  padding: 0 14px;
+  background: var(--mg-night);
+  color: var(--mg-marble);
+  font-family: var(--mg-display);
+  font-size: 11px;
+  border: 3px solid var(--mg-ink);
+  box-shadow: 3px 3px 0 #000;
+}
+
+.minigame__tut-btn--next {
+  background: var(--mg-gold);
+  color: var(--mg-ink);
+}
+
+.minigame__tut-btn:hover {
+  background: var(--mg-ocean);
+  color: var(--mg-marble);
+}
+
+.minigame__tut-btn--next:hover {
+  background: #ffe066;
+  color: var(--mg-ink);
+}
+
+.minigame__tut-count {
+  margin-left: auto;
+  font-family: var(--mg-display);
+  font-size: 10px;
+  color: #b9c8ff;
+}
+
+/* Tutorial highlight: a hard-edged cyan outline that blinks (steady with reduced motion). */
+@keyframes minigame-tut-blink {
+  0%,
+  49% {
+    outline-color: var(--mg-cyan);
+  }
+  50%,
+  100% {
+    outline-color: transparent;
+  }
+}
+
+.minigame .minigame__tut-target {
+  outline: 4px solid var(--mg-cyan);
+  outline-offset: 6px;
+  animation: minigame-tut-blink 0.6s steps(1) infinite;
+}
+
+.minigame .minigame__box.minigame__tut-target {
+  outline-offset: 0;
+}
+
+.minigame__dialog-caret {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--mg-marble);
+  animation: minigame-blink 0.8s steps(1) infinite;
+}
+
+/* ---- control panel ---- */
+.minigame__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.minigame__box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px;
+  padding: 14px;
+  background: var(--mg-deep);
+  border: 4px solid var(--mg-marble);
+  outline: 4px solid var(--mg-ink);
+}
+
+.minigame__box-label,
+.minigame__history-label {
+  font-family: var(--mg-display);
+  font-size: 10px;
+  color: var(--mg-mist);
+}
+
+.minigame__balance {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.minigame__coin {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  background: var(--mg-gold);
+  border: 3px solid var(--mg-ink);
+  box-shadow:
+    inset -4px -4px 0 var(--mg-gold-dark),
+    inset 4px 4px 0 var(--mg-gold-light);
+}
+
+.minigame__balance-value {
+  font-family: var(--mg-display);
+  font-size: 26px;
+  color: var(--mg-gold);
+}
+
+.minigame__balance-unit {
+  font-size: 18px;
+}
+
+.minigame__wager-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.minigame__wager {
+  min-height: 44px;
+  padding: 0 4px;
+  background: var(--mg-night);
+  color: var(--mg-marble);
+  font-family: var(--mg-display);
+  font-size: 12px;
+  border: 3px solid var(--mg-ink);
+  box-shadow: 3px 3px 0 #000;
+}
+
+.minigame__wager:hover:not(:disabled) {
+  background: var(--mg-ocean);
+}
+
+.minigame__wager--active,
+.minigame__wager--active:hover:not(:disabled) {
+  background: var(--mg-gold);
+  color: var(--mg-ink);
+}
+
+.minigame__wager:disabled:not(.minigame__wager--active) {
+  color: var(--mg-mist);
+}
+
+.minigame__spin {
+  min-height: 72px;
+  margin: 4px 8px 10px;
+  padding: 0 8px;
+  background: var(--mg-gold);
+  color: var(--mg-ink);
+  font-family: var(--mg-display);
+  font-size: 18px;
+  border: 0;
+  box-shadow:
+    0 6px 0 var(--mg-gold-dark),
+    0 0 0 4px var(--mg-ink);
+}
+
+.minigame__spin:hover:not(:disabled) {
+  background: #ffe066;
+}
+
+.minigame__spin:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow:
+    0 2px 0 var(--mg-gold-dark),
+    0 0 0 4px var(--mg-ink);
+}
+
+.minigame__spin:disabled {
+  filter: grayscale(0.7) brightness(0.75);
+}
+
+.minigame__payouts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.minigame__payouts > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.minigame__mult {
+  font-family: var(--mg-display);
+  font-size: 11px;
+  color: var(--mg-marble);
+}
+
+.minigame__mult--gold {
+  color: var(--mg-gold);
+}
+
+.minigame__mult--win {
+  color: var(--mg-win);
+}
+
+.minigame__mult--loss {
+  color: var(--mg-loss);
+}
+
+/* ---- last spins ---- */
+.minigame__history {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+}
+
+.minigame__history-label {
+  font-size: 9px;
+}
+
+.minigame__history-empty {
+  font-size: 16px;
+  color: var(--mg-mist);
+}
+
+.minigame__history-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.minigame__chip {
+  padding: 5px 8px;
+  background: var(--mg-deep);
+  border: 3px solid var(--mg-ink);
+  font-family: var(--mg-display);
+  font-size: 10px;
+}
+
+.minigame__chip--up {
+  color: var(--mg-win);
+}
+
+.minigame__chip--down {
+  color: var(--mg-loss);
+}
+
+.minigame__chip--even {
+  color: var(--mg-marble);
+}
+
+/* ---- display switch: NORMAL | FULL SCREEN (laptop/desktop browsers only; JS decides visibility) ---- */
+.minigame__display {
+  display: inline-flex;
+  border: 3px solid var(--mg-marble);
+  box-shadow: 3px 3px 0 #000;
+}
+
+.minigame__display[hidden] {
+  display: none;
+}
+
+.minigame__display-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  font-family: var(--mg-display);
+  font-size: 11px;
+  color: var(--mg-marble);
+  background: var(--mg-deep);
+  border: 0;
+}
+
+.minigame__display-option + .minigame__display-option {
+  border-left: 3px solid var(--mg-marble);
+}
+
+.minigame__display-option:hover {
+  background: var(--mg-ocean);
+}
+
+.minigame__display-option[aria-pressed="true"] {
+  background: var(--mg-gold);
+  color: var(--mg-ink);
+  cursor: default;
+}
+
+.minigame__display-option:focus-visible {
+  position: relative;
+  outline: 4px solid var(--mg-cyan);
+  outline-offset: 2px;
+}
+
+.minigame__fs-icon {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+/* ---- browser full screen (the root is the fullscreen element; the UA sizes it) ---- */
+.minigame--fullscreen {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 0;
+  padding: clamp(16px, 3vh, 40px) clamp(16px, 4vw, 56px);
+  gap: clamp(18px, 2.6vh, 32px);
+}
+
+.minigame--fullscreen .minigame__stars {
+  position: fixed;
+}
+
+.minigame--fullscreen > :not(.minigame__stars, .minigame__sparkles) {
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+}
+
+/* Spare height goes above and below the machine; auto margins collapse to 0 when the
+   content is taller than the screen, so nothing is ever clipped. */
+.minigame--fullscreen > .minigame__layout {
+  margin-block: auto;
+}
+
+@media (min-width: 1100px) {
+  .minigame--fullscreen .minigame__layout {
+    grid-template-columns: minmax(0, 1fr) clamp(276px, 22vw, 340px);
+    gap: clamp(24px, 2.5vw, 40px);
+  }
+
+  .minigame--fullscreen .minigame__reels {
+    grid-template-columns: repeat(4, minmax(0, clamp(110px, min(12vw, 21vh), 210px)));
+    gap: clamp(10px, 1.2vw, 20px);
+  }
+
+  .minigame--fullscreen .minigame__reel-window .minigame__sprite {
+    width: 80%;
+    max-width: none;
+  }
+
+  .minigame--fullscreen .minigame__reel-label {
+    font-size: clamp(9px, 0.75vw, 12px);
+  }
+
+  .minigame--fullscreen .minigame__payline {
+    top: calc(50% - 22px);
+  }
+
+  .minigame--fullscreen .minigame__title {
+    font-size: clamp(24px, 2.2vw, 34px);
+  }
+}
+
+/* ---- stacked layout (narrow container, e.g. phones and the ≤900px portal) ---- */
+@container minigame (max-width: 820px) {
+  .minigame__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .minigame__title {
+    font-size: 18px;
+    text-shadow:
+      2px 2px 0 var(--mg-rust),
+      4px 4px 0 var(--mg-ink);
+  }
+
+  .minigame__tagline {
+    font-size: 15px;
+  }
+
+  .minigame__badge,
+  .minigame__clock {
+    padding: 7px 9px;
+    font-size: 9px;
+  }
+
+  .minigame__layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .minigame__roof {
+    height: 10px;
+    border-width: 3px;
+  }
+
+  .minigame__frieze {
+    padding: 7px;
+    font-size: 9px;
+    letter-spacing: 3px;
+    border-width: 3px;
+  }
+
+  .minigame__bay {
+    border-width: 3px;
+  }
+
+  .minigame__column {
+    flex-basis: 10px;
+    background: repeating-linear-gradient(90deg, var(--mg-marble) 0 3px, var(--mg-sand-shade) 3px 5px);
+  }
+
+  .minigame__column:first-child {
+    border-right-width: 3px;
+  }
+
+  .minigame__column:last-child {
+    border-left-width: 3px;
+  }
+
+  .minigame__reels-wrap {
+    padding: 12px 6px 10px;
+  }
+
+  .minigame__payline {
+    display: none;
+  }
+
+  .minigame__reels {
+    grid-template-columns: repeat(4, minmax(0, 76px));
+    gap: 6px;
+  }
+
+  .minigame__reel {
+    gap: 6px;
+  }
+
+  .minigame__reel-window {
+    aspect-ratio: 72 / 82;
+    border-width: 3px;
+    box-shadow:
+      inset 0 -6px 0 var(--mg-sand-shade),
+      inset 0 6px 0 #fffaf0;
+  }
+
+  .minigame__reel--win .minigame__reel-window {
+    box-shadow:
+      inset 0 -6px 0 #e0b03c,
+      inset 0 6px 0 #fff6cf,
+      0 0 0 3px var(--mg-gold);
+  }
+
+  .minigame--teaser .minigame__reel-window {
+    box-shadow:
+      inset 0 -6px 0 #0f2638,
+      inset 0 6px 0 #1f4260;
+  }
+
+  .minigame__reel-window .minigame__sprite {
+    width: 64px;
+  }
+
+  .minigame__reel-label {
+    font-family: var(--mg-body);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .minigame__step {
+    height: 7px;
+    border-width: 3px;
+  }
+
+  .minigame__pop {
+    top: -22px;
+    font-size: 18px;
+  }
+
+  .minigame__pop--jackpot {
+    font-size: 24px;
+  }
+
+  .minigame__dialog {
+    min-height: 0;
+    margin: 3px;
+    padding: 12px 34px 12px 14px;
+    border-width: 3px;
+    outline-width: 3px;
+  }
+
+  .minigame__dialog-title {
+    font-size: 12px;
+  }
+
+  .minigame__dialog-line {
+    font-size: 18px;
+  }
+
+  .minigame__dialog--techno {
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+    padding: 14px 30px 12px 12px;
+  }
+
+  .minigame__nametag {
+    top: -16px;
+    left: 10px;
+    padding: 4px 6px;
+    font-size: 8px;
+  }
+
+  .minigame__portrait {
+    width: 62px;
+    height: 62px;
+    border-width: 3px;
+  }
+
+  .minigame__hacker-wrap {
+    width: 48px;
+    height: 48px;
+  }
+
+  .minigame__dialog--techno .minigame__dialog-line {
+    min-height: 0;
+    font-size: 16px;
+    line-height: 1.3;
+  }
+
+  .minigame__tut-btn {
+    padding: 0 10px;
+    font-size: 10px;
+  }
+
+  .minigame .minigame__tut-target {
+    outline-width: 3px;
+    outline-offset: 4px;
+  }
+
+  .minigame__box {
+    margin: 3px;
+    padding: 12px 14px;
+    border-width: 3px;
+    outline-width: 3px;
+  }
+
+  .minigame__balance-value {
+    font-size: 20px;
+  }
+
+  .minigame__wager {
+    min-height: 48px;
+  }
+
+  .minigame__spin {
+    min-height: 64px;
+  }
+}
+
+@media (max-width: 600px) {
+  .minigame {
+    gap: 14px;
+    padding: 20px 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .minigame *,
+  .minigame *::before,
+  .minigame *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
