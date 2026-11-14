@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom/client'
 import { ConvexProvider } from 'convex/react'
 import { convexClient } from './convex/client'
 import App from './App'
+import './styles/theme.css'
+import './styles/portal.css'
+import './styles/arcade.css'
 
 const root = document.getElementById('root')
 if (!root) throw new Error('Missing #root element')

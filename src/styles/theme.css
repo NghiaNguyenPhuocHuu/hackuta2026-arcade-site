@@ -1,0 +1,150 @@
+/*
+ * HackUTA theme tokens, fonts and base rules. Same values as
+ * hackuta-2026-profile src/styles/index.css (@theme, @font-face, @layer base),
+ * written as plain CSS because the arcade doesn't use Tailwind.
+ * portal.css (copied from profile) reads these tokens.
+ */
+@layer base, components;
+
+:root {
+  --font-sans: "Barlow Semi Condensed", "Arial Narrow", Arial, sans-serif;
+  --font-display: "CS Gelios", Georgia, "Times New Roman", serif;
+  --color-ink: #1a3a52;
+  --color-night: #102f46;
+  --color-clay: #eee3d2;
+  --color-sand: #ded0bc;
+  --color-light: #f6eddf;
+  --color-ocean: #305873;
+  --color-mist: #8ca1aa;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --ink: var(--color-ink);
+  --night: var(--color-night);
+  --clay: var(--color-clay);
+  --sand: var(--color-sand);
+  --light: var(--color-light);
+  --ocean: var(--color-ocean);
+  --mist: var(--color-mist);
+  color-scheme: light;
+}
+
+@font-face {
+  font-family: "Barlow Semi Condensed";
+  src: url("/fonts/BarlowSemiCondensed-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Barlow Semi Condensed";
+  src: url("/fonts/BarlowSemiCondensed-SemiBold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Barlow Semi Condensed";
+  src: url("/fonts/BarlowSemiCondensed-Bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "CS Gelios";
+  src: url("/fonts/CSGelios-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    background: var(--clay);
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    background: var(--clay);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 18px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button {
+    font: inherit;
+  }
+  button:not(:disabled),
+  a {
+    touch-action: manipulation;
+  }
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: default;
+  }
+  button:focus-visible,
+  a:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 6px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background: var(--ocean);
+    color: var(--light);
+  }
+  img,
+  svg {
+    display: block;
+  }
+  img {
+    max-width: 100%;
+  }
+  h1,
+  h2,
+  h3 {
+    line-height: 1;
+    letter-spacing: -0.025em;
+  }
+  h2,
+  h3 {
+    font-weight: 600;
+  }
+  p {
+    text-wrap: pretty;
+  }
+
+  @media (max-width: 767px) {
+    body {
+      font-size: 17px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

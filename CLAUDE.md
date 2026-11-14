@@ -18,11 +18,24 @@ the open items. Don't re-open decisions recorded there without the user.
   "select a different project".
 - Secrets never go in `VITE_*` variables or in git.
 
+## Theme
+
+The arcade must look like the HackUTA participant portal (profile repo). Use the
+tokens in `src/styles/theme.css` (ink, night, clay, sand, light, ocean, mist;
+Barlow Semi Condensed body, CS Gelios display) and reuse profile's class names
+from `portal.css` before writing new styles. Don't introduce new colors or fonts.
+The games themselves (e.g. Olympus Slots' pixel-art look) keep their own style.
+
 ## Layout
 
 | Path | What |
 | --- | --- |
-| `src/` | The arcade site (Vite + React + TS). `src/games/registry.ts` lists games; each game is lazy-loaded. |
+| `src/` | The arcade site (Vite + React + TS + react-router). `src/games/registry.ts` lists games; each game is lazy-loaded. |
+| `src/styles/` | `theme.css` = HackUTA tokens, fonts, base (from profile's index.css). `portal.css` = profile's participant-dashboard.css **copied verbatim, don't edit**. `arcade.css` = arcade-only styles. |
+| `src/components/brand/` | Logo, LogoMark and nav icons copied from profile; `ArcadeIcons.tsx` adds arcade icons in the same style. |
+| `src/layout/`, `src/pages/` | Portal-style shell (sidebar + main) and the Lobby, Play and full-page status screens. |
+| `src/arcade/useArcadeSession.ts` | What the UI reads from the server. **Mock data until step 1**; preview screens with `?preview=off|scheduled|signed-out|loading`. |
+| `public/` | Fonts, logos, favicons and art copied from profile's `public/`. |
 | `src/games/olympus-slots/` | Olympus Slots: `mountMinigame(el, { adapter })` returns `unmount()`. Mock and Convex adapters. |
 | `src/convex/` | Convex client and function references used by the site. |
 | `shared/` | Pure rules used by both the site and the backend (one copy). |

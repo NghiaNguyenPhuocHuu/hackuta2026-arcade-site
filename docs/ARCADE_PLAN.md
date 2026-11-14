@@ -85,7 +85,7 @@ prototype's Gamble tab used. If the query errors, the button stays hidden.
 | --- | --- | --- | --- |
 | 0 | **Repo setup:** Vite + React + TS, Convex client, safety check, tests, Olympus Slots copied in (mock points) | `npm test`, `npm run build`, `npm run backend:test` pass | **Done** |
 | 1 | **Backend:** `arcadeSettings`, `arcadeGames`, `requireGameOpen`, launch codes + `arcade-launch` provider, admin functions, audit actions, convex-test tests | `npm run backend:test` passes | Next |
-| 2 | **Site shell:** routes (`/`, `/launch`, `/play/:game`), Convex Auth client, signed-out and closed screens, live hub | Sign-in works from the local dev launcher | |
+| 2 | **Site shell:** routes (`/`, `/launch`, `/play/:game`), Convex Auth client, signed-out and closed screens, live hub | Sign-in works from the local dev launcher | UI done (HackUTA theme, lobby, play, status screens on mock data); `/launch` + auth to do |
 | 3 | **Olympus Slots on the arcade:** mount from the registry with the Convex adapter; move its schedule from `slotWindows` to the arcade switches | Playable end to end locally | |
 | 4 | **Local dev pages** in `dev/`: fake profile Arcade button + admin switch panel | Whole flow works on one machine | |
 | 5 | **Push to the sandbox** (`brazen-peccary-506`) | Works against the sandbox | Blocked: Convex access |

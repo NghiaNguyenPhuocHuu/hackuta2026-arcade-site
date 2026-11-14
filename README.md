@@ -23,7 +23,10 @@ cp .env.example .env.local   # points at the sandbox, brazen-peccary-506
 npm run dev                  # http://127.0.0.1:5473
 ```
 
-Right now the games run on mock points; the real backend arrives in step 1 of the plan.
+Right now the site runs on mock data and the games on mock points; the real backend arrives in step 1 of the plan.
+Preview the other screens with `?preview=off`, `?preview=scheduled`, `?preview=signed-out` or `?preview=loading`.
+
+The look (colors, fonts, logo, icons, layout) is taken from the HackUTA participant portal in `hackuta-2026-profile`.
 
 ## Commands
 
