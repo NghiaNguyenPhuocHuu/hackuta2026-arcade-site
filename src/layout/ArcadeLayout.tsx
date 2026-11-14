@@ -1,11 +1,14 @@
-import type { ComponentType } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { useEffect, type ComponentType } from "react";
+import { NavLink, Outlet, useMatch } from "react-router-dom";
 import { ArcadeBrand } from "../components/ArcadeBrand";
 import { ExternalIcon, NavTempleIcon } from "../components/brand/ArcadeIcons";
 import { NavSignOutIcon } from "../components/brand/NavIcons";
 import { initials, type ArcadeSession } from "../arcade/useArcadeSession";
 import { PROFILE_URL } from "../constants/site";
-import { GAMES } from "../games/registry";
+import { GAMES, findGame } from "../games/registry";
+
+const DAY_THEME_COLOR = "#102f46";
+const NIGHT_THEME_COLOR = "#071526";
 
 /**
  * The portal shell from profile (ParticipantPortalLayout): sidebar with brand,
@@ -13,12 +16,27 @@ import { GAMES } from "../games/registry";
  */
 export function ArcadeLayout({ session }: { session: ArcadeSession }) {
   const player = session.player;
+  const playing = useMatch("/play/:gameKey");
+  const night = findGame(playing?.params.gameKey)?.theme === "night";
+
+  // The page behind the app (overscroll) and the phone's browser bar follow the theme.
+  useEffect(() => {
+    const root = document.documentElement;
+    const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (night) root.dataset.arcadeTheme = "night";
+    else delete root.dataset.arcadeTheme;
+    meta?.setAttribute("content", night ? NIGHT_THEME_COLOR : DAY_THEME_COLOR);
+    return () => {
+      delete root.dataset.arcadeTheme;
+      meta?.setAttribute("content", DAY_THEME_COLOR);
+    };
+  }, [night]);
 
   return (
-    <div className="participant-dashboard">
+    <div className={`participant-dashboard${night ? " arcade-theme--night" : ""}`}>
       <aside className="participant-dashboard__sidebar" aria-label="Arcade navigation">
         <div className="participant-dashboard__sidebar-head">
-          <ArcadeBrand />
+          <ArcadeBrand night={night} />
         </div>
         <nav className="participant-dashboard__nav">
           <NavItem to="/" end label="Lobby" icon={NavTempleIcon} />

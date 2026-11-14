@@ -487,10 +487,228 @@
     }
   }
 
+  /*
+   * Night theme: the frame around a game whose registry entry has theme "night"
+   * (Olympus Slots), so the sidebar, header and page match the game's starry
+   * night palette. ArcadeLayout adds .arcade-theme--night and sets
+   * html[data-arcade-theme="night"].
+   */
+  html[data-arcade-theme="night"] {
+    background: #071526;
+  }
+
+  .participant-dashboard,
+  .participant-dashboard__sidebar,
+  .participant-dashboard__main,
+  .participant-frieze {
+    transition:
+      background-color 0.35s var(--ease-out),
+      border-color 0.35s var(--ease-out),
+      color 0.35s var(--ease-out);
+  }
+
+  .arcade-theme--night {
+    --night-sky: #071526;
+    --night-panel: #0b1d33;
+    --night-deep: #102f46;
+    --night-marble: #f6eddf;
+    --night-text: rgb(246 237 223 / 0.72);
+    --night-faint: rgb(246 237 223 / 0.12);
+    --night-gold: #ffd23f;
+
+    color-scheme: dark;
+    background: var(--night-sky);
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .participant-dashboard__sidebar {
+    border-right-color: var(--night-faint);
+    background: linear-gradient(180deg, #0e2540 0%, var(--night-panel) 100%);
+  }
+
+  /* Hard-edged pixel stars, like the game's sky. */
+  .arcade-theme--night .participant-dashboard__main {
+    background:
+      radial-gradient(1.5px 1.5px at 12% 18%, rgb(246 237 223 / 0.5) 99%, transparent),
+      radial-gradient(1.5px 1.5px at 78% 9%, rgb(255 210 63 / 0.55) 99%, transparent),
+      radial-gradient(1px 1px at 41% 63%, rgb(246 237 223 / 0.4) 99%, transparent),
+      radial-gradient(1px 1px at 88% 47%, rgb(246 237 223 / 0.35) 99%, transparent),
+      radial-gradient(1.5px 1.5px at 23% 84%, rgb(246 237 223 / 0.3) 99%, transparent),
+      radial-gradient(120% 60% at 50% -10%, #12304f 0%, transparent 60%),
+      var(--night-sky);
+    background-size: 420px 420px, 520px 520px, 360px 360px, 300px 300px, 460px 460px, 100% 100%, auto;
+    background-attachment: local;
+  }
+
+  .arcade-theme--night .participant-brand,
+  .arcade-theme--night .participant-brand__wordmark {
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .arcade-brand__tag {
+    color: var(--night-gold);
+  }
+
+  .arcade-theme--night .participant-dashboard__nav-item {
+    color: var(--night-text);
+  }
+
+  .arcade-theme--night .participant-dashboard__nav-item:hover {
+    color: var(--night-marble);
+    background: rgb(246 237 223 / 0.07);
+  }
+
+  .arcade-theme--night .participant-dashboard__nav-item--active,
+  .arcade-theme--night .participant-dashboard__nav-item--active:hover {
+    color: var(--night-gold);
+    background: rgb(255 210 63 / 0.1);
+    box-shadow: inset 0 0 0 1px rgb(255 210 63 / 0.35);
+  }
+
+  .arcade-theme--night .arcade-nav__item--soon:not(.participant-dashboard__nav-item--active) {
+    color: rgb(246 237 223 / 0.4);
+  }
+
+  .arcade-theme--night .arcade-nav__soon {
+    background: var(--night-faint);
+    color: var(--night-text);
+  }
+
+  .arcade-theme--night .arcade-nav__profile,
+  .arcade-theme--night .participant-dashboard__account {
+    border-top-color: var(--night-faint);
+  }
+
+  .arcade-theme--night .participant-avatar {
+    background: var(--night-gold);
+    color: #1a1028;
+  }
+
+  .arcade-theme--night .participant-dashboard__account-email {
+    color: var(--night-text);
+  }
+
+  .arcade-theme--night .participant-dashboard__sign-out {
+    color: var(--night-text);
+  }
+
+  .arcade-theme--night .participant-dashboard__sign-out:hover {
+    color: var(--night-marble);
+    background: rgb(246 237 223 / 0.08);
+  }
+
+  /* Page header frieze: deep panel, pillars drawn in faint light lines. */
+  .arcade-theme--night .participant-frieze {
+    border-color: rgb(246 237 223 / 0.18);
+    background: var(--night-deep);
+  }
+
+  .arcade-theme--night .participant-frieze__art {
+    filter: invert(1);
+    mix-blend-mode: screen;
+    opacity: 0.14;
+  }
+
+  .arcade-theme--night .participant-meander {
+    color: var(--night-marble);
+    opacity: 0.25;
+  }
+
+  .arcade-theme--night .participant-page-title,
+  .arcade-theme--night .participant-dashboard__panel-title {
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .participant-page-header__description,
+  .arcade-theme--night .participant-dashboard__notice-copy,
+  .arcade-theme--night .arcade-stage__loading {
+    color: var(--night-text);
+  }
+
+  .arcade-theme--night .arcade-back {
+    color: var(--night-gold);
+  }
+
+  .arcade-theme--night .arcade-back:hover {
+    color: var(--night-marble);
+    background: rgb(246 237 223 / 0.08);
+  }
+
+  .arcade-theme--night .participant-home__points {
+    border-color: var(--night-gold);
+    background: var(--night-gold);
+    color: #1a1028;
+  }
+
+  .arcade-theme--night .participant-home__points:hover {
+    border-color: #fff2b3;
+    background: #fff2b3;
+  }
+
+  .arcade-theme--night .participant-dashboard__notice {
+    border-color: var(--night-faint);
+    background: var(--night-panel);
+  }
+
+  .arcade-theme--night .participant-dashboard__cta {
+    background: var(--night-gold);
+    color: #1a1028;
+  }
+
+  .arcade-theme--night .participant-dashboard__cta:hover {
+    background: #fff2b3;
+  }
+
+  .arcade-theme--night :focus-visible {
+    outline-color: var(--night-gold);
+  }
+
+  @media (max-width: 900px) {
+    .arcade-theme--night .participant-dashboard__sidebar {
+      background: var(--night-panel);
+      border-bottom: 1px solid var(--night-faint);
+    }
+
+    .arcade-theme--night .participant-dashboard__nav-item:hover,
+    .arcade-theme--night .participant-dashboard__nav-item--active,
+    .arcade-theme--night .participant-dashboard__nav-item--active:hover {
+      background: none;
+      box-shadow: none;
+    }
+
+    .arcade-theme--night .participant-brand__static {
+      color: var(--night-marble);
+    }
+  }
+
+  /* Readability: a step up from profile's smallest text (portal.css stays verbatim). */
+  .arcade-game-card__facts li {
+    font-size: 0.875rem;
+  }
+
+  .arcade-game-card__head .participant-dashboard__badge {
+    font-size: 0.75rem;
+  }
+
+  .arcade-nav__soon {
+    font-size: 0.6875rem;
+  }
+
+  .arcade-back {
+    font-size: 0.9375rem;
+  }
+
   @media (max-width: 900px) {
     .arcade-brand__tag,
     .arcade-nav__soon {
       display: none;
+    }
+
+    /* Mobile tab labels: 11px → 12px. */
+    .participant-dashboard__nav-item,
+    .participant-dashboard__nav-item:hover,
+    .participant-dashboard__nav-item--active {
+      font-size: 0.75rem;
     }
 
     .arcade-nav__profile {

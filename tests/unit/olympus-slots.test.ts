@@ -216,11 +216,11 @@ describe("game content", () => {
   });
 
   it("picks Techno's lines for each state", () => {
-    expect(dialogueFor({ status: "teaser", opensAt: null }).title).toBe("THE GODS ARE RESTING");
+    expect(dialogueFor({ status: "teaser", opensAt: null }).title).toBe("THE GATES ARE SEALED");
     expect(dialogueFor({ status: "closed" }).line).toContain("GG, mortal");
     expect(dialogueFor({ spinning: true }).mood).toBe("focus");
     expect(dialogueFor({ tutorialStep: 1 }).title).toBe(TUTORIAL_STEPS[1]!.title);
-    expect(dialogueFor({ shortOfPoints: true, balance: 3 }).line).toContain("tapped out");
+    expect(dialogueFor({ shortOfPoints: true, balance: 3 }).line).toContain("coffers are empty");
     const result = { outcome: "win", net: 10, wager: 10, reels: ["odysseus", "odysseus", "odysseus", "zeus"], quipIndex: 0, lossStreak: 0, prevLosses: 0 };
     expect(dialogueFor({ result }).title).toBe("THREE ODYSSEUS!");
     expect(dialogueFor({ result: { ...result, outcome: "lose", net: -10, lossStreak: 3 } }).mood).toBe("shock");

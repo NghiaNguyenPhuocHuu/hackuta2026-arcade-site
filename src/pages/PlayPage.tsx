@@ -21,19 +21,19 @@ export default function PlayPage() {
   if (!game) {
     return (
       <section aria-labelledby="arcade-play-title">
-        <PageHeader id="arcade-play-title" eyebrow={back} title="Game not found" description="That game isn't in the arcade. Pick one from the lobby." />
+        <PageHeader id="arcade-play-title" eyebrow={back} title="Lost in the labyrinth" description="That game isn't in the arcade. Find your way back to the lobby." />
       </section>
     );
   }
 
   const serverEnabled = session.games.find((g) => g.key === game.key)?.enabled ?? false;
   const reason = !game.load
-    ? { title: `${game.name} is on its way`, copy: "We're still building this one. Check back during the event." }
+    ? { title: `${game.name} is on its way`, copy: "This trial is still being forged. Return during the event." }
     : !serverEnabled
-      ? { title: `${game.name} is paused`, copy: "Organizers have paused this game for now. Try another one from the lobby." }
+      ? { title: `${game.name} is paused`, copy: "Organizers have paused this trial for now. Choose another from the lobby." }
       : session.status !== "on"
         ? {
-            title: "The arcade isn't open yet",
+            title: "The gates are still sealed",
             copy: session.opensAt ? `Games open at ${formatClock(session.opensAt)}.` : "Games open when organizers start the arcade.",
           }
         : null;
@@ -96,7 +96,7 @@ function GameStage({ game }: { game: GameEntry }) {
     <div className="arcade-stage">
       {!ready && !error ? (
         <p className="arcade-stage__loading" role="status">
-          Loading {game.name}…
+          Summoning {game.name}…
         </p>
       ) : null}
       {error ? (

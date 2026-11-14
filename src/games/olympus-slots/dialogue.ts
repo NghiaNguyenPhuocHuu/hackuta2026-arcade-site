@@ -16,23 +16,23 @@ export type Dialogue = { title: string; line: string; tone: DialogTone; mood: Ha
 
 export const TUTORIAL_STEPS: readonly TutorialStep[] = Object.freeze(
   ([
-    { title: "PSST. OVER HERE.", line: "Name’s Techno. I hacked this temple’s slot machine. Want the quick tour?", target: null, mood: "smug" },
-    { title: "THE REELS", line: "Four reels, seven gods and one wandering hero. Every spin, the Fates pick who lands on each reel.", target: "reels", mood: "idle" },
-    { title: "YOUR POINTS", line: "This is your balance. Every spin costs your wager, paid up front.", target: "balance", mood: "idle" },
-    { title: "THE WAGER", line: "Bet 5, 10, 25 or 50. Bigger bet, bigger payout. Bigger pain.", target: "wager", mood: "smug" },
-    { title: "THE ODDS", line: "Zeus × 4 pays 5×. Three of a kind, 2×. Two pairs gets your bet back. Anything else, the gods keep it.", target: "payouts", mood: "idle" },
-    { title: "YOUR MOVE", line: "Hit SPIN. I’ll be right here, watching what the Fates decide.", target: "spin", mood: "cheer" },
+    { title: "HALT, MORTAL.", line: "Name’s Techno. I broke into this cursed temple’s machine. Want to learn its secrets?", target: null, mood: "smug" },
+    { title: "THE REELS", line: "Four reels, seven gods and one doomed hero. Each spin, the Fates choose who rises on every reel.", target: "reels", mood: "idle" },
+    { title: "YOUR TREASURE", line: "Your balance. Every spin demands your wager as tribute, paid up front.", target: "balance", mood: "idle" },
+    { title: "THE TRIBUTE", line: "Offer 5, 10, 25 or 50. Bigger tribute, bigger glory. Bigger fall.", target: "wager", mood: "smug" },
+    { title: "THE ODDS", line: "Zeus × 4 pays 5×. Three of a kind, 2×. Two pairs returns your tribute. Anything else, the gods devour it.", target: "payouts", mood: "idle" },
+    { title: "FACE YOUR FATE", line: "Hit SPIN, hero. I’ll be right here, watching what the Fates decide.", target: "spin", mood: "cheer" },
   ] satisfies TutorialStep[]).map((step) => Object.freeze(step)),
 );
 
 const QUIPS = Object.freeze({
-  big: ["+{n} pts. I did NOT rig that. ...Probably.", "+{n} pts. Zeus just wired you his paycheck.", "+{n} pts. Screenshot it. Nobody will believe you."],
-  win: ["+{n} pts. The firewall never saw you coming.", "+{n} pts. Clean exploit. I’m proud of you.", "+{n} pts. Keep that streak compiling."],
-  push: ["Your {w} pts come back. Net zero, like my sleep schedule.", "Your {w} pts come back. The gods just shrugged.", "Your {w} pts come back. A draw. Run it again."],
-  lose: ["−{w} pts. Ouch. Even I can’t patch that.", "−{w} pts. The Fates have tight security.", "−{w} pts. Shake it off. Fresh RNG next spin."],
+  big: ["+{n} pts. Zeus hurls his thunder in YOUR favor.", "+{n} pts. Olympus trembles. They’ll sing of this spin.", "+{n} pts. Even Hades looked up from the Underworld."],
+  win: ["+{n} pts. You stormed the gates and walked out rich.", "+{n} pts. A hero’s haul. The gods take notice.", "+{n} pts. Your legend grows. Keep climbing."],
+  push: ["Your {w} pts return. The Fates hold their blades... for now.", "Your {w} pts return. The gods spare you, this once.", "Your {w} pts return. A stalemate with the immortals."],
+  lose: ["−{w} pts. Swallowed whole by the Underworld.", "−{w} pts. Cerberus feasts tonight.", "−{w} pts. The Fates cut that thread. Rise again."],
 });
-const COMEBACK = "+{n} pts. Comeback! Told you the code was clean.";
-const STREAK = "−{w} pts. That’s {k} in a row. Maybe drop the wager?";
+const COMEBACK = "+{n} pts. Back from the Underworld! Heroes never stay down.";
+const STREAK = "−{w} pts. {k} in a row. Tartarus is calling. Lower your tribute?";
 
 /** The landed spin, as the dialogue needs it. */
 export type ResultContext = {
@@ -104,15 +104,15 @@ export function dialogueFor(ctx: DialogueContext = {}): Dialogue {
   if (status === "teaser") {
     const when = formatOpensAt(opensAt);
     const line = when
-      ? `Temple’s locked until ${when}. I’m working on a way in.`
-      : "Temple’s locked until it opens. I’m working on a way in.";
-    return { title: "THE GODS ARE RESTING", line, tone: "gold", mood: "smug" };
+      ? `The temple stays sealed until ${when}. Something stirs behind the doors.`
+      : "The temple stays sealed until it opens. Something stirs behind the doors.";
+    return { title: "THE GATES ARE SEALED", line, tone: "gold", mood: "smug" };
   }
   if (spinning) {
-    return { title: "THE REELS TURN...", line: "Come on, come on... reading the reels.", tone: "cyan", mood: "focus" };
+    return { title: "THE FATES ARE SPINNING...", line: "Steady, hero... the threads are being woven.", tone: "cyan", mood: "focus" };
   }
   if (status === "closed") {
-    return { title: "THE TEMPLE IS CLOSED", line: "Game over. I’m logging off. GG, mortal.", tone: "gold", mood: "sad" };
+    return { title: "THE TEMPLE IS SEALED", line: "The torches die out. I vanish into the dark. GG, mortal.", tone: "gold", mood: "sad" };
   }
   const step = typeof tutorialStep === "number" && Number.isInteger(tutorialStep) && tutorialStep >= 0 ? TUTORIAL_STEPS[tutorialStep] : undefined;
   if (step) {
@@ -121,13 +121,13 @@ export function dialogueFor(ctx: DialogueContext = {}): Dialogue {
   if (shortOfPoints) {
     return {
       title: "NOT ENOUGH POINTS",
-      line: int(balance) < 10 ? "You’re tapped out. The gods win this round." : "That wager’s too rich. Drop it to keep spinning.",
+      line: int(balance) < 10 ? "Your coffers are empty. The gods have claimed this round." : "The gods refuse a tribute you can’t pay. Lower your wager.",
       tone: "coral",
       mood: "sad",
     };
   }
   if (!result) {
-    return { title: "READY, MORTAL?", line: "Pick a wager and press SPIN. I’ll be watching.", tone: "cyan", mood: "idle" };
+    return { title: "READY, HERO?", line: "Choose your tribute and press SPIN. The gods are watching.", tone: "cyan", mood: "idle" };
   }
 
   const comeback = int(result.prevLosses) >= 2;
@@ -147,8 +147,8 @@ export function dialogueFor(ctx: DialogueContext = {}): Dialogue {
       return { title: "TWO PAIRS: A DRAW", line: pick(QUIPS.push, result), tone: "marble", mood: "idle" };
     default:
       if (int(result.lossStreak) >= 3) {
-        return { title: "THE FATES SAY NO", line: fill(STREAK, result), tone: "coral", mood: "shock" };
+        return { title: "DOOMED BY THE FATES", line: fill(STREAK, result), tone: "coral", mood: "shock" };
       }
-      return { title: "THE FATES SAY NO", line: pick(QUIPS.lose, result), tone: "coral", mood: "sad" };
+      return { title: "DOOMED BY THE FATES", line: pick(QUIPS.lose, result), tone: "coral", mood: "sad" };
   }
 }

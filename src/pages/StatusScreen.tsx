@@ -9,15 +9,15 @@ import { PROFILE_URL } from "../constants/site";
  */
 export function StatusScreen({ kind }: { kind: "loading" | "signed-out" | "off" }) {
   const copy = {
-    loading: { title: "Opening the arcade…", body: null, cta: false },
+    loading: { title: "Opening the gates…", body: null, cta: false },
     "signed-out": {
-      title: "Enter from your profile",
-      body: "The arcade opens from the Arcade button on your HackUTA participant dashboard. You'll be signed in automatically.",
+      title: "Enter through your profile",
+      body: "The way in is the Arcade button on your HackUTA participant dashboard. You'll be signed in automatically.",
       cta: true,
     },
     off: {
-      title: "The arcade is closed",
-      body: "Organizers open the arcade at set times during the event. Watch your dashboard for the Arcade button.",
+      title: "The gates are sealed",
+      body: "Organizers open the arcade at set times during the event. Watch your dashboard for the Arcade button to return.",
       cta: true,
     },
   }[kind];

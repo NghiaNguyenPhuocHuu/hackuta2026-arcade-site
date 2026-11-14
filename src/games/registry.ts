@@ -19,6 +19,8 @@ export type GameEntry = {
   /** Short facts shown as chips on the card. */
   facts: string[]
   icon: ComponentType<{ className?: string }>
+  /** "night" switches the whole arcade frame to a dark theme on this game's page. */
+  theme?: 'night'
   /** null while the game is still being built ("Coming soon"). */
   load: (() => Promise<MountGame>) | null
 }
@@ -27,15 +29,16 @@ export const GAMES: readonly GameEntry[] = [
   {
     key: 'olympus-slots',
     name: 'Olympus Slots',
-    tagline: 'Four reels of gods and heroes. Line them up and test your fate.',
+    tagline: 'Four reels of gods and monsters. Line them up and defy your fate.',
     facts: ['Solo', 'Wagers 5–50 pts'],
     icon: NavSlotsIcon,
+    theme: 'night',
     load: () => import('./olympus-slots/mountMinigame').then((m) => m.mountMinigame),
   },
   {
     key: 'pvp-blackjack',
     name: 'PvP Blackjack',
-    tagline: 'Sit at a table with other hackers and beat the dealer.',
+    tagline: 'Face rival hackers across the table and conquer the dealer.',
     facts: ['Multiplayer', 'Live tables'],
     icon: NavCardsIcon,
     load: null,

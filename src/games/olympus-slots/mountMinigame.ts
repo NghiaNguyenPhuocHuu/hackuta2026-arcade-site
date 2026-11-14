@@ -194,7 +194,7 @@ function template({ uid }: { uid: number }) {
       <div class="minigame__brand">
         <div class="minigame__brand-copy">
           <h1 class="minigame__title">OLYMPUS SLOTS</h1>
-          <p class="minigame__tagline">Wager your points. Tempt the gods.</p>
+          <p class="minigame__tagline">Offer your points. Defy the gods.</p>
         </div>
       </div>
       <div class="minigame__status">
@@ -215,7 +215,7 @@ function template({ uid }: { uid: number }) {
           <span class="minigame__roof minigame__roof--1" aria-hidden="true"></span>
           <span class="minigame__roof minigame__roof--2" aria-hidden="true"></span>
           <span class="minigame__roof minigame__roof--3" aria-hidden="true"></span>
-          <div class="minigame__frieze" aria-hidden="true">TEST YOUR FATE</div>
+          <div class="minigame__frieze" aria-hidden="true">FACE YOUR FATE</div>
           <div class="minigame__bay" data-tut="reels">
             <span class="minigame__column" aria-hidden="true"></span>
             <div class="minigame__reels-wrap">
@@ -608,11 +608,11 @@ export function mountMinigame(el: HTMLElement, options: MountMinigameOptions): (
   function renderHistory() {
     const spins = state.recentSpins;
     const emptyText: Partial<Record<GameStatus, string>> = {
-      teaser: "Your spins will show here once the game opens.",
-      closed: "No spins this round.",
+      teaser: "Your legend begins when the gates open.",
+      closed: "The temple sleeps. No spins this round.",
     };
     els.historyPanel.hidden = false;
-    setText(els.historyEmpty, spins.length ? "" : (emptyText[state.status] ?? "No spins yet."));
+    setText(els.historyEmpty, spins.length ? "" : (emptyText[state.status] ?? "No legends written yet."));
     els.historyEmpty.hidden = spins.length > 0;
     els.history.replaceChildren(
       ...spins.map((spin) => {

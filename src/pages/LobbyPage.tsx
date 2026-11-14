@@ -12,8 +12,8 @@ export default function LobbyPage() {
     <section className="arcade-lobby" aria-labelledby="arcade-lobby-title">
       <PageHeader
         id="arcade-lobby-title"
-        title={`Welcome to the Arcade, ${firstName}`}
-        description="Play with the points you've earned at HackUTA. Every win and loss counts toward your real balance."
+        title={`Enter the Arcade, ${firstName}`}
+        description="Wager the points you've earned at HackUTA. Every triumph and every fall lands on your real balance."
         actions={session.player ? <PointsPill points={session.player.points} /> : null}
       />
 
@@ -37,20 +37,20 @@ export default function LobbyPage() {
 
         <section className="participant-dashboard__section participant-dashboard__section--links arcade-rules" aria-labelledby="arcade-rules-title">
           <h2 id="arcade-rules-title" className="participant-dashboard__section-title">
-            House rules
+            Laws of the temple
           </h2>
           <ul className="arcade-rules__list">
             <li>
-              <strong>Real points.</strong> Wagers come out of your HackUTA points balance and winnings go back in.
+              <strong>Real stakes.</strong> Wagers come out of your HackUTA points balance and winnings go back in.
             </li>
             <li>
-              <strong>Open hours only.</strong> Games run while organizers have the arcade open. Spins in progress finish when it closes.
+              <strong>Open hours only.</strong> Games run only while organizers hold the gates open. Spins in progress finish when they close.
             </li>
             <li>
-              <strong>Checked-in hackers.</strong> You need to be accepted and checked in to play.
+              <strong>Checked-in hackers.</strong> Only accepted, checked-in hackers may enter the trials.
             </li>
             <li>
-              <strong>Fair outcomes.</strong> Every result is decided on the server, never in your browser.
+              <strong>Fair outcomes.</strong> The Fates decide every result on the server, never in your browser.
             </li>
           </ul>
         </section>
@@ -68,7 +68,7 @@ function StatusBanner({ session }: { session: ArcadeSession }) {
         <ClockIcon className="arcade-status__icon" />
         <div>
           <p className="arcade-status__title">Opens at {formatClock(session.opensAt)}</p>
-          <p className="arcade-status__copy">Doors open in {formatCountdown(session.opensAt - now)}. Take a look around until then.</p>
+          <p className="arcade-status__copy">The gates open in {formatCountdown(session.opensAt - now)}. Scout the temple until then.</p>
         </div>
         <span className="participant-dashboard__badge participant-dashboard__badge--waitlisted">Scheduled</span>
       </div>
@@ -79,13 +79,13 @@ function StatusBanner({ session }: { session: ArcadeSession }) {
     <div className="arcade-status arcade-status--open" role="status">
       <span className="arcade-status__pulse" aria-hidden="true" />
       <div>
-        <p className="arcade-status__title">The arcade is open</p>
+        <p className="arcade-status__title">The gates are open</p>
         {session.closesAt ? (
           <p className="arcade-status__copy">
             Closes at {formatClock(session.closesAt)} · {formatCountdown(session.closesAt - now)} left
           </p>
         ) : (
-          <p className="arcade-status__copy">Pick a game below to start playing.</p>
+          <p className="arcade-status__copy">Choose your trial below, hero.</p>
         )}
       </div>
       <span className="participant-dashboard__badge participant-dashboard__badge--accepted">Open</span>
