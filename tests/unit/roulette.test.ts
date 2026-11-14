@@ -15,7 +15,9 @@ import {
   winningBetIds,
 } from "../../shared/roulette/rules";
 import { createRouletteMockAdapter } from "../../src/games/wheel-of-the-fates/adapters/mockAdapter";
+import { DEMON_MAPS, demonSvg } from "../../src/games/wheel-of-the-fates/demons";
 import { errorLine, resultLine } from "../../src/games/wheel-of-the-fates/dialogue";
+import { omenFor } from "../../src/games/wheel-of-the-fates/omens";
 import { landingTime, pocketAngle } from "../../src/games/wheel-of-the-fates/Wheel";
 
 const player = { balance: 1000, lossToday: 0 };
@@ -182,5 +184,28 @@ describe("roulette wheel and dialogue", () => {
     expect(resultLine({ ...base, pocket: 5, returned: 0, net: -10 }).line).toContain("-10 pts");
     expect(errorLine("STRAIGHT_LIMIT").line).toContain("10 pts");
     expect(errorLine("COOLDOWN", ROULETTE_LIMITS, 1200).line).toContain("Wait 2 s");
+  });
+});
+
+describe("gods and demons", () => {
+  const spin = (pocket: number, net: number, returned = net + 20) => ({ spinId: "s", bets: [], stake: 20, pocket, net, returned, at: 0 });
+
+  it("sends a god for a win, a demon for a loss and Odysseus for a draw", () => {
+    expect(omenFor(spin(5, 10), () => 0)).toMatchObject({ kind: "god", big: false, name: "Athena", quote: "Wisdom wins the day. +10 pts." });
+    expect(omenFor(spin(17, 340))).toMatchObject({ kind: "god", big: true, name: "Zeus" });
+    expect(omenFor(spin(0, 15))).toMatchObject({ kind: "god", big: true, name: "Zeus" });
+    expect(omenFor(spin(5, -10, 10), () => 0.99)).toMatchObject({ kind: "demon", big: false, name: "Minotaur", quote: "Lost in my labyrinth. −10 pts." });
+    expect(omenFor(spin(5, -40, 0))).toMatchObject({ kind: "demon", big: true, name: "Hades" });
+    expect(omenFor(spin(0, -10, 0))).toMatchObject({ kind: "demon", big: true, name: "Hades" });
+    expect(omenFor(spin(5, 0))).toMatchObject({ kind: "mortal", name: "Odysseus" });
+  });
+
+  it("draws every demon on a 16×16 grid", () => {
+    for (const [name, rows] of Object.entries(DEMON_MAPS)) {
+      expect(rows).toHaveLength(16);
+      for (const row of rows) expect(row).toHaveLength(16);
+      expect(demonSvg(name)).toContain("<path");
+    }
+    expect(demonSvg("nobody")).toBe("");
   });
 });

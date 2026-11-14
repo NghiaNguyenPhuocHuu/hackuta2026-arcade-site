@@ -3,6 +3,8 @@ import { checkBets, pocketColor, winningBetIds, type PlacedBet } from "../../../
 import { hackerFrame } from "../olympus-slots/hacker";
 import { Board, Chip, type Orientation } from "./Board";
 import { CLOSED, INTRO, SPINNING, errorLine, pocketName, resultLine, type Line } from "./dialogue";
+import { omenFor, type Omen } from "./omens";
+import { Sfx } from "./sound";
 import { TABLE_CLOTHS, WHEEL_SKINS, loadSettings, saveSettings, type RouletteSettings } from "./themes";
 import type { RouletteAdapter, RouletteSpin, RouletteState } from "./types";
 import { Wheel, type WheelHandle } from "./Wheel";
@@ -45,13 +47,32 @@ export function RouletteGame({ adapter }: { adapter: RouletteAdapter }) {
   const [themesOpen, setThemesOpen] = useState(false);
   const [orientation, setOrientation] = useState<Orientation>("wide");
   const [cooldownUntil, setCooldownUntil] = useState(0);
+  /** The god or demon on screen after a spin. */
+  const [omen, setOmen] = useState<(Omen & { id: number }) | null>(null);
   const [, setTick] = useState(0);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const wheelBoxRef = useRef<HTMLDivElement>(null);
   const wheelRef = useRef<WheelHandle>(null);
   const mounted = useRef(true);
-  useEffect(() => () => void (mounted.current = false), []);
+  const sfxRef = useRef<Sfx | null>(null);
+  if (!sfxRef.current) sfxRef.current = new Sfx();
+  const sfx = sfxRef.current;
+  sfx.enabled = settings.sound;
+  useEffect(
+    () => () => {
+      mounted.current = false;
+      sfxRef.current?.dispose();
+    },
+    [],
+  );
+
+  // The god or demon leaves after a few seconds.
+  useEffect(() => {
+    if (!omen) return;
+    const id = window.setTimeout(() => setOmen((current) => (current?.id === omen.id ? null : current)), omen.big ? 4200 : 3400);
+    return () => window.clearTimeout(id);
+  }, [omen]);
 
   // Table layout follows the game's own width (it lives inside the arcade page).
   useEffect(() => {
@@ -98,9 +119,11 @@ export function RouletteGame({ adapter }: { adapter: RouletteAdapter }) {
         const verdict = checkBets(nextList, { balance: live.balance, lossToday: live.lossToday }, live.limits);
         if (!verdict.ok) {
           setLine(errorLine(verdict.code, live.limits));
+          sfx.error();
           return false;
         }
       }
+      setOmen(null);
       setUndo((stack) => [...stack.slice(-49), bets]);
       setBets(next);
       setResult(null);
@@ -111,7 +134,8 @@ export function RouletteGame({ adapter }: { adapter: RouletteAdapter }) {
 
   const place = (betId: string) => {
     if (spinning || !isLive) return;
-    tryBets({ ...bets, [betId]: (bets[betId] ?? 0) + chip });
+    sfx.unlock();
+    if (tryBets({ ...bets, [betId]: (bets[betId] ?? 0) + chip })) sfx.chip();
   };
 
   const onUndo = () => {
@@ -127,11 +151,15 @@ export function RouletteGame({ adapter }: { adapter: RouletteAdapter }) {
 
   const spin = async () => {
     if (spinning || !isLive) return;
+    sfx.unlock();
     const verdict = checkBets(list, { balance: live.balance, lossToday: live.lossToday }, live.limits);
     if (!verdict.ok) {
       setLine(errorLine(verdict.code, live.limits));
+      sfx.error();
       return;
     }
+    setOmen(null);
+    sfx.spinStart();
     setSpinning(true);
     setFrozen(live);
     setResult(null);
@@ -155,6 +183,7 @@ export function RouletteGame({ adapter }: { adapter: RouletteAdapter }) {
       await wheelRef.current?.land(null);
       if (!mounted.current) return;
       setLine(errorLine(outcome.code, live.limits, outcome.retryAfterMs));
+      sfx.error();
       setAnnounce("");
       setFrozen(null);
       setSpinning(false);
@@ -162,12 +191,20 @@ export function RouletteGame({ adapter }: { adapter: RouletteAdapter }) {
     }
     await wheelRef.current?.land(outcome.spin.pocket);
     if (!mounted.current) return;
+    sfx.clack();
     const said = resultLine(outcome.spin);
+    const appears = omenFor(outcome.spin);
+    setOmen({ ...appears, id: Date.now() });
+    window.setTimeout(() => {
+      if (appears.kind === "god") sfx.god(appears.big);
+      else if (appears.kind === "demon") sfx.demon(appears.big);
+      else sfx.even();
+    }, 140);
     setResult(outcome.spin);
     setLastBets(fromList(outcome.spin.bets));
     setLine(said);
     const net = outcome.spin.net;
-    setAnnounce(`${pocketName(outcome.spin.pocket)}. ${net > 0 ? `You won ${net} points.` : net < 0 ? `You lost ${-net} points.` : "Your stake comes back."}`);
+    setAnnounce(`${pocketName(outcome.spin.pocket)}. ${appears.name}: ${appears.quote} ${net > 0 ? `You won ${net} points.` : net < 0 ? `You lost ${-net} points.` : "Your stake comes back."}`);
     setFrozen(null);
     setSpinning(false);
   };
@@ -186,6 +223,22 @@ export function RouletteGame({ adapter }: { adapter: RouletteAdapter }) {
           <p className="wof__tagline">Clotho spins. Lachesis measures. Atropos cuts.</p>
         </div>
         <div className="wof__status">
+          <button
+            type="button"
+            className="wof-btn wof-btn--ghost"
+            aria-pressed={settings.sound}
+            onClick={() => {
+              const sound = !settings.sound;
+              setSettings((s) => ({ ...s, sound }));
+              sfx.enabled = sound;
+              if (sound) {
+                sfx.unlock();
+                sfx.chip();
+              }
+            }}
+          >
+            {settings.sound ? "SOUND ON" : "SOUND OFF"}
+          </button>
           <button
             type="button"
             className="wof-btn wof-btn--ghost"
@@ -230,7 +283,14 @@ export function RouletteGame({ adapter }: { adapter: RouletteAdapter }) {
 
       <div className="wof__stage" ref={wheelBoxRef}>
         <div className="wof__wheel">
-          <Wheel ref={wheelRef} fast={settings.fast} reducedMotion={reducedMotion} hit={spinning ? null : lastHit} />
+          <Wheel
+            ref={wheelRef}
+            fast={settings.fast}
+            reducedMotion={reducedMotion}
+            hit={spinning ? null : lastHit}
+            onTick={(strength) => sfx.tick(strength)}
+          />
+          {omen ? <OmenPopup key={omen.id} omen={omen} onDismiss={() => setOmen(null)} /> : null}
         </div>
         <div className={`wof__readout${result ? ` wof__readout--${pocketColor(result.pocket)}` : ""}`} aria-hidden="true">
           {spinning ? (
@@ -339,6 +399,20 @@ export function RouletteGame({ adapter }: { adapter: RouletteAdapter }) {
           {lossLeft !== null ? ` · ${lossLeft} left before today's loss limit` : ""}
         </p>
       </aside>
+    </div>
+  );
+}
+
+/** A god (win), demon (loss) or Odysseus (stake back) rising over the wheel. */
+function OmenPopup({ omen, onDismiss }: { omen: Omen; onDismiss(): void }) {
+  return (
+    <div className={`wof-omen wof-omen--${omen.kind}${omen.big ? " wof-omen--big" : ""}`} aria-hidden="true" onClick={onDismiss}>
+      <span className="wof-omen__aura" />
+      <span className="wof-omen__sprite" dangerouslySetInnerHTML={{ __html: omen.svg }} />
+      <span className="wof-omen__bubble">
+        <span className="wof-omen__name">{omen.name.toUpperCase()}</span>
+        <span className="wof-omen__quote">{omen.quote}</span>
+      </span>
     </div>
   );
 }

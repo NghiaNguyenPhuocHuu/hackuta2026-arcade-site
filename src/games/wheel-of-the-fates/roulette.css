@@ -1152,3 +1152,203 @@
   right: auto;
   bottom: auto;
 }
+
+/* ---- gods and demons after a spin ---- */
+.wof__wheel {
+  position: relative;
+}
+
+.wof-omen {
+  position: absolute;
+  inset: -6%;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  animation: wof-omen-out 0.4s steps(4) 3s forwards;
+}
+
+.wof-omen--big {
+  animation-delay: 3.8s;
+}
+
+/* Light (gods) or smoke (demons) behind the figure. */
+.wof-omen__aura {
+  position: absolute;
+  inset: 4%;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: wof-aura-in 0.5s steps(5) both;
+}
+
+.wof-omen--god .wof-omen__aura {
+  background:
+    radial-gradient(circle, rgb(255 242 179 / 0.95) 0 18%, rgb(255 210 63 / 0.55) 34%, transparent 66%),
+    repeating-conic-gradient(rgb(255 210 63 / 0.55) 0 8deg, transparent 8deg 22deg);
+  mask: radial-gradient(circle, #000 40%, transparent 70%);
+}
+
+.wof-omen--god .wof-omen__aura::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: repeating-conic-gradient(rgb(255 255 255 / 0.25) 0 4deg, transparent 4deg 30deg);
+  mask: radial-gradient(circle, #000 30%, transparent 68%);
+  animation: wof-spin-rays 6s linear infinite;
+}
+
+.wof-omen--demon .wof-omen__aura {
+  background:
+    radial-gradient(circle, rgb(255 59 48 / 0.75) 0 16%, rgb(120 10 30 / 0.7) 36%, rgb(13 7 9 / 0.85) 52%, transparent 70%);
+  animation:
+    wof-aura-in 0.5s steps(5) both,
+    wof-smoke 0.8s steps(4) 0.5s infinite alternate;
+}
+
+.wof-omen--mortal .wof-omen__aura {
+  background: radial-gradient(circle, rgb(92 225 230 / 0.55) 0 22%, rgb(31 63 138 / 0.5) 44%, transparent 68%);
+}
+
+.wof-omen__sprite {
+  position: relative;
+  width: 42%;
+  aspect-ratio: 1;
+  filter: drop-shadow(4px 4px 0 rgb(26 16 40 / 0.9));
+  animation: wof-rise 0.55s steps(6) both;
+}
+
+.wof-omen__sprite svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.wof-omen--demon .wof-omen__sprite {
+  animation:
+    wof-rise 0.55s steps(6) both,
+    wof-shake 0.12s steps(2) 0.55s 6;
+}
+
+.wof-omen--big .wof-omen__sprite {
+  width: 52%;
+}
+
+/* Zeus and Hades: a flash across the wheel. */
+.wof-omen--big::before {
+  content: "";
+  position: absolute;
+  inset: 6%;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: wof-flash 0.6s steps(3) both;
+}
+
+.wof-omen--god.wof-omen--big::before {
+  background: #fff8e1;
+}
+
+.wof-omen--demon.wof-omen--big::before {
+  background: #ff3b30;
+}
+
+.wof-omen__bubble {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  max-width: 94%;
+  padding: 8px 12px;
+  background: var(--mg-ink);
+  border: 3px solid var(--mg-marble);
+  box-shadow: 4px 4px 0 #000;
+  text-align: center;
+  animation: wof-rise 0.4s steps(4) 0.3s both;
+}
+
+.wof-omen--god .wof-omen__bubble {
+  border-color: var(--mg-gold);
+}
+
+.wof-omen--demon .wof-omen__bubble {
+  border-color: #ff3b30;
+}
+
+.wof-omen__name {
+  font-family: var(--mg-display);
+  font-size: 11px;
+  color: var(--mg-gold);
+}
+
+.wof-omen--demon .wof-omen__name {
+  color: #ff6b5e;
+}
+
+.wof-omen--mortal .wof-omen__name {
+  color: var(--mg-cyan);
+}
+
+.wof-omen__quote {
+  font-size: 15px;
+  line-height: 1.25;
+  color: var(--mg-marble);
+}
+
+.wof--tall .wof-omen__quote {
+  font-size: 14px;
+}
+
+@keyframes wof-rise {
+  from {
+    opacity: 0;
+    transform: translateY(40%) scale(0.4);
+  }
+}
+
+@keyframes wof-aura-in {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+}
+
+@keyframes wof-spin-rays {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wof-smoke {
+  to {
+    transform: scale(1.08);
+    filter: brightness(1.3);
+  }
+}
+
+@keyframes wof-shake {
+  0% {
+    translate: -3px 0;
+  }
+  100% {
+    translate: 3px 0;
+  }
+}
+
+@keyframes wof-flash {
+  from {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes wof-omen-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8%);
+    visibility: hidden;
+  }
+}

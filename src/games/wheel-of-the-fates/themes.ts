@@ -1,6 +1,6 @@
 /**
- * Player looks for Wheel of the Fates: wheel skin, table cloth and spin speed.
- * Looks only; nothing here touches points. Saved per browser.
+ * Player settings for Wheel of the Fates: wheel skin, table cloth, spin speed, sound.
+ * None of it touches points. Saved per browser.
  */
 
 export const WHEEL_SKINS = [
@@ -19,9 +19,9 @@ export const TABLE_CLOTHS = [
 
 export type WheelSkin = (typeof WHEEL_SKINS)[number]["id"];
 export type TableCloth = (typeof TABLE_CLOTHS)[number]["id"];
-export type RouletteSettings = { wheel: WheelSkin; table: TableCloth; fast: boolean };
+export type RouletteSettings = { wheel: WheelSkin; table: TableCloth; fast: boolean; sound: boolean };
 
-export const DEFAULT_SETTINGS: RouletteSettings = { wheel: "marble", table: "midnight", fast: false };
+export const DEFAULT_SETTINGS: RouletteSettings = { wheel: "marble", table: "midnight", fast: false, sound: true };
 
 const STORAGE_KEY = "wof-settings";
 
@@ -34,6 +34,7 @@ export function loadSettings(): RouletteSettings {
       wheel: WHEEL_SKINS.some((s) => s.id === value.wheel) ? (value.wheel as WheelSkin) : DEFAULT_SETTINGS.wheel,
       table: TABLE_CLOTHS.some((s) => s.id === value.table) ? (value.table as TableCloth) : DEFAULT_SETTINGS.table,
       fast: value.fast === true,
+      sound: value.sound !== false,
     };
   } catch {
     return DEFAULT_SETTINGS;

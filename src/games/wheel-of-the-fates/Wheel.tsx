@@ -27,8 +27,9 @@ const R_NUMBER = 77;
 const R_BALL_REST = 67.5;
 
 type Pace = { wheel: number; ball: number; accel: number; minSpinMs: number; minLand: number };
-const NORMAL: Pace = { wheel: 150, ball: 480, accel: 0.5, minSpinMs: 900, minLand: 2.6 };
-const FAST: Pace = { wheel: 220, ball: 700, accel: 0.2, minSpinMs: 300, minLand: 1.0 };
+// Normal: about 1.4 s at full speed, then 5.2–6.9 s slowing down. Fast mode is for quick players.
+const NORMAL: Pace = { wheel: 150, ball: 480, accel: 0.6, minSpinMs: 1400, minLand: 5.2 };
+const FAST: Pace = { wheel: 220, ball: 700, accel: 0.2, minSpinMs: 300, minLand: 1.2 };
 
 const mod = (a: number, n: number) => ((a % n) + n) % n;
 
@@ -62,9 +63,11 @@ type Props = {
   reducedMotion: boolean;
   /** Pocket to glow (after a landing) and to rest the ball in on first render. */
   hit: number | null;
+  /** The ball passed a pocket divider; strength 0–1 (louder once it drops into the pockets). */
+  onTick?: (strength: number) => void;
 };
 
-export const Wheel = forwardRef<WheelHandle, Props>(function Wheel({ fast, reducedMotion, hit }, ref) {
+export const Wheel = forwardRef<WheelHandle, Props>(function Wheel({ fast, reducedMotion, hit, onTick }, ref) {
   const wheelEl = useRef<SVGGElement>(null);
   const ballEl = useRef<SVGCircleElement>(null);
   const pace = fast ? FAST : NORMAL;
@@ -72,6 +75,8 @@ export const Wheel = forwardRef<WheelHandle, Props>(function Wheel({ fast, reduc
   paceRef.current = pace;
   const motionRef = useRef(reducedMotion);
   motionRef.current = reducedMotion;
+  const tickRef = useRef(onTick);
+  tickRef.current = onTick;
 
   const sim = useRef({
     wheel: 0,
@@ -85,6 +90,8 @@ export const Wheel = forwardRef<WheelHandle, Props>(function Wheel({ fast, reduc
     landing: null as null | { t0: number; T: number; w0: number; b0: number; dw: number; db: number; r0: number; drop: boolean; done: () => void },
     raf: 0,
     ballVisible: hit !== null,
+    lastPocket: 0,
+    lastTickAt: 0,
   });
 
   const draw = () => {
@@ -142,6 +149,15 @@ export const Wheel = forwardRef<WheelHandle, Props>(function Wheel({ fast, reduc
         draw();
         l.done();
         return;
+      }
+    }
+    // A tick each time the ball passes a pocket divider (at most ~22 a second).
+    const crossed = Math.floor((s.ball - s.wheel) / STEP);
+    if (crossed !== s.lastPocket) {
+      s.lastPocket = crossed;
+      if (now - s.lastTickAt > 45) {
+        s.lastTickAt = now;
+        tickRef.current?.(s.radius < R_TRACK - 4 ? 1 : 0.3);
       }
     }
     draw();

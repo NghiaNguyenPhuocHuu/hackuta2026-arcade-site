@@ -5,7 +5,9 @@
 > in `tests/unit/roulette.test.ts`). It uses the choices ticked below: Wheel of
 > the Fates, Fire/Night, single zero, Standard limits, 3 s cooldown, a 300-point
 > daily loss limit (resets at midnight Arlington time), and wheel/table themes
-> plus fast mode, free from the start. Still to do: the server functions and the
+> plus fast mode, free from the start. Added since: a longer spin (about 7–8 s),
+> sound effects (on by default, SOUND button to turn off) and god / demon pop-ups
+> after every win and loss. Still to do: the server functions and the
 > Convex adapter (after plan steps 1–3), and phases 2–4.
 
 A menu to pick from, not a final spec. Each section has a **recommended**
