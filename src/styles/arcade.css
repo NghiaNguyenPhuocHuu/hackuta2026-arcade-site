@@ -497,16 +497,6 @@
     background: #071526;
   }
 
-  .participant-dashboard,
-  .participant-dashboard__sidebar,
-  .participant-dashboard__main,
-  .participant-frieze {
-    transition:
-      background-color 0.35s var(--ease-out),
-      border-color 0.35s var(--ease-out),
-      color 0.35s var(--ease-out);
-  }
-
   .arcade-theme--night {
     --night-sky: #071526;
     --night-panel: #0b1d33;

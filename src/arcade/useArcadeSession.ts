@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { getMockWallet, subscribeMockWallet } from "./mockWallet";
 import type { GameKey } from "../games/registry";
 
 /**
@@ -49,7 +50,8 @@ function mockSession(status: ArcadeStatus, now: number): ArcadeSession {
 
 export function useArcadeSession(): ArcadeSession {
   const [session] = useState(() => mockSession(previewStatus(), Date.now()));
-  return session;
+  const wallet = useSyncExternalStore(subscribeMockWallet, getMockWallet);
+  return session.player ? { ...session, player: { ...session.player, points: wallet.balance } } : session;
 }
 
 /** Re-renders every `intervalMs` so countdowns stay current. */

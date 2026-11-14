@@ -20,6 +20,8 @@ const MOCK_LATENCY_MS = 150;
 
 export type MockAdapterOptions = {
   balance?: number;
+  /** Newest first; carried over from an earlier session. */
+  recentSpins?: RecentSpin[];
   status?: GameStatus;
   opensAt?: number | null;
   closesAt?: number | null;
@@ -41,7 +43,7 @@ export function createMockAdapter(options: MockAdapterOptions = {}): MockAdapter
     wagers: [...SLOT_WAGERS],
     opensAt: options.opensAt ?? null,
     closesAt: options.closesAt ?? null,
-    recentSpins: [],
+    recentSpins: (options.recentSpins ?? []).slice(0, RECENT_SPIN_LIMIT),
   };
   const listeners = new Set<(state: GameState) => void>();
   const results = new Map<string, SpinResult>();

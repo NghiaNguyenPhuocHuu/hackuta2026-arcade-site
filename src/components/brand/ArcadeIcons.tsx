@@ -36,13 +36,28 @@ export function NavSlotsIcon({ className }: IconProps) {
   );
 }
 
-/** Blackjack: two overlapping cards. */
+/**
+ * Blackjack: a stacked pair of cards. Only the visible edge of the back card is
+ * drawn, so no outline crosses the front card; a spade sits on the front card.
+ */
 export function NavCardsIcon({ className }: IconProps) {
   return (
     <Svg className={className}>
-      <rect x="4" y="6.5" width="9.5" height="13" rx="1.5" transform="rotate(-10 8.75 13)" stroke="currentColor" strokeWidth="1.5" />
-      <rect x="10.5" y="5" width="9.5" height="13" rx="1.5" transform="rotate(8 15.25 11.5)" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M15.3 9.6 16.6 11.4 15 13.1 13.7 11.3Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path
+        d="M8 18H5.5A1.5 1.5 0 0 1 4 16.5v-12A1.5 1.5 0 0 1 5.5 3h8A1.5 1.5 0 0 1 15 4.5V5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <rect x="8" y="5" width="11" height="15" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M13.5 9.25c-1.5 1.45-2.75 2.45-2.75 3.65a1.45 1.45 0 0 0 2.75.65 1.45 1.45 0 0 0 2.75-.65c0-1.2-1.25-2.2-2.75-3.65ZM13.5 13.6V16M12.3 16h2.4"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }

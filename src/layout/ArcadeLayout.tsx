@@ -1,5 +1,5 @@
-import { useEffect, type ComponentType } from "react";
-import { NavLink, Outlet, useMatch } from "react-router-dom";
+import { useEffect, useRef, type ComponentType } from "react";
+import { NavLink, Outlet, useLocation, useMatch } from "react-router-dom";
 import { ArcadeBrand } from "../components/ArcadeBrand";
 import { ExternalIcon, NavTempleIcon } from "../components/brand/ArcadeIcons";
 import { NavSignOutIcon } from "../components/brand/NavIcons";
@@ -18,6 +18,16 @@ export function ArcadeLayout({ session }: { session: ArcadeSession }) {
   const player = session.player;
   const playing = useMatch("/play/:gameKey");
   const night = findGame(playing?.params.gameKey)?.theme === "night";
+  const { pathname } = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
+
+  // Each page opens at the top. The main column is its own scroll area on
+  // desktop and the window scrolls on phones, so reset both; otherwise the
+  // lobby opened scrolled down after leaving a long game page.
+  useEffect(() => {
+    mainRef.current?.scrollTo(0, 0);
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   // The page behind the app (overscroll) and the phone's browser bar follow the theme.
   useEffect(() => {
@@ -79,7 +89,7 @@ export function ArcadeLayout({ session }: { session: ArcadeSession }) {
         ) : null}
       </aside>
 
-      <main className="participant-dashboard__main" id="arcade-content" tabIndex={-1}>
+      <main ref={mainRef} className="participant-dashboard__main" id="arcade-content" tabIndex={-1}>
         <Outlet context={session} />
       </main>
     </div>

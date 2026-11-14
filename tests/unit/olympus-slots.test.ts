@@ -168,6 +168,13 @@ describe("createConvexAdapter", () => {
 });
 
 describe("createMockAdapter", () => {
+  it("starts from a carried-over balance and history", () => {
+    const spin = { spinId: "s1", symbols: ["zeus", "zeus", "hera", "hera"], outcomeId: "push", outcomeLabel: "Two pairs", wager: 10, payout: 10, delta: 0, at: 1 };
+    const adapter = createMockAdapter({ balance: 140, recentSpins: [spin], latencyMs: 0 });
+    expect(adapter.getState()).toMatchObject({ balance: 140, recentSpins: [spin] });
+    adapter.dispose();
+  });
+
   it("enforces the server's rules", async () => {
     const adapter = createMockAdapter({ balance: 30, latencyMs: 0, random: () => 0.99 });
     expect(await adapter.spin({ spinId: "a", wager: 7 })).toEqual({ status: "invalid_wager" });

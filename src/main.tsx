@@ -7,6 +7,10 @@ import './styles/theme.css'
 import './styles/portal.css'
 import './styles/arcade.css'
 
+// ArcadeLayout scrolls each page to the top itself; the browser's own restore
+// on Back would run after that and land partway down the lobby.
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+
 const root = document.getElementById('root')
 if (!root) throw new Error('Missing #root element')
 
