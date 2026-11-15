@@ -1,6 +1,6 @@
 /** House rules for Olympus Poker. Shared by the table host and the UI. */
 
-export const POKER_BUY_IN = 100;
+export const POKER_BUY_IN = 50;
 /** Off-table stack a new arcade poker player starts with. */
 export const POKER_STARTING_POINTS = 200;
 export const POKER_SMALL_BLIND = 5;

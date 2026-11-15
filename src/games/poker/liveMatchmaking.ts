@@ -11,7 +11,7 @@ import {
 import type { PokerClient, PokerView } from "./matchmaking";
 
 function errorMessage(code: string | undefined): string {
-  if (code === "INSUFFICIENT_POINTS") return "You need 100 arcade points to take a seat. Deposit some on the Wallet page.";
+  if (code === "INSUFFICIENT_POINTS") return `You need ${POKER_BUY_IN} arcade points to take a seat. Deposit some on the Wallet page.`;
   if (code === "ARCADE_CLOSED") return "The arcade is closed right now.";
   if (code === "GAME_DISABLED") return "Organizers have paused poker for now.";
   if (code === "NOT_SIGNED_IN") return "You're signed out. Sign in again to play.";

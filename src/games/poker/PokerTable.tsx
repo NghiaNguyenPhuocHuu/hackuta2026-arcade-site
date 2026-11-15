@@ -406,7 +406,7 @@ export function PokerApp() {
           <div className="minigame__brand-copy">
             <h1 className="minigame__title">OLYMPUS POKER</h1>
             <p className="minigame__tagline">
-              A real 52-card deck. Live seats. Fixed 100-point buy-in.
+              A real 52-card deck. Live seats. Fixed {POKER_BUY_IN}-point buy-in.
             </p>
           </div>
         </div>
