@@ -11,7 +11,7 @@ import {
 } from "../../../shared/poker";
 import { convexClient } from "../../convex/client";
 import { createLivePokerClient } from "./liveMatchmaking";
-import { createPokerClient, type PokerView, type PokerWallet } from "./matchmaking";
+import { type PokerView, type PokerWallet } from "./matchmaking";
 import { PlayingCard } from "./PlayingCard";
 
 const STARS = (() => {
@@ -51,8 +51,17 @@ function streetLabel(street: PublicTable["street"]) {
   return "SHOWDOWN";
 }
 
-function SeatView({ seat, slot, secondsLeft }: { seat: PublicSeat; slot: string; secondsLeft: number | null }) {
-  const hole = seat.hole === null ? [null, null] : seat.hole.length ? seat.hole : [];
+function SeatView({
+  seat,
+  slot,
+  secondsLeft,
+}: {
+  seat: PublicSeat;
+  slot: string;
+  secondsLeft: number | null;
+}) {
+  const hole =
+    seat.hole === null ? [null, null] : seat.hole.length ? seat.hole : [];
   const urgent = secondsLeft !== null && secondsLeft <= 5;
   return (
     <div
@@ -66,7 +75,12 @@ function SeatView({ seat, slot, secondsLeft }: { seat: PublicSeat; slot: string;
           </>
         ) : (
           hole.map((card, index) => (
-            <PlayingCard key={index} card={card ?? undefined} hidden={!card} size={slot === "you" ? "md" : "sm"} />
+            <PlayingCard
+              key={index}
+              card={card ?? undefined}
+              hidden={!card}
+              size={slot === "you" ? "md" : "sm"}
+            />
           ))
         )}
       </div>
@@ -74,23 +88,41 @@ function SeatView({ seat, slot, secondsLeft }: { seat: PublicSeat; slot: string;
         <span className="poker-seat__name">{seat.name}</span>
         <span className="poker-seat__chips">{formatPts(seat.chips)} pts</span>
         {!seat.isBot && !seat.folded && !seat.allIn ? (
-          <span className={`poker-clock${seat.isToAct ? " poker-clock--live" : ""}${urgent ? " poker-clock--urgent" : ""}`}>
-            {seat.isToAct && secondsLeft !== null ? `${secondsLeft}s` : `${POKER_ACTION_TIMEOUT_MS / 1000}s`}
+          <span
+            className={`poker-clock${seat.isToAct ? " poker-clock--live" : ""}${urgent ? " poker-clock--urgent" : ""}`}
+          >
+            {seat.isToAct && secondsLeft !== null
+              ? `${secondsLeft}s`
+              : `${POKER_ACTION_TIMEOUT_MS / 1000}s`}
           </span>
         ) : null}
         <div className="poker-seat__tags">
-          {seat.isDealer ? <span className="poker-tag poker-tag--dealer">D</span> : null}
-          {seat.isBot ? <span className="poker-tag poker-tag--bot">SHADE</span> : null}
+          {seat.isDealer ? (
+            <span className="poker-tag poker-tag--dealer">D</span>
+          ) : null}
+          {seat.isBot ? (
+            <span className="poker-tag poker-tag--bot">SHADE</span>
+          ) : null}
           {seat.allIn ? <span className="poker-tag">ALL-IN</span> : null}
           {seat.folded ? <span className="poker-tag">FOLD</span> : null}
-          {seat.streetBet > 0 && !seat.folded ? <span className="poker-tag">{seat.streetBet}</span> : null}
+          {seat.streetBet > 0 && !seat.folded ? (
+            <span className="poker-tag">{seat.streetBet}</span>
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
 
-function TableFelt({ table, youId, secondsLeft }: { table: PublicTable; youId: string; secondsLeft: number | null }) {
+function TableFelt({
+  table,
+  youId,
+  secondsLeft,
+}: {
+  table: PublicTable;
+  youId: string;
+  secondsLeft: number | null;
+}) {
   const you = table.seats.find((seat) => seat.id === youId);
   const others = table.seats.filter((seat) => seat.id !== youId);
   const board: Array<Card | null> = [...table.community];
@@ -99,17 +131,30 @@ function TableFelt({ table, youId, secondsLeft }: { table: PublicTable; youId: s
     <div className="poker-felt">
       <div className="poker-opponents">
         {others.map((seat) => (
-          <SeatView key={seat.id} seat={seat} slot="opp" secondsLeft={seat.isToAct ? secondsLeft : null} />
+          <SeatView
+            key={seat.id}
+            seat={seat}
+            slot="opp"
+            secondsLeft={seat.isToAct ? secondsLeft : null}
+          />
         ))}
       </div>
       <div className="poker-felt__pot">
-        <p className="poker-street">{streetLabel(table.street)} · HAND {table.handNumber}</p>
+        <p className="poker-street">
+          {streetLabel(table.street)} · HAND {table.handNumber}
+        </p>
         <div className="poker-board">
           {board.map((card, index) =>
             card ? (
-              <PlayingCard key={`${card.rank}${card.suit}${index}`} card={card} />
+              <PlayingCard
+                key={`${card.rank}${card.suit}${index}`}
+                card={card}
+              />
             ) : (
-              <div key={`slot-${index}`} className="poker-card poker-empty poker-board__slot" />
+              <div
+                key={`slot-${index}`}
+                className="poker-card poker-empty poker-board__slot"
+              />
             ),
           )}
         </div>
@@ -118,7 +163,13 @@ function TableFelt({ table, youId, secondsLeft }: { table: PublicTable; youId: s
           POT {formatPts(table.pot)}
         </div>
       </div>
-      {you ? <SeatView seat={you} slot="you" secondsLeft={you.isToAct ? secondsLeft : null} /> : null}
+      {you ? (
+        <SeatView
+          seat={you}
+          slot="you"
+          secondsLeft={you.isToAct ? secondsLeft : null}
+        />
+      ) : null}
     </div>
   );
 }
@@ -145,25 +196,44 @@ function ActionPanel({
   }
 
   const can = (type: PokerAction["type"]) => legal.includes(type);
-  const yourTurn = table.seats.some((seat) => seat.id === you.id && seat.isToAct);
+  const yourTurn = table.seats.some(
+    (seat) => seat.id === you.id && seat.isToAct,
+  );
 
   return (
     <>
       {yourTurn && secondsLeft !== null ? (
-        <p className={`poker-turn-clock${secondsLeft <= 5 ? " poker-turn-clock--urgent" : ""}`}>
+        <p
+          className={`poker-turn-clock${secondsLeft <= 5 ? " poker-turn-clock--urgent" : ""}`}
+        >
           ACT · {secondsLeft}s OR SIT OUT
         </p>
       ) : null}
       <div className="poker-actions">
-        <button type="button" className="minigame__wager" disabled={!yourTurn || !can("fold")} onClick={() => onAct({ type: "fold" })}>
+        <button
+          type="button"
+          className="minigame__wager"
+          disabled={!yourTurn || !can("fold")}
+          onClick={() => onAct({ type: "fold" })}
+        >
           FOLD
         </button>
         {can("check") || you.callAmount <= 0 ? (
-          <button type="button" className="minigame__spin" disabled={!yourTurn || !can("check")} onClick={() => onAct({ type: "check" })}>
+          <button
+            type="button"
+            className="minigame__spin"
+            disabled={!yourTurn || !can("check")}
+            onClick={() => onAct({ type: "check" })}
+          >
             CHECK
           </button>
         ) : (
-          <button type="button" className="minigame__spin" disabled={!yourTurn || !can("call")} onClick={() => onAct({ type: "call" })}>
+          <button
+            type="button"
+            className="minigame__spin"
+            disabled={!yourTurn || !can("call")}
+            onClick={() => onAct({ type: "call" })}
+          >
             CALL {you.callAmount}
           </button>
         )}
@@ -177,12 +247,26 @@ function ActionPanel({
               type="button"
               className="minigame__wager"
               disabled={!yourTurn || !can("raise")}
-              onClick={() => setRaiseTo((n) => Math.min(you.chips + (table.seats.find((s) => s.id === you.id)?.streetBet ?? 0), Math.max(you.minRaiseTo, n + step)))}
+              onClick={() =>
+                setRaiseTo((n) =>
+                  Math.min(
+                    you.chips +
+                      (table.seats.find((s) => s.id === you.id)?.streetBet ??
+                        0),
+                    Math.max(you.minRaiseTo, n + step),
+                  ),
+                )
+              }
             >
               +{step}
             </button>
           ))}
-          <button type="button" className="minigame__wager" disabled={!yourTurn || !can("all_in")} onClick={() => onAct({ type: "all_in" })}>
+          <button
+            type="button"
+            className="minigame__wager"
+            disabled={!yourTurn || !can("all_in")}
+            onClick={() => onAct({ type: "all_in" })}
+          >
             ALL-IN
           </button>
         </div>
@@ -199,11 +283,19 @@ function ActionPanel({
   );
 }
 
-export function PokerApp({ player, wallet }: { player: { id: string; name: string }; wallet: PokerWallet }) {
-  const client = useMemo(
-    () => (convexClient ? createLivePokerClient({ convex: convexClient, player }) : createPokerClient({ player, wallet })),
-    [player, wallet],
-  );
+export function PokerApp({
+  player,
+  wallet,
+}: {
+  player: { id: string; name: string };
+  wallet: PokerWallet;
+}) {
+  const client = useMemo(() => {
+    if (!convexClient) {
+      throw new Error("Poker requires a live Convex connection");
+    }
+    return createLivePokerClient({ convex: convexClient, player });
+  }, [player]);
   const [view, setView] = useState<PokerView>(() => client.getView());
 
   useEffect(() => {
@@ -224,7 +316,9 @@ export function PokerApp({ player, wallet }: { player: { id: string; name: strin
   ));
 
   const secondsLeft = useShotClock(view.table?.actionDeadlineAt ?? null);
-  const yourTurn = Boolean(view.table?.seats.some((seat) => seat.id === view.youId && seat.isToAct));
+  const yourTurn = Boolean(
+    view.table?.seats.some((seat) => seat.id === view.youId && seat.isToAct),
+  );
   const canAfford = view.balance >= view.buyIn;
   const waiting = view.queue.length;
   const dialogTitle =
@@ -258,13 +352,23 @@ export function PokerApp({ player, wallet }: { player: { id: string; name: strin
         <div className="minigame__brand">
           <div className="minigame__brand-copy">
             <h1 className="minigame__title">OLYMPUS POKER</h1>
-            <p className="minigame__tagline">A real 52-card deck. Live seats. Fixed 100-point buy-in.</p>
+            <p className="minigame__tagline">
+              A real 52-card deck. Live seats. Fixed 100-point buy-in.
+            </p>
           </div>
         </div>
         <div className="minigame__status">
-          <span className={`minigame__badge minigame__badge--${view.phase === "table" ? "live" : view.phase === "queued" ? "soon" : "closed"}`}>
+          <span
+            className={`minigame__badge minigame__badge--${view.phase === "table" ? "live" : view.phase === "queued" ? "soon" : "closed"}`}
+          >
             <span className="minigame__badge-dot" aria-hidden="true" />
-            <span>{view.phase === "table" ? "LIVE" : view.phase === "queued" ? "QUEUE" : "OPEN"}</span>
+            <span>
+              {view.phase === "table"
+                ? "LIVE"
+                : view.phase === "queued"
+                  ? "QUEUE"
+                  : "OPEN"}
+            </span>
           </span>
         </div>
       </header>
@@ -272,9 +376,18 @@ export function PokerApp({ player, wallet }: { player: { id: string; name: strin
       <div className="minigame__layout">
         <section className="minigame__machine" aria-label="Poker table">
           <div className="minigame__temple">
-            <span className="minigame__roof minigame__roof--1" aria-hidden="true" />
-            <span className="minigame__roof minigame__roof--2" aria-hidden="true" />
-            <span className="minigame__roof minigame__roof--3" aria-hidden="true" />
+            <span
+              className="minigame__roof minigame__roof--1"
+              aria-hidden="true"
+            />
+            <span
+              className="minigame__roof minigame__roof--2"
+              aria-hidden="true"
+            />
+            <span
+              className="minigame__roof minigame__roof--3"
+              aria-hidden="true"
+            />
             <div className="minigame__frieze" aria-hidden="true">
               {view.phase === "table" ? "WINNER TAKES THE POT" : "ANTE UP"}
             </div>
@@ -282,10 +395,18 @@ export function PokerApp({ player, wallet }: { player: { id: string; name: strin
               <span className="minigame__column" aria-hidden="true" />
               <div className="minigame__reels-wrap">
                 {view.table ? (
-                  <TableFelt table={view.table} youId={view.youId} secondsLeft={secondsLeft} />
+                  <TableFelt
+                    table={view.table}
+                    youId={view.youId}
+                    secondsLeft={secondsLeft}
+                  />
                 ) : (
                   <div className="poker-queue">
-                    <p className="poker-queue__title">{view.phase === "queued" ? "SEEKING HEROES" : "EMPTY TABLE"}</p>
+                    <p className="poker-queue__title">
+                      {view.phase === "queued"
+                        ? "SEEKING HEROES"
+                        : "EMPTY TABLE"}
+                    </p>
                     <p className="poker-queue__copy">
                       {view.phase === "queued"
                         ? "You are auto-seated as soon as a table fills."
@@ -305,8 +426,14 @@ export function PokerApp({ player, wallet }: { player: { id: string; name: strin
               </div>
               <span className="minigame__column" aria-hidden="true" />
             </div>
-            <span className="minigame__step minigame__step--1" aria-hidden="true" />
-            <span className="minigame__step minigame__step--2" aria-hidden="true" />
+            <span
+              className="minigame__step minigame__step--1"
+              aria-hidden="true"
+            />
+            <span
+              className="minigame__step minigame__step--2"
+              aria-hidden="true"
+            />
           </div>
 
           <div className="minigame__dialog minigame__dialog--techno">
@@ -314,7 +441,9 @@ export function PokerApp({ player, wallet }: { player: { id: string; name: strin
               THE FATES
             </span>
             <div className="minigame__dialog-body">
-              <p className="minigame__dialog-title minigame__dialog-title--gold">{dialogTitle}</p>
+              <p className="minigame__dialog-title minigame__dialog-title--gold">
+                {dialogTitle}
+              </p>
               <p className="minigame__dialog-line">{dialogLine}</p>
             </div>
           </div>
@@ -322,30 +451,53 @@ export function PokerApp({ player, wallet }: { player: { id: string; name: strin
 
         <aside className="minigame__panel" aria-label="Controls">
           <div className="minigame__box">
-            <p className="minigame__box-label">{view.table ? "STACK" : "BALANCE"}</p>
+            <p className="minigame__box-label">
+              {view.table ? "STACK" : "BALANCE"}
+            </p>
             <p className="minigame__balance">
               <span className="minigame__coin" aria-hidden="true" />
-              <span className="minigame__balance-value">{formatPts(view.table?.you?.chips ?? view.balance)}</span>
+              <span className="minigame__balance-value">
+                {formatPts(view.table?.you?.chips ?? view.balance)}
+              </span>
               <span className="minigame__balance-unit">pts</span>
             </p>
           </div>
 
           {view.phase === "lobby" || view.phase === "result" ? (
-            <button type="button" className="minigame__spin" disabled={!canAfford} onClick={() => client.findTable()}>
+            <button
+              type="button"
+              className="minigame__spin"
+              disabled={!canAfford}
+              onClick={() => client.findTable()}
+            >
               TAKE A SEAT
             </button>
           ) : null}
 
           {view.phase === "queued" ? (
-            <button type="button" className="minigame__wager" onClick={() => client.cancelQueue()}>
+            <button
+              type="button"
+              className="minigame__wager"
+              onClick={() => client.cancelQueue()}
+            >
               LEAVE QUEUE
             </button>
           ) : null}
 
-          {view.table ? <ActionPanel table={view.table} onAct={(action) => client.act(action)} secondsLeft={secondsLeft} /> : null}
+          {view.table ? (
+            <ActionPanel
+              table={view.table}
+              onAct={(action) => client.act(action)}
+              secondsLeft={secondsLeft}
+            />
+          ) : null}
 
           {view.phase === "table" ? (
-            <button type="button" className="minigame__wager" onClick={() => client.leaveTable()}>
+            <button
+              type="button"
+              className="minigame__wager"
+              onClick={() => client.leaveTable()}
+            >
               STAND UP
             </button>
           ) : null}
@@ -355,7 +507,9 @@ export function PokerApp({ player, wallet }: { player: { id: string; name: strin
             <dl className="minigame__payouts">
               <div>
                 <dt>Buy-in</dt>
-                <dd className="minigame__mult minigame__mult--gold">{POKER_BUY_IN}</dd>
+                <dd className="minigame__mult minigame__mult--gold">
+                  {POKER_BUY_IN}
+                </dd>
               </div>
               <div>
                 <dt>Blinds</dt>
@@ -365,7 +519,9 @@ export function PokerApp({ player, wallet }: { player: { id: string; name: strin
               </div>
               <div>
                 <dt>Turn clock</dt>
-                <dd className="minigame__mult minigame__mult--gold">{POKER_ACTION_TIMEOUT_MS / 1000}s</dd>
+                <dd className="minigame__mult minigame__mult--gold">
+                  {POKER_ACTION_TIMEOUT_MS / 1000}s
+                </dd>
               </div>
               <div>
                 <dt>Seats</dt>
