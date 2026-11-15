@@ -689,6 +689,7 @@ export function mountOlympus21(el, options = {}) {
   function statusCopy() {
     const st = backendStatus();
     if (!st) return null;
+    if (st.unavailable) return { title: "TABLES UNAVAILABLE", sub: "Olympus 21 can't reach its tables on the server right now. Try again in a little while." };
     const p = st.player;
     if (st.leaving) return { title: "LEAVING THE TABLE", sub: "Your bet stays in this round. Your chips come back to your arcade wallet when it ends." };
     if (st.queue) {

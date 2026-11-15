@@ -26,6 +26,8 @@ export type O21BackendStatus = {
   leaving: boolean;
   /** How the last table ended for you. */
   result: { returned: number; reason: string } | null;
+  /** The table query failed before any answer (functions not deployed, or offline). */
+  unavailable: boolean;
 };
 
 export type O21ConvexAdapter = {

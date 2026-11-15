@@ -280,3 +280,24 @@ test("unsubscribe from subscribe() stops updates", () => {
     adapter.dispose();
   }
 });
+
+test("a failing table query (functions not deployed) reports unavailable instead of connecting forever", () => {
+  const errors = [];
+  let fail;
+  const client = {
+    onUpdate(_name, _args, _onValue, onError) {
+      fail = onError;
+      return () => {};
+    },
+    mutation: async () => ({ ok: true }),
+  };
+  const adapter = createConvexAdapter({ client, onError: (e) => errors.push(e) });
+  try {
+    assert.equal(adapter.getStatus(), null);
+    fail(new Error("Could not find public function for 'arcade/olympus21:getMyTable'"));
+    assert.equal(errors.length, 1);
+    assert.equal(adapter.getStatus()?.unavailable, true);
+  } finally {
+    adapter.dispose();
+  }
+});

@@ -121,6 +121,8 @@ export function createConvexAdapter({ client, onError, nowBucketMs = 15000, now 
   const listeners = new Set();
   let server = null; // last getMyTable result
   let received = false;
+  /** The table query failed (e.g. the functions aren't deployed yet); cleared by the next answer. */
+  let unavailable = false;
   let disposed = false;
   let bucket = null;
   let handle = null;
@@ -147,7 +149,8 @@ export function createConvexAdapter({ client, onError, nowBucketMs = 15000, now 
   }
 
   function getStatus() {
-    return received ? mapStatus(server, serverNow()) : null;
+    if (unavailable && !received) return { ...mapStatus(null), unavailable: true };
+    return received ? { ...mapStatus(server, serverNow()), unavailable: false } : null;
   }
 
   function emit() {
@@ -191,11 +194,19 @@ export function createConvexAdapter({ client, onError, nowBucketMs = 15000, now 
       (value) => {
         if (disposed) return;
         received = true;
+        unavailable = false;
         server = value && typeof value === "object" ? value : null;
         noteServerNow(server?.serverNow);
         emit();
       },
-      (error) => onError?.(error),
+      (error) => {
+        if (disposed) return;
+        onError?.(error);
+        if (!received) {
+          unavailable = true;
+          emit();
+        }
+      },
     );
     callUnsubscribe(previous);
   }
