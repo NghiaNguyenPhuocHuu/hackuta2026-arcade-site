@@ -235,8 +235,8 @@ export function RouletteGame({ adapter, points = NO_REVEAL }: { adapter: Roulett
 
       <header className="wof__header">
         <div>
-          <h2 className="wof__title">WHEEL OF THE FATES</h2>
-          <p className="wof__tagline">Clotho spins. Lachesis measures. Atropos cuts.</p>
+          <h2 className="wof__title">WHEEL OF DOOM</h2>
+          <p className="wof__tagline">Atropos holds the shears. Bet your thread and defy the cut.</p>
         </div>
         <div className="wof__status">
           <SoundSwitch sfx={sfx} />

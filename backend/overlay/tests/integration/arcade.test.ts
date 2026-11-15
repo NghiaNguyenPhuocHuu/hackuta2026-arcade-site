@@ -139,7 +139,7 @@ describe("admin switches", () => {
     const state = await t.query(getAdmin, { sessionToken: admin.sessionToken });
     expect(state.settings).toMatchObject({ mode: "scheduled", opensAt: NOW + HOUR, closesAt: NOW + 3 * HOUR, launchEnabled: true, backupSignIn: true });
     expect(state.state).toMatchObject({ status: "scheduled" });
-    expect(state.games.find((g: { key: string }) => g.key === "wheel-of-the-fates")).toMatchObject({ enabled: true, name: "Wheel of the Fates" });
+    expect(state.games.find((g: { key: string }) => g.key === "wheel-of-the-fates")).toMatchObject({ enabled: true, name: "Wheel of Doom" });
 
     // Switching back to "on" drops the old schedule times.
     await t.mutation(updateSettings, { sessionToken: admin.sessionToken, mode: "on" });

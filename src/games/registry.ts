@@ -30,9 +30,9 @@ export type GameEntry = {
 export const GAMES: readonly GameEntry[] = [
   {
     key: 'olympus-slots',
-    name: 'Olympus Slots',
+    name: 'Reels of Tartarus',
     shortName: 'Slots',
-    tagline: 'Four reels of gods and monsters. Line them up and defy your fate.',
+    tagline: 'Spin the abyss. Chain the Titans or join them.',
     facts: ['Solo', 'Wagers 5–50 pts'],
     icon: NavSlotsIcon,
     theme: 'night',
@@ -40,9 +40,9 @@ export const GAMES: readonly GameEntry[] = [
   },
   {
     key: 'wheel-of-the-fates',
-    name: 'Wheel of the Fates',
+    name: 'Wheel of Doom',
     shortName: 'Wheel',
-    tagline: 'The three Fates spin the wheel. Place your chips and let them decide your thread.',
+    tagline: 'Atropos holds the shears. Bet your thread and defy the cut.',
     facts: ['Solo', 'Bets 5–50 pts'],
     icon: NavWheelIcon,
     theme: 'night',
@@ -50,9 +50,9 @@ export const GAMES: readonly GameEntry[] = [
   },
   {
     key: 'olympus-poker',
-    name: 'Olympus Poker',
+    name: "Hades' Hold'em",
     shortName: 'Poker',
-    tagline: 'Live Texas Hold\'em. The Fates seat you, 50 points on the felt.',
+    tagline: "Sit at the Lord of the Dead's table. Win your soul back.",
     facts: ['Multiplayer', 'Buy-in 50 pts'],
     icon: NavPokerIcon,
     theme: 'night',

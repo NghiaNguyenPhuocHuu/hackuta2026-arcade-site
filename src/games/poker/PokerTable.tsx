@@ -405,7 +405,7 @@ export function PokerApp() {
         ? "LIVE TABLE"
         : view.phase === "result"
           ? "CASHED OUT"
-          : "OLYMPUS POKER";
+          : "HADES' HOLD'EM";
   const dialogLine =
     view.error ??
     (yourTurn && secondsLeft !== null
@@ -428,9 +428,9 @@ export function PokerApp() {
       <header className="minigame__header">
         <div className="minigame__brand">
           <div className="minigame__brand-copy">
-            <h1 className="minigame__title">OLYMPUS POKER</h1>
+            <h1 className="minigame__title">HADES' HOLD'EM</h1>
             <p className="minigame__tagline">
-              A real 52-card deck. Live seats. Fixed {POKER_BUY_IN}-point buy-in.
+              Sit at the Lord of the Dead's table. {POKER_BUY_IN} points buys your seat.
             </p>
           </div>
         </div>

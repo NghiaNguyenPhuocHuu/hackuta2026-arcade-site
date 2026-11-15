@@ -201,8 +201,8 @@ function template({ uid }: { uid: number }) {
     <header class="minigame__header">
       <div class="minigame__brand">
         <div class="minigame__brand-copy">
-          <h1 class="minigame__title">OLYMPUS SLOTS</h1>
-          <p class="minigame__tagline">Offer your points. Defy the gods.</p>
+          <h1 class="minigame__title">REELS OF TARTARUS</h1>
+          <p class="minigame__tagline">Spin the abyss. Chain the Titans or join them.</p>
         </div>
       </div>
       <div class="minigame__status">

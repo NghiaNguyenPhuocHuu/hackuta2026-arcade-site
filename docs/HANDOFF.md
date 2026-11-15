@@ -181,3 +181,11 @@ end in step 2.
 - Poker (`poker/sound.ts` + pure `poker/cues.ts`): own actions on click; deal, board,
   others' bets/folds, your turn, win/lose, seated, cash-out from view changes. Tests in
   `tests/unit/game-sound.test.ts`.
+
+## Game names (2026-11-15, local; user decision)
+
+Display names only; game keys, routes and folders are unchanged (the server uses the keys):
+Olympus Slots → **Reels of Tartarus**, Wheel of the Fates → **Wheel of Doom**,
+Olympus Poker → **Hades' Hold'em** (registry, in-game titles/taglines,
+`shared/arcade/rules.ts`). The server's game list shows the new names only after
+the next `npm run convex:push-dev`; the site uses the registry names already.
