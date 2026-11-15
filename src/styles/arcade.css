@@ -1717,3 +1717,414 @@
     font-size: 1.05rem;
   }
 }
+
+/*
+ * Scheduled teaser (TeaserScreen.tsx): full page while the arcade is scheduled.
+ * Built on the status-screen look (clay, temple drawing, sign-in card) with
+ * HackUTA tokens only. Techno's sprite is game art and keeps its own palette.
+ */
+@layer components {
+  .arcade-teaser__card {
+    max-width: 40rem;
+    overflow: hidden;
+    gap: 1.6rem;
+    padding: 1.6rem 1.8rem 1.8rem;
+    animation: arcade-pop 0.6s var(--ease-out) 0.1s backwards;
+  }
+
+  .arcade-teaser__top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .arcade-teaser__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .arcade-teaser__logo {
+    width: 2.6rem;
+    height: auto;
+  }
+
+  .arcade-teaser__kicker {
+    margin: 0;
+  }
+
+  .arcade-teaser__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .arcade-teaser__badge i {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 999px;
+    background: currentColor;
+    animation: arcade-teaser-blink 1.2s steps(2) infinite;
+  }
+
+  .arcade-teaser__title {
+    font-size: clamp(1.9rem, 6vw, 2.6rem);
+  }
+
+  /* Countdown */
+  .arcade-teaser__clock {
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .arcade-teaser__unit {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 0.5rem;
+    padding-left: 1.1rem;
+  }
+
+  .arcade-teaser__unit:first-child {
+    padding-left: 0;
+  }
+
+  .arcade-teaser__colon {
+    position: absolute;
+    left: 0.15rem;
+    top: 0.35em;
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 7vw, 3rem);
+    line-height: 1;
+    color: var(--ocean);
+    animation: arcade-teaser-blink 1s steps(2) infinite;
+  }
+
+  .arcade-teaser__tile {
+    display: flex;
+    gap: 0.1rem;
+    padding: 0.55rem 0.8rem 0.65rem;
+    border-radius: 1rem;
+    background: var(--night);
+    color: var(--light);
+    box-shadow: inset 0 -4px 0 rgb(246 237 223 / 0.08), 0 8px 20px rgb(16 47 70 / 0.18);
+  }
+
+  .arcade-teaser__digit {
+    display: inline-block;
+    width: 0.62em;
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: clamp(2.4rem, 9vw, 3.9rem);
+    font-weight: 400;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    animation: arcade-teaser-drop 0.32s var(--ease-out);
+  }
+
+  .arcade-teaser__label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mist);
+  }
+
+  .arcade-teaser[data-phase="final"] .arcade-teaser__tile {
+    background: var(--ocean);
+  }
+
+  .arcade-teaser[data-phase="final"] .arcade-teaser__clock {
+    animation: arcade-teaser-shake 0.24s steps(2) infinite;
+  }
+
+  /* Temple seal */
+  .arcade-teaser__seal {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.9rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ocean);
+  }
+
+  .arcade-teaser__seal b {
+    min-width: 3.2ch;
+    text-align: right;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .arcade-teaser__bar {
+    display: grid;
+    grid-template-columns: repeat(20, 1fr);
+    gap: 3px;
+  }
+
+  .arcade-teaser__bar i {
+    height: 0.6rem;
+    border-radius: 2px;
+    background: rgb(48 88 115 / 0.14);
+    transition: background 0.3s var(--ease-out);
+  }
+
+  .arcade-teaser__bar i.is-on {
+    background: var(--ocean);
+  }
+
+  .arcade-teaser[data-phase="hot"] .arcade-teaser__bar i.is-on,
+  .arcade-teaser[data-phase="final"] .arcade-teaser__bar i.is-on {
+    background: var(--ink);
+  }
+
+  /* Techno */
+  .arcade-teaser__host {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 1.1rem;
+    padding: 1rem 1.2rem 1.15rem;
+    border-radius: 1.1rem;
+    background: var(--night);
+    color: var(--light);
+  }
+
+  .arcade-teaser__portrait {
+    position: relative;
+    width: 4.5rem;
+    height: 4.5rem;
+    padding: 0.3rem;
+    border-radius: 0.75rem;
+    background: var(--ink);
+    border: 2px solid rgb(246 237 223 / 0.25);
+  }
+
+  .arcade-teaser__techno,
+  .arcade-teaser__techno svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .arcade-teaser__tag {
+    position: absolute;
+    left: 50%;
+    bottom: -0.6rem;
+    transform: translateX(-50%);
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    background: var(--light);
+    color: var(--night);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .arcade-teaser__host-title {
+    margin: 0 0 0.25rem;
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.15;
+  }
+
+  .arcade-teaser__host-line {
+    margin: 0;
+    min-height: 3em;
+    font-size: 1rem;
+    line-height: 1.45;
+    color: rgb(246 237 223 / 0.86);
+  }
+
+  .arcade-teaser__host-line::after {
+    content: "▾";
+    margin-left: 0.35rem;
+    visibility: hidden;
+    animation: arcade-teaser-blink 0.8s steps(2) infinite;
+  }
+
+  .arcade-teaser__host.is-done .arcade-teaser__host-line::after {
+    visibility: visible;
+  }
+
+  .arcade-teaser__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  /* Games + points */
+  .arcade-teaser__games {
+    display: grid;
+    gap: 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ocean);
+  }
+
+  .arcade-teaser__games ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .arcade-teaser__games li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    background: var(--clay);
+    color: var(--ink);
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: none;
+  }
+
+  .arcade-teaser__game-icon {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  .arcade-teaser__points {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 0.6rem;
+    margin: 0;
+    padding-top: 1.1rem;
+    border-top: 1px solid rgb(48 88 115 / 0.15);
+    font-size: 0.95rem;
+    color: var(--ocean);
+  }
+
+  .arcade-teaser__points b {
+    font-size: 1.2rem;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .arcade-teaser__points-tip {
+    flex-basis: 100%;
+    font-size: 0.9rem;
+    color: rgb(48 88 115 / 0.82);
+  }
+
+  /* Open */
+  .arcade-teaser__open {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 1.4rem;
+    padding: 1.2rem 0 0.4rem;
+    text-align: center;
+    animation: arcade-pop 0.6s var(--ease-out) backwards;
+  }
+
+  .arcade-teaser__open::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: -1;
+    width: 60rem;
+    height: 60rem;
+    margin: -30rem 0 0 -30rem;
+    background: repeating-conic-gradient(rgb(48 88 115 / 0.08) 0 10deg, transparent 10deg 20deg);
+    animation: arcade-spin 30s linear infinite;
+  }
+
+  .arcade-teaser__cta {
+    max-width: 18rem;
+  }
+
+  /* Temple doors: close over the card at zero, then open on the live state. */
+  .arcade-teaser__doors {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    pointer-events: none;
+  }
+
+  .arcade-teaser__doors i {
+    flex: 1;
+    background:
+      repeating-linear-gradient(90deg, transparent 0 2.6rem, rgb(26 58 82 / 0.12) 2.6rem 2.8rem),
+      var(--sand);
+    transition: transform 0.4s var(--ease-out);
+  }
+
+  .arcade-teaser__doors i:first-child {
+    transform: translateX(-101%);
+    border-right: 3px solid var(--ink);
+  }
+
+  .arcade-teaser__doors i:last-child {
+    transform: translateX(101%);
+    border-left: 3px solid var(--ink);
+  }
+
+  .arcade-teaser__doors.is-shut i {
+    transform: none;
+  }
+
+  @keyframes arcade-teaser-blink {
+    50% {
+      opacity: 0.25;
+    }
+  }
+
+  @keyframes arcade-teaser-drop {
+    from {
+      transform: translateY(-35%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes arcade-teaser-shake {
+    0% {
+      transform: translateX(-3px);
+    }
+    100% {
+      transform: translateX(3px);
+    }
+  }
+
+  @media (max-width: 560px) {
+    .arcade-teaser__card {
+      padding: 1.3rem 1.1rem 1.4rem;
+    }
+
+    .arcade-teaser__seal {
+      grid-template-columns: 1fr auto;
+    }
+
+    .arcade-teaser__bar {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+
+    .arcade-teaser__portrait {
+      width: 3.75rem;
+      height: 3.75rem;
+    }
+  }
+}
