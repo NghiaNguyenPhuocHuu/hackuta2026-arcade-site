@@ -1,7 +1,8 @@
 # HackUTA Arcade
 
 The website for the HackUTA points games: **Reels of Tartarus** (slots),
-**Wheel of Doom** (roulette) and **Hades' Hold'em** (poker) (PvP Blackjack next). Hackers sign in with their
+**Wheel of Doom** (roulette), **Hades' Hold'em** (poker) and **Olympus 21**
+(PvP blackjack). Hackers sign in with their
 HackUTA email and password, **deposit** points from their profile into an
 arcade balance on the **Wallet** page, play, and **withdraw** what's left back
 to their profile. Admins switch the site, or a single game, on and off.
