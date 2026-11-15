@@ -5,6 +5,13 @@ Context carried over from the Claude session that started this repo (it ran in
 `CLAUDE.md` (rules, layout, commands) and `docs/ARCADE_PLAN.md` (design,
 decisions, step plan). Update this file at the end of each working session.
 
+## Backend home (2026-11-15)
+
+Arcade Convex tables, `convex/arcade/*`, launch-code auth, and game functions
+now live in **`hackuta-2026-profile`**. Deploy prod from there
+(`npm run convex:deploy` + deploy key). This repo's `npm run convex:deploy`
+refuses on purpose. `npm run convex:push-dev` still assembles peccary only.
+
 ## Where things stand (2026-11-14)
 
 | | |
@@ -158,9 +165,11 @@ new commits (merging the old `blackjack` branch again would drop it silently).
 
 ## Next steps
 
+- Deploy arcade Convex from **profile** (`npm run convex:deploy` with a prod
+  deploy key). Tables and `convex/arcade/*` now live in `hackuta-2026-profile`.
 - `/launch` flow for `arcade-launch` codes (when organizers use backup sign-in).
 - Sidebar sign-out wired to Convex Auth.
-- Olympus 21: `npm run convex:push-dev`, switch `pvp-blackjack` on, and try
+- Olympus 21: switch `pvp-blackjack` on after the profile deploy, then try
   two accounts in two browsers.
 
 ## Environment notes

@@ -15,7 +15,8 @@
     "backend:check": "node scripts/check-no-function-loss.mjs",
     "convex:guard": "node scripts/guard-convex-target.mjs",
     "convex:push": "node scripts/push-arcade-backend.mjs",
-    "convex:push-dev": "node scripts/push-arcade-backend.mjs"
+    "convex:push-dev": "node scripts/push-arcade-backend.mjs",
+    "convex:deploy": "node scripts/refuse-convex-deploy.mjs"
   },
   "dependencies": {
     "@convex-dev/auth": "^0.0.96",

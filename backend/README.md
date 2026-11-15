@@ -1,9 +1,14 @@
-# Game backend for the sandbox deployment (brazen-peccary-506)
+# Game backend overlay (legacy sandbox assemble)
 
-A Convex push replaces **every** function on a deployment, and no function on
-peccary may be deleted. So the push is never made from this repo's root. It is
-made from an **assembled build**: the exact profile backend peccary already
-runs, plus the game.
+**Canonical arcade Convex code now lives in `hackuta-2026-profile`**
+(`convex/arcade/`, arcade tables in `convex/schema.ts`). Deploy production
+(and standing-manatee) from that repo with `npm run convex:deploy` and a
+deploy key.
+
+This overlay remains for the peccary sandbox assemble path
+(`npm run convex:push-dev`). A Convex push replaces **every** function on a
+deployment, so a push from this repo is never made from `src/`. It is made
+from an **assembled build**: the pinned profile backend plus this overlay.
 
 | Path | What |
 | --- | --- |

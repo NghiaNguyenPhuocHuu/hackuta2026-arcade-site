@@ -8,11 +8,14 @@ Standalone site for the HackUTA points games. Read these first:
 
 ## Safety rules (non-negotiable)
 
-- Convex work targets **only** the sandbox `dev:brazen-peccary-506`.
+- **Production Convex deploys from `hackuta-2026-profile`**, which now owns
+  `convex/arcade/` plus the arcade tables. Do not `convex deploy` from this repo.
+- Convex sandbox work from this repo still targets **only** `dev:brazen-peccary-506`.
   Never `standing-manatee-425` or production.
 - **Never push arcade `src/` as a Convex backend.** A Convex push replaces every
-  function on a deployment. From this repo, push only with `npm run convex:push-dev`,
-  which assembles `build/peccary` (pinned profile + overlay) and deploys that.
+  function on a deployment. Sandbox assemble+push is `npm run convex:push-dev`
+  (`build/peccary` = pinned profile + overlay). Prefer deploying arcade backend
+  changes from profile (`npm run convex:deploy` / `convex:push-dev`).
 - **Never delete a table or function** on the deployment. Schema changes are
   additive. Run `npm run backend:check` before any push.
 - Never run `npx convex dev` without `--once` in `build/peccary`, and never to
