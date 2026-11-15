@@ -89,14 +89,20 @@ export function ExternalIcon({ className }: IconProps) {
   );
 }
 
-/** Poker: two hole cards and a chip. */
-export function NavPokerIcon({ className }: IconProps) {
+/** Hades' Hold'em: the Lord of the Dead's skull, with a spade for a nose. */
+export function NavHadesIcon({ className }: IconProps) {
   return (
     <Svg className={className}>
-      <rect x="3.5" y="5" width="9.5" height="13" rx="1.4" stroke="currentColor" strokeWidth="1.5" />
-      <rect x="9" y="7" width="9.5" height="13" rx="1.4" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="18.5" cy="17.5" r="2.4" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M13.75 11.5c-.9.85-1.65 1.45-1.65 2.15a.9.9 0 0 0 1.65.4.9.9 0 0 0 1.65-.4c0-.7-.75-1.3-1.65-2.15Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+      <path
+        d="M12 3.5a7.5 7.5 0 0 0-7.5 7.5c0 2.3 1 4 2.5 5v2.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V16c1.5-1 2.5-2.7 2.5-5A7.5 7.5 0 0 0 12 3.5Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <circle cx="9" cy="11" r="1.7" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="15" cy="11" r="1.7" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M12 12.9c-.75.7-1.3 1.15-1.3 1.7a.65.65 0 0 0 1.3.25.65.65 0 0 0 1.3-.25c0-.55-.55-1-1.3-1.7Z" fill="currentColor" />
+      <path d="M10 17.25v2.25M12 17.25v2.25M14 17.25v2.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </Svg>
   );
 }

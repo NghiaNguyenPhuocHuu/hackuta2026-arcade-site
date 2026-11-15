@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { NavCardsIcon, NavPokerIcon, NavSlotsIcon, NavWheelIcon } from '../components/brand/ArcadeIcons'
+import { NavCardsIcon, NavHadesIcon, NavSlotsIcon, NavWheelIcon } from '../components/brand/ArcadeIcons'
 import type { GameModule } from './types'
 import type { ArcadeGameKey } from '../../shared/arcade/rules'
 
@@ -54,7 +54,7 @@ export const GAMES: readonly GameEntry[] = [
     shortName: 'Poker',
     tagline: "Sit at the Lord of the Dead's table. Win your soul back.",
     facts: ['Multiplayer', 'Buy-in 50 pts'],
-    icon: NavPokerIcon,
+    icon: NavHadesIcon,
     theme: 'night',
     load: () => import('./poker/index').then((m) => m.game),
   },
