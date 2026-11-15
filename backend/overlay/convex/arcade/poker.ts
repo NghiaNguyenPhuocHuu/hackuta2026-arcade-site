@@ -564,9 +564,11 @@ export const leaveTable = mutation({
 export const trySeat = mutation({
   args: {},
   handler: async (ctx) => {
+    const now = Date.now();
+    const { code } = await gameGate(ctx, GAME, now);
+    if (code) return;
     const waiting = await waitingQueue(ctx);
     if (waiting.length === 0) return;
-    const now = Date.now();
     const take = waiting.slice(0, POKER_MAX_PLAYERS);
     const oldest = take[0]!;
     const waited = now - oldest.joinedAt;

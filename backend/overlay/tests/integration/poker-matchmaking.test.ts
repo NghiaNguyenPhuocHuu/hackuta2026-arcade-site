@@ -55,6 +55,20 @@ describe("event poker matchmaking", () => {
     expect(va.table?.seats.find((seat: { id: string }) => seat.id === va.youId)?.name).toBe("Taylor Student");
   });
 
+  it("does not open new tables after the arcade closes", async () => {
+    const t = createConvexTest();
+    await openArcade(t, [POKER]);
+    const one = await seedPlayer(t, { arcadePoints: 100 });
+    const two = await seedPlayer(t, { arcadePoints: 100 });
+    await one.player.mutation(joinQueue, {});
+    await two.player.mutation(joinQueue, {});
+    await t.mutation(updateSettingsInternal, { mode: "off" });
+    vi.setSystemTime(NOW + 10_000);
+    await t.mutation(trySeat, {});
+    expect(await one.player.query(getView, {})).toMatchObject({ phase: "queued" });
+    expect(await two.player.query(getView, {})).toMatchObject({ phase: "queued" });
+  });
+
   it("does not seat a lone player — needs at least two hackers in the queue", async () => {
     const t = createConvexTest();
     await openArcade(t, [POKER]);
