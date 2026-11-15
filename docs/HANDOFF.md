@@ -42,6 +42,26 @@ Copied from `hackuta-2026-profile` (commit `d838016`), not recreated:
 - `public/` fonts, logos, favicons; `public/images/art/` pillars + temple.
 - `src/components/brand/` Logo, LogoMark, NavIcons from profile.
 
+## Live backend, no mocks (2026-11-14, pushed to brazen-peccary-506)
+
+- **Backend:** Wheel of the Fates on the server (`arcade/roulette`:
+  `getMyTable`, `spin`, `rouletteSpins`, daily loss limit by the event's day).
+  Olympus Poker moved to signed-in hackers and the arcade wallet (buy-in via
+  `applyPlay`, cash-outs and refunds via `creditWallet`, all in `arcadePlays`);
+  `pokerAudit` queries are admin-only. 60 backend tests; the profile suite (136)
+  passes on the build. Pushed with `npm run convex:push-dev` after a backup
+  (`backups/peccary-20261114-2223.zip`): 201 functions, none lost.
+- **Site:** `ConvexAuthProvider`; the signed-out screen has the email + password
+  form; `useArcadeSession` reads `arcade/session:getArcadeSession` live; a gate
+  shows loading / sign-in / "not yet" (can't play) / sealed (Wallet still
+  reachable) / the arcade. Games mount with `{ client, reveal, player }` on
+  their Convex adapters; the Wallet uses the real deposit/withdraw/log. All mock
+  code is gone (mock wallet, mock adapters, the offline poker client, `?preview=`).
+- **To test signed in:** an accepted, checked-in account on the sandbox, with
+  the arcade and the games switched on (see README).
+- **Note for kolorless:** the poker functions no longer take `playerToken`;
+  the site's poker client is updated. Legacy token players keep their chips.
+
 ## Arcade wallet: deposit and withdraw (2026-11-14, on `main`, not deployed)
 
 - **Backend** (`backend/overlay/convex/arcade/`): `wallet.ts` (`arcadeWallets`),
