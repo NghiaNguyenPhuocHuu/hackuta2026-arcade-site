@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ComponentType } from "react";
 import { NavLink, Outlet, useLocation, useMatch } from "react-router-dom";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { ArcadeBrand } from "../components/ArcadeBrand";
 import { ExternalIcon, NavTempleIcon, NavWalletIcon } from "../components/brand/ArcadeIcons";
 import { NavSignOutIcon } from "../components/brand/NavIcons";
@@ -15,6 +16,7 @@ const NIGHT_THEME_COLOR = "#071526";
  * nav and account; main column. Same classes, so it looks and collapses the same.
  */
 export function ArcadeLayout({ session }: { session: ArcadeSession }) {
+  const { signOut } = useAuthActions();
   const player = session.player;
   const playing = useMatch("/play/:gameKey");
   const night = findGame(playing?.params.gameKey)?.theme === "night";
@@ -88,8 +90,13 @@ export function ArcadeLayout({ session }: { session: ArcadeSession }) {
                 </p>
               ) : null}
             </div>
-            {/* Signs out of the arcade only; the profile session is separate. Wired up in step 2. */}
-            <button type="button" className="participant-dashboard__sign-out" aria-label="Leave the arcade" title="Leave the arcade">
+            <button
+              type="button"
+              className="participant-dashboard__sign-out"
+              aria-label="Sign out of the arcade"
+              title="Sign out of the arcade"
+              onClick={() => void signOut()}
+            >
               <NavSignOutIcon />
             </button>
           </div>

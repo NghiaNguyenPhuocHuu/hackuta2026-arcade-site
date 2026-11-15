@@ -1,12 +1,14 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { getMockWallet, subscribeMockWallet } from "./mockWallet";
+import { useEffect, useState } from "react";
+import { useConvexAuth, useQuery } from "convex/react";
+import { getArcadeSessionRef } from "../convex/arcadeApi";
+import type { ArcadePlayErrorCode } from "../../shared/arcade/rules";
 import { shownPoints, usePointsHold } from "./pointsReveal";
 import type { GameKey } from "../games/registry";
 
 /**
- * What the arcade UI needs from the server. Step 1 of docs/ARCADE_PLAN.md
- * replaces the mock below with a Convex query (arcade settings, per-game
- * switches, the signed-in hacker and their points); the shape stays the same.
+ * What the arcade UI reads from the server: the arcade switch, the games, and
+ * the signed-in hacker with both balances. Live: Convex re-runs the query
+ * whenever any of it changes (a spin, a deposit, an admin switch).
  */
 export type ArcadeStatus = "loading" | "signed-out" | "off" | "scheduled" | "on";
 
@@ -23,6 +25,8 @@ export type ArcadeSession = {
   player: {
     displayName: string;
     email: string | null;
+    /** Why this account can't play (not checked in, …), or null. */
+    problem: ArcadePlayErrorCode | null;
     /** Profile balance (HackUTA points). */
     points: number;
     /** Arcade wallet: what the games bet. Deposit and withdraw move points between the two. */
@@ -31,41 +35,49 @@ export type ArcadeSession = {
   games: ArcadeGameState[];
 };
 
-const PREVIEWS: readonly ArcadeStatus[] = ["loading", "signed-out", "off", "scheduled", "on"];
+const EMPTY: Omit<ArcadeSession, "status"> = { opensAt: null, closesAt: null, player: null, games: [] };
 
 /**
- * Local preview of every screen until the backend exists: add ?preview=off,
- * ?preview=scheduled, ?preview=signed-out or ?preview=loading to the URL.
+ * Re-renders at `at` (and returns a number that changed), so a query keyed on
+ * it re-runs exactly when the arcade's schedule opens or closes.
  */
-function previewStatus(): ArcadeStatus {
-  const value = new URLSearchParams(window.location.search).get("preview");
-  return PREVIEWS.includes(value as ArcadeStatus) ? (value as ArcadeStatus) : "on";
-}
-
-function mockSession(status: ArcadeStatus, now: number): ArcadeSession {
-  const hour = 60 * 60 * 1000;
-  return {
-    status,
-    opensAt: status === "scheduled" ? now + hour : status === "on" ? now - hour : null,
-    closesAt: status === "scheduled" ? now + 3 * hour : status === "on" ? now + 2 * hour : null,
-    player: status === "signed-out" || status === "loading" ? null : { displayName: "Alex Rivera", email: "alex@example.com", points: 200, arcadePoints: 0 },
-    games: [
-      { key: "olympus-slots", enabled: true },
-      { key: "wheel-of-the-fates", enabled: true },
-      { key: "olympus-poker", enabled: true },
-      { key: "pvp-blackjack", enabled: false },
-    ],
-  };
+function useBucketUntil(at: number | null | undefined): number {
+  const [bucket, setBucket] = useState(0);
+  useEffect(() => {
+    if (!at) return;
+    const wait = Math.max(0, at - Date.now()) + 250;
+    const id = window.setTimeout(() => setBucket((b) => b + 1), Math.min(wait, 2 ** 31 - 1));
+    return () => window.clearTimeout(id);
+  }, [at, bucket]);
+  return bucket;
 }
 
 export function useArcadeSession(): ArcadeSession {
-  const [session] = useState(() => mockSession(previewStatus(), Date.now()));
-  const wallet = useSyncExternalStore(subscribeMockWallet, getMockWallet);
+  const auth = useConvexAuth();
+  const [nextChangeAt, setNextChangeAt] = useState<number | null>(null);
+  const nowBucket = useBucketUntil(nextChangeAt);
+  const server = useQuery(getArcadeSessionRef, auth.isAuthenticated ? { nowBucket } : "skip");
+  useEffect(() => setNextChangeAt(server?.arcade.nextChangeAt ?? null), [server?.arcade.nextChangeAt]);
   // During a spin's reveal every screen shows the held balance, not the result.
   const hold = usePointsHold();
-  return session.player
-    ? { ...session, player: { ...session.player, points: wallet.profilePoints, arcadePoints: shownPoints(wallet.balance, hold) } }
-    : session;
+
+  if (auth.isLoading) return { status: "loading", ...EMPTY };
+  if (!auth.isAuthenticated) return { status: "signed-out", ...EMPTY };
+  if (server === undefined) return { status: "loading", ...EMPTY };
+  if (!server.player) return { status: "signed-out", ...EMPTY };
+  return {
+    status: server.arcade.status,
+    opensAt: server.arcade.opensAt,
+    closesAt: server.arcade.closesAt,
+    player: {
+      displayName: server.player.displayName,
+      email: server.player.email,
+      problem: server.player.problem,
+      points: server.player.points ?? 0,
+      arcadePoints: shownPoints(server.player.arcadePoints ?? 0, hold),
+    },
+    games: server.games.map((game) => ({ key: game.key, enabled: game.enabled })),
+  };
 }
 
 /** Re-renders every `intervalMs` so countdowns stay current. */
