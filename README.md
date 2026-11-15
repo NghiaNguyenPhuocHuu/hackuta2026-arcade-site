@@ -1,11 +1,10 @@
 # HackUTA Arcade
 
 The website for the HackUTA points games: **Olympus Slots**, **Wheel of the
-Fates**, **Olympus Poker** and **Olympus 21** (player vs player; its server
-side is in [docs/OLYMPUS21_ADMIN.md](docs/OLYMPUS21_ADMIN.md)). Hackers sign in
-with their HackUTA email and password, **deposit** points from their profile
-into an arcade balance on the **Wallet** page, play, and **withdraw** what's
-left back to their profile. Admins switch the site, or a single game, on and off.
+Fates** and **Olympus Poker** (PvP Blackjack next). Hackers sign in with their
+HackUTA email and password, **deposit** points from their profile into an
+arcade balance on the **Wallet** page, play, and **withdraw** what's left back
+to their profile. Admins switch the site, or a single game, on and off.
 
 The design, decisions and step plan are in [docs/ARCADE_PLAN.md](docs/ARCADE_PLAN.md).
 

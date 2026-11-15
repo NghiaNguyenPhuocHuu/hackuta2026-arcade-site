@@ -10,7 +10,6 @@ export default defineConfig({
   build: { target: 'es2022' },
   test: {
     environment: 'node',
-    // .mjs: the Olympus 21 tests ported from the minigame prototype (plain JS, like the game).
-    include: ['tests/**/*.test.{ts,tsx,mjs}'],
+    include: ['tests/**/*.test.{ts,tsx}'],
   },
 })
