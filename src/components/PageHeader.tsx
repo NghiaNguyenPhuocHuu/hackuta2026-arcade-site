@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 
 /** Same frieze header as profile's ParticipantPageHeader (pillars art, meander border). */
@@ -37,6 +38,20 @@ export function PageHeader({
         {actions ? <div className="participant-page-header__actions">{actions}</div> : null}
       </header>
       <span aria-hidden="true" className="participant-meander participant-meander--flip" />
+    </div>
+  );
+}
+
+/** Shown where games are played while the arcade balance is 0: points have to be deposited first. */
+export function DepositPrompt() {
+  return (
+    <div className="participant-dashboard__notice arcade-deposit-prompt" role="status">
+      <p className="participant-dashboard__notice-copy">
+        Your arcade balance is empty. Deposit points from your profile to play.
+      </p>
+      <Link to="/wallet" className="participant-dashboard__cta">
+        Deposit points
+      </Link>
     </div>
   );
 }

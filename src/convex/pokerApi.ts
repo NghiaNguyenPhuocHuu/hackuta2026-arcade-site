@@ -1,6 +1,11 @@
 import { makeFunctionReference } from "convex/server";
 import type { PokerAction, PublicTable } from "../../shared/poker";
 
+/**
+ * Olympus Poker function references (backend/overlay/convex/arcade/poker.ts).
+ * The player is the signed-in hacker; no function takes an id or token.
+ */
+
 export type PokerQueueEntry = { id: string; name: string; joinedAt: number };
 
 export type PokerServerView = {
@@ -17,32 +22,32 @@ export type PokerServerView = {
 
 export type PokerJoinResponse =
   | { status: "ok"; phase: "queued" | "table" }
-  | { status: "error"; code: "INVALID_TOKEN" | "INSUFFICIENT_POINTS" };
+  | { status: "error"; code: string };
 
 export type PokerOkOrError =
   | { status: "ok" }
   | { status: "error"; code: string };
 
-export const getMyPokerViewRef = makeFunctionReference<"query", { playerToken: string }, PokerServerView>(
+export const getMyPokerViewRef = makeFunctionReference<"query", Record<string, never>, PokerServerView>(
   "arcade/poker:getMyPokerView",
 );
 
 export const joinPokerQueueRef = makeFunctionReference<
   "mutation",
-  { playerToken: string; displayName: string },
+  Record<string, never>,
   PokerJoinResponse
 >("arcade/poker:joinQueue");
 
-export const cancelPokerQueueRef = makeFunctionReference<"mutation", { playerToken: string }, PokerOkOrError>(
+export const cancelPokerQueueRef = makeFunctionReference<"mutation", Record<string, never>, PokerOkOrError>(
   "arcade/poker:cancelQueue",
 );
 
 export const pokerActRef = makeFunctionReference<
   "mutation",
-  { playerToken: string; action: PokerAction },
+  { action: PokerAction },
   PokerOkOrError
 >("arcade/poker:act");
 
-export const leavePokerTableRef = makeFunctionReference<"mutation", { playerToken: string }, PokerOkOrError>(
+export const leavePokerTableRef = makeFunctionReference<"mutation", Record<string, never>, PokerOkOrError>(
   "arcade/poker:leaveTable",
 );

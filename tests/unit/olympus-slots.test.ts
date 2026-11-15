@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MinigameServerState } from "../../src/convex/minigameApi";
 import { createConvexAdapter, mapGameState, mapSpinResult, type MinigameConvexClient } from "../../src/games/olympus-slots/adapters/convexAdapter";
-import { createMockAdapter } from "../../src/games/olympus-slots/adapters/mockAdapter";
 import { dialogueFor, formatOpensAt, lossRun, TUTORIAL_STEPS } from "../../src/games/olympus-slots/dialogue";
 import { hackerFrame } from "../../src/games/olympus-slots/hacker";
 import { SPRITE_MAPS, symbolLabel, symbolSvg } from "../../src/games/olympus-slots/symbols";
@@ -163,40 +162,6 @@ describe("createConvexAdapter", () => {
     expect(await adapter.spin({ spinId: "x", wager: 5 })).toEqual({ status: "error" });
     expect(onError).toHaveBeenCalledTimes(2);
     adapter.dispose();
-    adapter.dispose();
-  });
-});
-
-describe("createMockAdapter", () => {
-  it("starts from a carried-over balance and history", () => {
-    const spin = { spinId: "s1", symbols: ["zeus", "zeus", "hera", "hera"], outcomeId: "push", outcomeLabel: "Two pairs", wager: 10, payout: 10, delta: 0, at: 1 };
-    const adapter = createMockAdapter({ balance: 140, recentSpins: [spin], latencyMs: 0 });
-    expect(adapter.getState()).toMatchObject({ balance: 140, recentSpins: [spin] });
-    adapter.dispose();
-  });
-
-  it("enforces the server's rules", async () => {
-    const adapter = createMockAdapter({ balance: 30, latencyMs: 0, random: () => 0.99 });
-    expect(await adapter.spin({ spinId: "a", wager: 7 })).toEqual({ status: "invalid_wager" });
-    expect(await adapter.spin({ spinId: "b", wager: 50 })).toEqual({ status: "insufficient_points" });
-    const first = await adapter.spin({ spinId: "c", wager: 10 });
-    expect(first.status).toBe("ok");
-    expect(await adapter.spin({ spinId: "c", wager: 10 })).toBe(first);
-    expect(await adapter.spin({ spinId: "d", wager: 10 })).toEqual({ status: "rate_limited" });
-    expect(adapter.getState().recentSpins).toHaveLength(1);
-    adapter.setStatus("closed");
-    expect(await adapter.spin({ spinId: "e", wager: 5 })).toEqual({ status: "closed" });
-    adapter.dispose();
-  });
-
-  it("flips teaser → live → closed on its own", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(NOW);
-    const adapter = createMockAdapter({ status: "teaser", opensAt: NOW + 1000, closesAt: NOW + 2000, latencyMs: 0 });
-    const statuses: string[] = [];
-    adapter.subscribe((state) => statuses.push(state.status));
-    vi.advanceTimersByTime(2500);
-    expect(statuses).toEqual(["live", "closed"]);
     adapter.dispose();
   });
 });

@@ -1,5 +1,5 @@
 import { Link, useOutletContext } from "react-router-dom";
-import { PageHeader, PointsPill } from "../components/PageHeader";
+import { DepositPrompt, PageHeader, PointsPill } from "../components/PageHeader";
 import { ClockIcon } from "../components/brand/ArcadeIcons";
 import { formatClock, formatCountdown, useNow, type ArcadeSession } from "../arcade/useArcadeSession";
 import { GAMES, type GameEntry } from "../games/registry";
@@ -14,11 +14,12 @@ export default function LobbyPage() {
         id="arcade-lobby-title"
         title={`Enter the Arcade, ${firstName}`}
         description="Wager the points you've earned at HackUTA. Every triumph and every fall lands on your real balance."
-        actions={session.player ? <PointsPill points={session.player.points} /> : null}
+        actions={session.player ? <PointsPill points={session.player.arcadePoints} /> : null}
       />
 
       <div className="participant-portal__inner arcade-lobby__inner">
         <StatusBanner session={session} />
+        {session.player && session.player.arcadePoints === 0 ? <DepositPrompt /> : null}
 
         <section className="arcade-section" aria-labelledby="arcade-games-title">
           <div className="arcade-section__head">
@@ -41,7 +42,7 @@ export default function LobbyPage() {
           </h2>
           <ul className="arcade-rules__list">
             <li>
-              <strong>Real stakes.</strong> Wagers come out of your HackUTA points balance and winnings go back in.
+              <strong>Real stakes.</strong> Deposit points from your HackUTA profile into the arcade. Games bet from your arcade points, and you can withdraw them back to your profile any time.
             </li>
             <li>
               <strong>Open hours only.</strong> Games run only while organizers hold the gates open. Spins in progress finish when they close.

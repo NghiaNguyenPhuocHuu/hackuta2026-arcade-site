@@ -150,3 +150,45 @@ export function bytesToBase64Url(bytes: Uint8Array): string {
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
+
+// ---- arcade wallet: deposit and withdraw (1 profile point = 1 arcade point) ----
+
+/** Most points one deposit or withdrawal may move (a fat-finger guard). */
+export const MAX_TRANSFER = 500;
+
+export type TransferKind = "deposit" | "withdraw";
+
+export type TransferErrorCode =
+  | "NOT_SIGNED_IN"
+  | "NOT_PARTICIPANT"
+  | "NOT_ELIGIBLE"
+  | "NOT_CHECKED_IN"
+  | "ARCADE_CLOSED"
+  | "INVALID_TRANSFER_ID"
+  | "INVALID_AMOUNT"
+  | "INSUFFICIENT_POINTS"
+  | "INSUFFICIENT_ARCADE_POINTS";
+
+const isWholeAmount = (amount: unknown): amount is number =>
+  typeof amount === "number" && Number.isSafeInteger(amount) && amount >= 1 && amount <= MAX_TRANSFER;
+
+/** Moving `amount` profile points into the arcade: a whole number from 1 to MAX_TRANSFER, within the profile balance. */
+export function checkDeposit(amount: unknown, profilePoints: number): TransferErrorCode | null {
+  if (!isWholeAmount(amount)) return "INVALID_AMOUNT";
+  if (amount > profilePoints) return "INSUFFICIENT_POINTS";
+  return null;
+}
+
+/** Moving `amount` arcade points back to the profile: a whole number from 1 to MAX_TRANSFER, within the arcade balance. */
+export function checkWithdraw(amount: unknown, arcadePoints: number): TransferErrorCode | null {
+  if (!isWholeAmount(amount)) return "INVALID_AMOUNT";
+  if (amount > arcadePoints) return "INSUFFICIENT_ARCADE_POINTS";
+  return null;
+}
+
+/** The balances after a transfer (the confirmation modal shows these before the hacker confirms). */
+export function balancesAfter(kind: TransferKind, amount: number, profilePoints: number, arcadePoints: number) {
+  return kind === "deposit"
+    ? { profile: profilePoints - amount, arcade: arcadePoints + amount }
+    : { profile: profilePoints + amount, arcade: arcadePoints - amount };
+}

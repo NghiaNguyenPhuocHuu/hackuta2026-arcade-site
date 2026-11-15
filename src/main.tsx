@@ -11,6 +11,11 @@ import './styles/arcade.css'
 // on Back would run after that and land partway down the lobby.
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
 
+// The whole arcade is night-themed: the page behind the app (overscroll) and the
+// phone's browser bar match the dark sky on every screen, sign-in included.
+document.documentElement.dataset.arcadeTheme = 'night'
+document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#071526')
+
 const root = document.getElementById('root')
 if (!root) throw new Error('Missing #root element')
 

@@ -6,17 +6,6 @@ import type { ConvexReactClient } from "convex/react";
  */
 
 /**
- * The arcade's mock points for this visit (src/arcade/mockWallet.ts), handed to
- * a game so its balance is shared with the lobby and other games. `saved` is
- * the game's own data from an earlier mount (history and so on).
- */
-export type MockWalletPort = {
-  balance: number;
-  saved: unknown;
-  save(next: { balance: number; saved: unknown }): void;
-} & PointsRevealPort;
-
-/**
  * Keeps a spin's result off the rest of the arcade until the game shows it
  * (src/arcade/pointsReveal.ts). Call `hold` when a spin starts, with the
  * balance the game is showing (stake taken) and the longest the reveal can
@@ -27,21 +16,16 @@ export type PointsRevealPort = {
   release(): void;
 };
 
-export type MountGameOptions = {
-  player?: { id?: string; displayName: string };
+/** What the arcade gives a game when it mounts it. */
+export type GameHost = {
+  /** The signed-in Convex client: the game's server functions find the player from its session. */
+  client: ConvexReactClient;
+  reveal: PointsRevealPort;
+  /** For display only; the server never takes the player from the browser. */
+  player: { displayName: string } | null;
 };
 
-export type LiveGameContext = {
-  /** The arcade's shared client, already signed in by ConvexAuthProvider. */
-  client: ConvexReactClient;
-} & MountGameOptions;
-
 export type GameModule = {
-  /** Mount on mock points. Returns `unmount`, safe to call more than once. */
-  mountMock(element: HTMLElement, wallet: MockWalletPort, options?: MountGameOptions): () => void;
-  /**
-   * Mount on real points through Convex (VITE_ARCADE_BACKEND=live). Games
-   * without it keep running on mock points in live mode.
-   */
-  mountLive?(element: HTMLElement, context: LiveGameContext): () => void;
+  /** Mounts the game on the live server. Returns `unmount`, safe to call more than once. */
+  mount(element: HTMLElement, host: GameHost): () => void;
 };

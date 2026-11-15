@@ -1,16 +1,22 @@
 /**
  * Event-wide Olympus Poker matchmaking.
  *
- * Every laptop hitting peccary shares one queue. The browser holds a player
- * token; only the SHA-256 hash is stored. Hole cards and the remaining deck
- * stay on the table document and are stripped from public queries.
+ * Everyone shares one queue. A player is the signed-in, accepted, checked-in
+ * hacker (from their Convex Auth session, never from anything the browser
+ * sends). The buy-in comes out of their arcade wallet when they join the
+ * queue, and their chips go back into it when they leave, time out, or the
+ * table ends (`arcadePlays` rows, so the admin wallet check adds up). Hole
+ * cards and the remaining deck stay on the table document and are stripped
+ * from public queries.
  */
 import { v } from "convex/values";
 import { api, internal } from "../_generated/api";
 import { internalMutation, mutation, query } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import type { GenericId as Id } from "convex/values";
 import type { MutationCtx, QueryCtx } from "../lib/dataModel";
-import { sha256Hex } from "../lib/sha256Hex";
+import { gameGate, loadPlayer, playerDisplayName, playerProblem } from "./access";
+import { applyPlay, creditWallet } from "./points";
+import { arcadeBalance } from "./wallet";
 import {
   applyAction,
   chooseBotAction,
@@ -25,7 +31,6 @@ import {
   POKER_MIN_PLAYERS,
   POKER_QUEUE_FILL_MS,
   POKER_SHOWDOWN_PAUSE_MS,
-  POKER_STARTING_POINTS,
   publicTable,
   rotateDealer,
   startHand,
@@ -35,8 +40,7 @@ import {
   type TableState,
 } from "../../shared/poker";
 
-const TOKEN_MIN = 8;
-const TOKEN_MAX = 128;
+const GAME = "olympus-poker" as const;
 const NAME_MAX = 32;
 
 const pokerActionValidator = v.union(
@@ -100,12 +104,6 @@ function randomBetween(min: number, max: number): number {
 
 function asCard(card: { rank: string; suit: string }): Card {
   return card as Card;
-}
-
-function normalizeToken(playerToken: string): string | null {
-  const token = playerToken.trim();
-  if (token.length < TOKEN_MIN || token.length > TOKEN_MAX) return null;
-  return token;
 }
 
 function normalizeName(displayName: string): string {
@@ -203,41 +201,38 @@ async function persistState(ctx: MutationCtx, table: TableDoc, seats: SeatDoc[],
   }
 }
 
-async function playerByToken(ctx: QueryCtx | MutationCtx, playerToken: string) {
-  const token = normalizeToken(playerToken);
-  if (!token) return null;
-  const tokenHash = await sha256Hex(token);
-  return ctx.db
+/** The caller's poker player row (linked to their check-in), or null. */
+async function myPokerPlayer(ctx: QueryCtx | MutationCtx) {
+  const player = await loadPlayer(ctx);
+  const checkedIn = player.checkedIn;
+  if (!checkedIn) return { player, checkedIn: null, row: null };
+  const row = await ctx.db
     .query("pokerPlayers")
-    .withIndex("by_token_hash", (q) => q.eq("tokenHash", tokenHash))
+    .withIndex("by_checkedIn", (q) => q.eq("checkedInId", checkedIn._id))
     .unique();
+  return { player, checkedIn, row };
 }
 
-async function ensurePlayer(ctx: MutationCtx, playerToken: string, displayName: string) {
-  const token = normalizeToken(playerToken);
-  if (!token) return { error: "INVALID_TOKEN" as const };
-  const tokenHash = await sha256Hex(token);
-  const existing = await ctx.db
-    .query("pokerPlayers")
-    .withIndex("by_token_hash", (q) => q.eq("tokenHash", tokenHash))
-    .unique();
+/** Creates (or renames) the caller's poker player. Only for a hacker who may play. */
+async function ensureMyPlayer(ctx: MutationCtx) {
+  const mine = await myPokerPlayer(ctx);
+  const problem = playerProblem(mine.player);
+  if (problem) return { error: problem };
+  const checkedIn = mine.checkedIn!;
   const now = Date.now();
-  const name = normalizeName(displayName);
-  if (existing) {
-    if (existing.displayName !== name) {
-      await ctx.db.patch(existing._id, { displayName: name, updatedAt: now });
-    }
-    return { player: { ...existing, displayName: name } };
+  const name = normalizeName(await playerDisplayName(ctx, mine.player));
+  if (mine.row) {
+    if (mine.row.displayName !== name) await ctx.db.patch(mine.row._id, { displayName: name, updatedAt: now });
+    return { checkedIn, row: { ...mine.row, displayName: name } };
   }
-  const playerId = await ctx.db.insert("pokerPlayers", {
-    tokenHash,
+  const id = await ctx.db.insert("pokerPlayers", {
+    checkedInId: checkedIn._id,
     displayName: name,
-    points: POKER_STARTING_POINTS,
+    points: 0,
     createdAt: now,
     updatedAt: now,
   });
-  const player = await ctx.db.get(playerId);
-  return { player: player! };
+  return { checkedIn, row: (await ctx.db.get(id))! };
 }
 
 async function queueRow(ctx: QueryCtx | MutationCtx, playerId: Id<"pokerPlayers">) {
@@ -277,19 +272,31 @@ async function waitingQueue(ctx: QueryCtx | MutationCtx) {
   return entries;
 }
 
+/**
+ * Gives a player's chips back: into their arcade wallet (logged as
+ * `creditKey`, which must be unique per payout), or, for a legacy anonymous
+ * row, onto its practice chips.
+ */
 async function creditPlayer(
   ctx: MutationCtx,
   playerId: Id<"pokerPlayers">,
   chips: number,
   reason: string,
+  creditKey: string,
 ) {
   const player = await ctx.db.get(playerId);
   if (!player) return;
-  const returned = Math.max(0, chips);
+  const returned = Math.max(0, Math.floor(chips));
+  const now = Date.now();
+  if (player.checkedInId) {
+    await creditWallet(ctx, { checkedIn: { _id: player.checkedInId }, game: GAME, playId: creditKey, amount: returned, now });
+    await ctx.db.patch(playerId, { lastResult: { returned, reason, at: now }, updatedAt: now });
+    return;
+  }
   await ctx.db.patch(playerId, {
     points: player.points + returned,
-    lastResult: { returned, reason, at: Date.now() },
-    updatedAt: Date.now(),
+    lastResult: { returned, reason, at: now },
+    updatedAt: now,
   });
 }
 
@@ -312,7 +319,7 @@ async function cashOutSeat(
   const chips = seat.chips;
   seat.chips = 0;
   await ctx.db.patch(seats[index]!._id, { sittingOut: true, chips: 0, folded: true });
-  await creditPlayer(ctx, playerId, chips, reason);
+  await creditPlayer(ctx, playerId, chips, reason, `cashout-${seats[index]!._id}`);
   return { table, seats, state, left: true };
 }
 
@@ -326,7 +333,7 @@ async function endTable(ctx: MutationCtx, table: TableDoc, seats: SeatDoc[], sta
     if (doc.isBot || doc.sittingOut || !doc.playerId) continue;
     const chips = state.seats[i]?.chips ?? doc.chips;
     await ctx.db.patch(doc._id, { sittingOut: true, chips: 0 });
-    await creditPlayer(ctx, doc.playerId, chips, reason);
+    await creditPlayer(ctx, doc.playerId, chips, reason, `cashout-${doc._id}`);
   }
   await persistState(ctx, table, seats, { ...state, toAct: null, actionDeadlineAt: null }, {
     status: "ended",
@@ -426,8 +433,8 @@ async function openTable(
 
 /** Public view for one laptop. Never returns other hole cards or the deck. */
 export const getMyPokerView = query({
-  args: { playerToken: v.string() },
-  handler: async (ctx, { playerToken }) => {
+  args: {},
+  handler: async (ctx) => {
     const buyIn = POKER_BUY_IN;
     const queue = (await waitingQueue(ctx)).map((entry) => ({
       id: entry.playerId,
@@ -437,7 +444,7 @@ export const getMyPokerView = query({
     const empty = {
       youId: null as string | null,
       phase: "lobby" as const,
-      balance: POKER_STARTING_POINTS,
+      balance: 0,
       buyIn,
       queue,
       queuedAt: null as number | null,
@@ -445,8 +452,10 @@ export const getMyPokerView = query({
       result: null as { returned: number; reason: string } | null,
       error: null as string | null,
     };
-    const player = await playerByToken(ctx, playerToken);
-    if (!player) return empty;
+    const mine = await myPokerPlayer(ctx);
+    const balance = mine.checkedIn ? await arcadeBalance(ctx, mine.checkedIn) : 0;
+    const player = mine.row;
+    if (!player) return { ...empty, balance, error: playerProblem(mine.player) };
 
     const seated = await seatedRow(ctx, player._id);
     if (seated) {
@@ -455,7 +464,7 @@ export const getMyPokerView = query({
         return {
           youId: player._id as string,
           phase: "table" as const,
-          balance: player.points,
+          balance,
           buyIn,
           queue,
           queuedAt: null,
@@ -471,7 +480,7 @@ export const getMyPokerView = query({
       return {
         youId: player._id as string,
         phase: "queued" as const,
-        balance: player.points,
+        balance,
         buyIn,
         queue,
         queuedAt: waiting.joinedAt,
@@ -484,7 +493,7 @@ export const getMyPokerView = query({
     return {
       youId: player._id as string,
       phase: player.lastResult ? ("result" as const) : ("lobby" as const),
-      balance: player.points,
+      balance,
       buyIn,
       queue,
       queuedAt: null,
@@ -496,24 +505,25 @@ export const getMyPokerView = query({
 });
 
 export const joinQueue = mutation({
-  args: { playerToken: v.string(), displayName: v.string() },
-  handler: async (ctx, { playerToken, displayName }) => {
-    const ensured = await ensurePlayer(ctx, playerToken, displayName);
-    if ("error" in ensured) return { status: "error" as const, code: ensured.error };
-    const player = ensured.player;
+  args: {},
+  handler: async (ctx) => {
+    const ensured = await ensureMyPlayer(ctx);
+    if ("error" in ensured) return { status: "error" as const, code: ensured.error! };
+    const player = ensured.row;
     const seated = await seatedRow(ctx, player._id);
     if (seated) return { status: "ok" as const, phase: "table" as const };
     const waiting = await queueRow(ctx, player._id);
     if (waiting) return { status: "ok" as const, phase: "queued" as const };
-    if (player.points < POKER_BUY_IN) {
+    const now = Date.now();
+    const { code } = await gameGate(ctx, GAME, now);
+    if (code) return { status: "error" as const, code };
+    if ((await arcadeBalance(ctx, ensured.checkedIn)) < POKER_BUY_IN) {
       return { status: "error" as const, code: "INSUFFICIENT_POINTS" as const };
     }
-    const now = Date.now();
-    await ctx.db.patch(player._id, {
-      points: player.points - POKER_BUY_IN,
-      updatedAt: now,
-    });
-    await ctx.db.insert("pokerQueue", { playerId: player._id, joinedAt: now });
+    const queueId = await ctx.db.insert("pokerQueue", { playerId: player._id, joinedAt: now });
+    // The buy-in, from the arcade wallet. Checked just above, so a refusal here means a race: undo everything.
+    const paid = await applyPlay(ctx, { checkedIn: ensured.checkedIn, game: GAME, playId: `buyin-${queueId}`, stake: POKER_BUY_IN, payout: 0, now });
+    if (!paid.ok) throw new Error(`poker: buy-in refused (${paid.code})`);
     await ctx.scheduler.runAfter(0, api.arcade.poker.trySeat, {});
     await ctx.scheduler.runAfter(POKER_QUEUE_FILL_MS, api.arcade.poker.trySeat, {});
     await ctx.scheduler.runAfter(POKER_BOT_FILL_MS, api.arcade.poker.trySeat, {});
@@ -522,25 +532,22 @@ export const joinQueue = mutation({
 });
 
 export const cancelQueue = mutation({
-  args: { playerToken: v.string() },
-  handler: async (ctx, { playerToken }) => {
-    const player = await playerByToken(ctx, playerToken);
+  args: {},
+  handler: async (ctx) => {
+    const player = (await myPokerPlayer(ctx)).row;
     if (!player) return { status: "error" as const, code: "NOT_FOUND" as const };
     const waiting = await queueRow(ctx, player._id);
     if (!waiting) return { status: "ok" as const };
     await ctx.db.delete(waiting._id);
-    await ctx.db.patch(player._id, {
-      points: player.points + POKER_BUY_IN,
-      updatedAt: Date.now(),
-    });
+    await creditPlayer(ctx, player._id, POKER_BUY_IN, "You left the queue.", `refund-${waiting._id}`);
     return { status: "ok" as const };
   },
 });
 
 export const act = mutation({
-  args: { playerToken: v.string(), action: pokerActionValidator },
-  handler: async (ctx, { playerToken, action }) => {
-    const player = await playerByToken(ctx, playerToken);
+  args: { action: pokerActionValidator },
+  handler: async (ctx, { action }) => {
+    const player = (await myPokerPlayer(ctx)).row;
     if (!player) return { status: "error" as const, code: "NOT_FOUND" as const };
     const seated = await seatedRow(ctx, player._id);
     if (!seated) return { status: "error" as const, code: "NOT_SEATED" as const };
@@ -558,18 +565,14 @@ export const act = mutation({
 });
 
 export const leaveTable = mutation({
-  args: { playerToken: v.string() },
-  handler: async (ctx, { playerToken }) => {
-    const player = await playerByToken(ctx, playerToken);
+  args: {},
+  handler: async (ctx) => {
+    const player = (await myPokerPlayer(ctx)).row;
     if (!player) return { status: "error" as const, code: "NOT_FOUND" as const };
     const waiting = await queueRow(ctx, player._id);
     if (waiting) {
       await ctx.db.delete(waiting._id);
-      await ctx.db.patch(player._id, {
-        points: player.points + POKER_BUY_IN,
-        lastResult: { returned: POKER_BUY_IN, reason: "You left the queue.", at: Date.now() },
-        updatedAt: Date.now(),
-      });
+      await creditPlayer(ctx, player._id, POKER_BUY_IN, "You left the queue.", `refund-${waiting._id}`);
       return { status: "ok" as const };
     }
     const seated = await seatedRow(ctx, player._id);

@@ -17,7 +17,7 @@ Nothing here changes those decisions. The points rules come from the plan's
 | --- | --- | --- |
 | Rules, engine, bots, wagers | `shared/olympus21/*.js` (+ `.d.ts`), contract in `shared/olympus21/CONTRACT.md` | **Done.** Copied byte-for-byte from the prototype (`hackuta-2026-gambling-mini_game`, branch `4hacker-pvp-blackjack`); identical to the prototype's `backend/overlay/shared/olympus21/`. |
 | Game screen (table + phone hand view, tutorial, Techno) | `src/games/olympus-21/` | **Done.** Plain JS like the prototype, with `.d.ts` files for the parts TypeScript imports. Loads its CSS inline (`?inline`) and shares Slots' fonts and Techno sprite. |
-| Arcade game module + lobby card | `src/games/olympus-21/index.ts`, `src/games/registry.ts` | **Done.** `mountMock` only: the shared engine runs in the browser with up to 3 bots, starting from the arcade wallet's balance, and writes balance changes back to it. |
+| Arcade game module + lobby card | `src/games/olympus-21/index.ts`, `src/games/registry.ts` | **Done.** `mount` runs on the live server through the Convex adapter (random matchmaking, no bots). |
 | Convex adapter (client side) | `src/games/olympus-21/adapters/convexAdapter.js` | Ported, **not used yet**. Calls `admin/o21Tables:*` (see "Server contract"). |
 | Tests | `tests/olympus21/*.test.mjs` | **Done.** 104 tests from the prototype (engine, rules, wagers, bots, view model, tutorial, QR, Convex adapter), run by `npm test`. |
 | Server engine | `backend/overlay/convex/admin/o21Tables.ts` | **Stub.** Keeps the live function names, refuses every play with `ENGINE_UNAVAILABLE`. **Admin-side work, below.** |
@@ -61,8 +61,9 @@ live on peccary and the client adapter calls them:
   `DUPLICATE`, which the adapter treats as success.
 - Timers: after every mutation and tick, schedule `tick` at the engine's
   `nextWakeAt` (or the closing time), unless one is already due by then.
-- Before every engine command, sync each human's engine balance from
-  `checkedIn.points`.
+- Before every engine command, sync each human's engine balance from their
+  arcade wallet (`arcadeBalance`, `arcade/wallet.ts`), not `checkedIn.points`
+  (changed since the prototype: games only bet the wallet).
 - The per-window loss cap (`O21_LOSS_CAP`, `lostThisWindow`).
 
 ### What must change
@@ -161,13 +162,13 @@ machine).
 
 ### Arcade side: done (2026-11-14)
 
-- `game.mountLive` in `src/games/olympus-21/index.ts`: `createConvexAdapter`
-  over the arcade's signed-in `ConvexReactClient` (through
-  `adapters/reactClientBridge.ts`) → `mountOlympus21`. Disposes on unmount.
-  The live lobby has no bots option; the mock path is unchanged.
-- Used when `VITE_ARCADE_BACKEND=live`. Once the engine is pushed, set that in
-  `.env.local`, open the arcade from profile, and two accounts in two browsers
-  should land at the same table.
+- `game.mount` in `src/games/olympus-21/index.ts`: `createConvexAdapter`
+  over `host.client` (through `adapters/reactClientBridge.ts`) →
+  `mountOlympus21`. Disposes on unmount. No bots option on the live lobby.
+- Once the engine is pushed, two signed-in accounts in two browsers should
+  land at the same table.
+- **Points come from the arcade wallet** (`arcade/wallet.ts`), like every game
+  on `main`: sync the engine balance from `arcadeBalance`, never `checkedIn.points`.
 
 ---
 

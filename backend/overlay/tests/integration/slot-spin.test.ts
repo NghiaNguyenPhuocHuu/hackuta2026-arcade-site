@@ -9,6 +9,7 @@ import {
   forceRandom,
   openArcade,
   seedPlayer,
+  walletOf,
   updateGameInternal,
   updateSettingsInternal,
 } from "../helpers/arcadeTestKit";
@@ -32,7 +33,9 @@ const WIN = 0.1;
 const PUSH = 0.3;
 const LOSE = 0.99;
 
-const balanceOf = (t: ConvexTestInstance, id: GenericId<"checkedIn">) => t.run(async (ctx) => (await ctx.db.get(id))?.points);
+/** Games bet from the arcade wallet. */
+const balanceOf = walletOf;
+const profileOf = (t: ConvexTestInstance, id: GenericId<"checkedIn">) => t.run(async (ctx) => (await ctx.db.get(id))?.points);
 const ledgerOf = (t: ConvexTestInstance, id: GenericId<"checkedIn">) => t.run((ctx) => computeLedgerPoints(ctx, id));
 const spinRows = (t: ConvexTestInstance) => t.run((ctx) => ctx.db.query("slotSpins").collect());
 const playRows = (t: ConvexTestInstance) => t.run((ctx) => ctx.db.query("arcadePlays").collect());
@@ -69,7 +72,7 @@ describe("minigame access", () => {
 describe("arcade and game switches", () => {
   it("follows the arcade schedule with the server clock", async () => {
     const t = createConvexTest();
-    const { player } = await seedPlayer(t);
+    const { player } = await seedPlayer(t, { arcadePoints: 100 });
     await t.mutation(updateGameInternal, { key: "olympus-slots", enabled: true });
     expect(await player.query(getState, {})).toMatchObject({ status: "closed", window: null, serverNow: NOW });
 
@@ -90,7 +93,7 @@ describe("arcade and game switches", () => {
 
   it("refuses spins while the game is switched off, even with the arcade on", async () => {
     const t = createConvexTest();
-    const { player } = await seedPlayer(t);
+    const { player } = await seedPlayer(t, { arcadePoints: 100 });
     await t.mutation(updateSettingsInternal, { mode: "on" });
     expect(await player.query(getState, {})).toMatchObject({ status: "closed" });
     expect(await player.mutation(spin, { spinId: "x", wager: 10 })).toMatchObject({ code: "GAME_DISABLED" });
@@ -102,7 +105,7 @@ describe("arcade and game switches", () => {
   it("stops spins the moment an admin switches the arcade off", async () => {
     const t = createConvexTest();
     await openArcade(t);
-    const { player, checkedInId } = await seedPlayer(t, { points: 100 });
+    const { player, checkedInId } = await seedPlayer(t, { arcadePoints: 100 });
     forceRandom(LOSE);
     await player.mutation(spin, { spinId: "before", wager: 10 });
     await t.mutation(updateSettingsInternal, { mode: "off" });
@@ -116,7 +119,7 @@ describe("spins", () => {
   it("validates the wager, the balance, and the spin id", async () => {
     const t = createConvexTest();
     await openArcade(t);
-    const { player } = await seedPlayer(t, { points: 5 });
+    const { player } = await seedPlayer(t, { arcadePoints: 5 });
     expect(await player.mutation(spin, { spinId: "a", wager: 15 })).toMatchObject({ code: "INVALID_WAGER" });
     expect(await player.mutation(spin, { spinId: "a", wager: 10.5 })).toMatchObject({ code: "INVALID_WAGER" });
     expect(await player.mutation(spin, { spinId: "a", wager: 10 })).toMatchObject({ code: "INSUFFICIENT_POINTS" });
@@ -130,7 +133,7 @@ describe("spins", () => {
   it("pays a win into the real balance and keeps the ledger in step", async () => {
     const t = createConvexTest();
     const windowId = await openArcade(t);
-    const { player, checkedInId } = await seedPlayer(t, { points: 100 });
+    const { player, checkedInId } = await seedPlayer(t, { arcadePoints: 100 });
     forceRandom(WIN);
     const result = await player.mutation(spin, { spinId: "spin-win", wager: 10 });
     expect(result).toMatchObject({
@@ -140,18 +143,20 @@ describe("spins", () => {
     expect(symbols).toHaveLength(4);
     expect(Math.max(...symbols.map((s) => symbols.filter((x) => x === s).length))).toBe(3);
     expect(await balanceOf(t, checkedInId!)).toBe(110);
-    expect(await ledgerOf(t, checkedInId!)).toBe(110);
+    expect(await profileOf(t, checkedInId!)).toBe(100);
+    expect(await ledgerOf(t, checkedInId!)).toBe(100);
     expect(await spinRows(t)).toMatchObject([{ checkedInId, spinId: "spin-win", wager: 10, payout: 20, outcome: "win", createdAt: NOW }]);
     expect(await playRows(t)).toMatchObject([
       { checkedInId, game: "olympus-slots", playId: "spin-win", stake: 10, payout: 20, pointsDelta: 10, previousPoints: 100, newPoints: 110, createdAt: NOW },
     ]);
-    expect(await t.run(async (ctx) => (await ctx.db.get(checkedInId!))?.pointsReachedAt)).toBe(NOW);
+    // The profile balance (and its pointsReachedAt) is never touched by a spin.
+    expect(await t.run(async (ctx) => (await ctx.db.get(checkedInId!))?.pointsReachedAt)).toBeFalsy();
   });
 
   it("takes the wager on a loss, refunds on a push, and pays 5× on Zeus", async () => {
     const t = createConvexTest();
     await openArcade(t);
-    const { player, checkedInId } = await seedPlayer(t, { points: 100 });
+    const { player, checkedInId } = await seedPlayer(t, { arcadePoints: 100 });
 
     forceRandom(LOSE);
     expect(await player.mutation(spin, { spinId: "l", wager: 25 })).toMatchObject({ outcome: "lose", payout: 0, net: -25, newPoints: 75 });
@@ -164,7 +169,8 @@ describe("spins", () => {
       outcome: "big", symbols: ["zeus", "zeus", "zeus", "zeus"], payout: 250, net: 200, newPoints: 275,
     });
     expect(await balanceOf(t, checkedInId!)).toBe(275);
-    expect(await ledgerOf(t, checkedInId!)).toBe(275);
+    expect(await profileOf(t, checkedInId!)).toBe(100);
+    expect(await ledgerOf(t, checkedInId!)).toBe(100);
 
     const state = await player.query(getState, {});
     expect(state).toMatchObject({ player: { balance: 275 }, wagers: [5, 10, 25, 50], defaultWager: 10, cooldownMs: 2000 });
@@ -175,7 +181,7 @@ describe("spins", () => {
   it("can bet down to exactly zero", async () => {
     const t = createConvexTest();
     await openArcade(t);
-    const { player, checkedInId } = await seedPlayer(t, { points: 10 });
+    const { player, checkedInId } = await seedPlayer(t, { arcadePoints: 10 });
     forceRandom(LOSE);
     expect(await player.mutation(spin, { spinId: "all-in", wager: 10 })).toMatchObject({ newPoints: 0 });
     expect(await balanceOf(t, checkedInId!)).toBe(0);
@@ -185,7 +191,7 @@ describe("spins", () => {
   it("returns the stored result for a repeated spin id without charging again", async () => {
     const t = createConvexTest();
     const windowId = await openArcade(t);
-    const { player, checkedInId } = await seedPlayer(t, { points: 100 });
+    const { player, checkedInId } = await seedPlayer(t, { arcadePoints: 100 });
     forceRandom(LOSE);
     const first = await player.mutation(spin, { spinId: "same", wager: 10 });
     forceRandom(BIG);
@@ -202,7 +208,7 @@ describe("spins", () => {
   it("enforces the 2 second cooldown between spins", async () => {
     const t = createConvexTest();
     await openArcade(t);
-    const { player } = await seedPlayer(t, { points: 100 });
+    const { player } = await seedPlayer(t, { arcadePoints: 100 });
     forceRandom(LOSE);
     await player.mutation(spin, { spinId: "one", wager: 10 });
     vi.setSystemTime(NOW + 500);
@@ -214,8 +220,8 @@ describe("spins", () => {
   it("keeps players' spins and balances separate", async () => {
     const t = createConvexTest();
     await openArcade(t);
-    const a = await seedPlayer(t, { points: 100 });
-    const b = await seedPlayer(t, { points: 50 });
+    const a = await seedPlayer(t, { arcadePoints: 100 });
+    const b = await seedPlayer(t, { arcadePoints: 50 });
     forceRandom(WIN);
     await a.player.mutation(spin, { spinId: "shared-id", wager: 10 });
     await b.player.mutation(spin, { spinId: "shared-id", wager: 10 });

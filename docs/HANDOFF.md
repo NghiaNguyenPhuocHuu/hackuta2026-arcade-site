@@ -42,6 +42,42 @@ Copied from `hackuta-2026-profile` (commit `d838016`), not recreated:
 - `public/` fonts, logos, favicons; `public/images/art/` pillars + temple.
 - `src/components/brand/` Logo, LogoMark, NavIcons from profile.
 
+## Live backend, no mocks (2026-11-14, pushed to brazen-peccary-506)
+
+- **Backend:** Wheel of the Fates on the server (`arcade/roulette`:
+  `getMyTable`, `spin`, `rouletteSpins`, daily loss limit by the event's day).
+  Olympus Poker moved to signed-in hackers and the arcade wallet (buy-in via
+  `applyPlay`, cash-outs and refunds via `creditWallet`, all in `arcadePlays`);
+  `pokerAudit` queries are admin-only. 60 backend tests; the profile suite (136)
+  passes on the build. Pushed with `npm run convex:push-dev` after a backup
+  (`backups/peccary-20261114-2223.zip`): 201 functions, none lost.
+- **Site:** `ConvexAuthProvider`; the signed-out screen has the email + password
+  form; `useArcadeSession` reads `arcade/session:getArcadeSession` live; a gate
+  shows loading / sign-in / "not yet" (can't play) / sealed (Wallet still
+  reachable) / the arcade. Games mount with `{ client, reveal, player }` on
+  their Convex adapters; the Wallet uses the real deposit/withdraw/log. All mock
+  code is gone (mock wallet, mock adapters, the offline poker client, `?preview=`).
+- **To test signed in:** an accepted, checked-in account on the sandbox, with
+  the arcade and the games switched on (see README).
+- **Note for kolorless:** the poker functions no longer take `playerToken`;
+  the site's poker client is updated. Legacy token players keep their chips.
+
+## Arcade wallet: deposit and withdraw (2026-11-14, on `main`, not deployed)
+
+- **Backend** (`backend/overlay/convex/arcade/`): `wallet.ts` (`arcadeWallets`),
+  `transfers.ts` (`deposit`, `withdraw`, `getMyTransfers`, logged in
+  `arcadeTransfers`), admin `listArcadeTransfers` with a per-wallet check.
+  `applyPlay` uses the wallet only; `computeLedgerPoints` counts transfers.
+  `npm run backend:test`: 49 pass.
+- **Site:** the `/wallet` page (balances, deposit, withdraw, transfer log),
+  `ConfirmTransferDialog` (native modal), the "Deposit points to play" prompt,
+  the mock wallet with both balances (profile 200, arcade 0). `npm test`: 50 pass.
+- **Not done:** wiring the site to Convex (step 2); deploying (the sandbox's
+  function-loss issue still stands). Poker keeps its own chips.
+- Known: kolorless's `convex/arcade/poker*.ts` fail the offline Convex
+  typecheck (they import `_generated/dataModel`, which the stubs don't
+  provide); the tests still pass. Dev server port is now **5573**.
+
 ## Open items (need the user)
 
 1. **Convex access is blocked.** `npm run backend:check` fails with "You don't
@@ -108,8 +144,8 @@ enabled games and the hacker's points. At zero the temple doors close over the
 card and open on "Enter the arcade", which shows the lobby. Ported from the
 pixel-art prototype in the minigame repo (`profile-sandbox/teaser/`), restyled
 with the HackUTA tokens. Phase/seal/clock rules are in `src/arcade/teaser.ts`
-(tested in `tests/unit/teaser.test.ts`). Preview: `?preview=scheduled`, add
-`&opensIn=15` (seconds) to watch the last countdown and the doors.
+(tested in `tests/unit/teaser.test.ts`). `?preview=` is gone with the mocks;
+to see it, schedule the arcade on the sandbox.
 
 ## Olympus 21 ported: 2026-11-14, not committed
 
@@ -121,36 +157,25 @@ only. The server engine is still the stub; everything left (engine on the
 arcade gate and points path, retiring `o21Windows`, organizer controls) is in
 `docs/OLYMPUS21_ADMIN.md`.
 
-## Sign-in, live session, Olympus 21 PvP (site side): 2026-11-14, not committed
+## Olympus 21 PvP on the live site; merged with `main` (2026-11-14)
 
-- `@convex-dev/auth@0.0.96` (pinned; 2.0.0 was two days old) and
-  `ConvexAuthProvider` in `main.tsx`.
-- `/launch` (`src/pages/LaunchPage.tsx`): reads `#code=` at load, wipes it from
-  the address bar, `signIn("arcade-launch", { code })`, then a full load of `/`.
-  A bad, used or expired code shows "That way in has closed".
-- `VITE_ARCADE_BACKEND=live` switches `useArcadeSession` to
-  `arcade/session:getArcadeSession` (mapping in `src/arcade/liveSession.ts`,
-  `nowBucket` bumped at `nextChangeAt`). Unset = mock, as before; `?preview=`
-  always uses the mock. New `blocked` status + screen for `player.problem`.
-- Sidebar sign-out calls `signOut()`.
-- `GameModule.mountLive` (optional). Olympus 21 has it: Convex adapter over the
-  shared client, server-side random matchmaking, no bots. Games without it
-  (Slots, roulette, poker) keep their current mock/own-points behavior in live mode.
-- Points decision for Olympus 21: **two-phase** (`reservePlay` / `settlePlay`),
-  in `ARCADE_PLAN.md`.
-- Tests: `tests/unit/live-session.test.ts` (13). 167 site tests, typecheck and
-  build pass. **Not tried against a deployment**: the arcade backend isn't
-  pushed and the Olympus 21 server engine is still the stub (the user is
-  writing it, see `OLYMPUS21_ADMIN.md`).
+- `blackjack` merged with `main`. `main`'s live-only shell won (email +
+  password sign-in, live session, Wallet, `mount(element, host)`); this
+  branch's own sign-in / `VITE_ARCADE_BACKEND` / `/launch` work was dropped as
+  a duplicate. The scheduled teaser screen is kept in `main`'s Gate.
+- Olympus 21 `mount` uses the Convex adapter over `host.client` (through
+  `adapters/reactClientBridge.ts`): server-side random matchmaking, no bots.
+  The mock adapter stays only for the engine tests.
+- Points decision: **two-phase, from the arcade wallet** (`ARCADE_PLAN.md`).
+- Until the server engine replaces the stub, every Olympus 21 action is
+  refused with `ENGINE_UNAVAILABLE`.
 
 ## Next steps
 
-- User: Olympus 21 server engine (two-phase points), then push with
-  `npm run convex:push-dev`. Then set `VITE_ARCADE_BACKEND=live` and try the
-  profile → `/launch` hand-off and two accounts at one table.
-- Backup sign-in form on the signed-out screen when `signIn.backupSignIn`.
-- Step 3 (Olympus Slots on its Convex adapter via `mountLive`) and the roulette
-  backend on the same `beginPlay` / `applyPlay` path.
+- User: Olympus 21 server engine (two-phase, arcade wallet), then
+  `npm run convex:push-dev` and two accounts at one table.
+- Profile → `/launch` hand-off (plan step 2) if still wanted alongside the
+  email + password sign-in.
 
 ## Environment notes
 

@@ -513,10 +513,43 @@ export default defineSchema({
   }).index("by_key", ["key"]),
 
   /**
-   * Every change to points made by an arcade game, one row per play. The only
-   * place games write points (convex/arcade/points.ts); `pointsDelta`
-   * (payout − stake) counts toward the balance in `computeLedgerPoints`.
-   * `playId` is the client's idempotency key, unique per attendee and game.
+   * Each checked-in attendee's arcade balance, in points. Games bet only from
+   * here; points move between the profile balance (`checkedIn.points`) and
+   * this wallet only through `arcadeTransfers`. No row yet means 0.
+   */
+  arcadeWallets: defineTable({
+    checkedInId: v.id("checkedIn"),
+    points: v.number(),
+    updatedAt: v.number(),
+  }).index("by_checkedIn", ["checkedInId"]),
+
+  /**
+   * The deposit / withdraw log: every move between the profile balance and the
+   * arcade wallet, with both balances before and after. A deposit counts as
+   * −amount and a withdraw as +amount in `computeLedgerPoints`. `transferId`
+   * is the client's idempotency key, unique per attendee.
+   */
+  arcadeTransfers: defineTable({
+    checkedInId: v.id("checkedIn"),
+    transferId: v.string(),
+    kind: v.union(v.literal("deposit"), v.literal("withdraw")),
+    amount: v.number(),
+    profileBefore: v.number(),
+    profileAfter: v.number(),
+    arcadeBefore: v.number(),
+    arcadeAfter: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_checkedIn_createdAt", ["checkedInId", "createdAt"])
+    .index("by_checkedIn_transferId", ["checkedInId", "transferId"])
+    .index("by_createdAt", ["createdAt"]),
+
+  /**
+   * Every arcade game play, one row per play. The numbers are the arcade
+   * wallet's (`arcadeWallets`), never the profile balance: `pointsDelta` is
+   * payout − stake, `previousPoints` / `newPoints` the wallet before and after.
+   * The only place games write is convex/arcade/points.ts. `playId` is the
+   * client's idempotency key, unique per attendee and game.
    */
   arcadePlays: defineTable({
     checkedInId: v.id("checkedIn"),
@@ -549,18 +582,43 @@ export default defineSchema({
     .index("by_user_createdAt", ["userId", "createdAt"]),
 
   /**
+   * Wheel of the Fates details for each spin: the bets, the pocket, and the
+   * event-local day (for the daily loss limit). The points side of the spin is
+   * its `arcadePlays` row (`playId`).
+   */
+  rouletteSpins: defineTable({
+    checkedInId: v.id("checkedIn"),
+    playId: v.id("arcadePlays"),
+    spinId: v.string(),
+    bets: v.array(v.object({ betId: v.string(), amount: v.number() })),
+    stake: v.number(),
+    returned: v.number(),
+    pocket: v.number(),
+    day: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_checkedIn_createdAt", ["checkedInId", "createdAt"])
+    .index("by_checkedIn_spinId", ["checkedInId", "spinId"])
+    .index("by_checkedIn_day", ["checkedInId", "day"]),
+
+  /**
    * Olympus Slots details for each spin (reels, outcome). The points side of
    * the spin is its `arcadePlays` row (`playId`).
    */
   slotSpins: defineTable({
     checkedInId: v.id("checkedIn"),
-    playId: v.id("arcadePlays"),
+    playId: v.optional(v.id("arcadePlays")), // Optional to support existing data
     spinId: v.string(),
     wager: v.number(),
     payout: v.number(),
     outcome: v.string(),
     symbols: v.array(v.string()),
     createdAt: v.number(),
+    // Legacy fields from old version - optional to support existing data
+    pointsDelta: v.optional(v.number()),
+    newPoints: v.optional(v.number()),
+    previousPoints: v.optional(v.number()),
+    windowId: v.optional(v.id("slotWindows")),
   })
     .index("by_checkedIn_createdAt", ["checkedInId", "createdAt"])
     .index("by_checkedIn_spinId", ["checkedInId", "spinId"]),
@@ -578,6 +636,23 @@ export default defineSchema({
     cancelledBy: v.optional(v.id("admins")),
     createdAt: v.number(),
     updatedAt: v.number(),
+  })
+    .index("by_opensAt", ["opensAt"])
+    .index("by_closesAt", ["closesAt"]),
+
+  /**
+   * Olympus Slots play windows. Same structure as o21Windows for consistency.
+   * Already deployed on peccary — keep every field so a push never fails schema validation.
+   */
+  slotWindows: defineTable({
+    opensAt: v.number(),
+    closesAt: v.number(),
+    label: v.optional(v.string()),
+    createdBy: v.optional(v.id("admins")),
+    cancelledAt: v.optional(v.number()),
+    cancelledBy: v.optional(v.id("admins")),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
   })
     .index("by_opensAt", ["opensAt"])
     .index("by_closesAt", ["closesAt"]),
@@ -625,8 +700,12 @@ export default defineSchema({
    * hash is stored. `points` is the player's off-table stack (starts at 200).
    */
   pokerPlayers: defineTable({
-    tokenHash: v.string(),
+    /** The signed-in hacker this player is. Unset only on legacy anonymous rows. */
+    checkedInId: v.optional(v.id("checkedIn")),
+    /** Legacy anonymous browser token (hash). New players are linked by `checkedInId`. */
+    tokenHash: v.optional(v.string()),
     displayName: v.string(),
+    /** Legacy practice chips. Linked players buy in from and cash out to the arcade wallet. */
     points: v.number(),
     lastResult: v.optional(
       v.object({
@@ -637,9 +716,11 @@ export default defineSchema({
     ),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_token_hash", ["tokenHash"]),
+  })
+    .index("by_token_hash", ["tokenHash"])
+    .index("by_checkedIn", ["checkedInId"]),
 
-  /** Humans waiting for a live table. Buy-in is already deducted from `pokerPlayers.points`. */
+  /** Humans waiting for a live table. The buy-in is already taken from the arcade wallet. */
   pokerQueue: defineTable({
     playerId: v.id("pokerPlayers"),
     joinedAt: v.number(),
@@ -710,4 +791,102 @@ export default defineSchema({
   })
     .index("by_table", ["tableId"])
     .index("by_player", ["playerId"]),
+
+  /**
+   * Comprehensive gambling transaction log for poker. Records every bet, raise, call,
+   * fold, win, buy-in, and cash-out for audit and dispute resolution.
+   */
+  pokerTransactions: defineTable({
+    playerId: v.id("pokerPlayers"),
+    playerName: v.string(),
+    isBot: v.boolean(),
+    tableId: v.id("pokerTables"),
+    handNumber: v.number(),
+    
+    // Transaction type and details
+    eventType: v.union(
+      v.literal("buy_in"),
+      v.literal("bet"),
+      v.literal("call"),
+      v.literal("raise"),
+      v.literal("fold"),
+      v.literal("check"),
+      v.literal("all_in"),
+      v.literal("win"),
+      v.literal("cash_out"),
+      v.literal("timeout_forfeit"),
+      v.literal("table_end")
+    ),
+    
+    // Chip amounts
+    chipsBefore: v.number(),
+    chipsChange: v.number(),  // Positive for wins, negative for bets
+    chipsAfter: v.number(),
+    
+    // Game context
+    street: v.union(
+      v.literal("preflop"),
+      v.literal("flop"),
+      v.literal("turn"),
+      v.literal("river"),
+      v.literal("showdown"),
+      v.literal("n/a")
+    ),
+    potSize: v.number(),
+    
+    // Additional context
+    reason: v.optional(v.string()),
+    timestamp: v.number(),
+    
+    // For wins: what hand won
+    winningHand: v.optional(v.object({
+      category: v.string(),
+      label: v.string(),
+    })),
+  })
+    .index("by_player", ["playerId"])
+    .index("by_table", ["tableId"])
+    .index("by_timestamp", ["timestamp"])
+    .index("by_hand", ["tableId", "handNumber"])
+    .index("by_player_timestamp", ["playerId", "timestamp"]),
+
+  /**
+   * Session summary for each poker player. Tracks aggregate stats across all hands
+   * played during their session for quick analytics.
+   */
+  pokerSessionStats: defineTable({
+    playerId: v.id("pokerPlayers"),
+    playerName: v.string(),
+    
+    // Session timing
+    sessionStart: v.number(),
+    sessionEnd: v.optional(v.number()),
+    lastActivity: v.number(),
+    
+    // Game statistics
+    handsPlayed: v.number(),
+    handsWon: v.number(),
+    handsFolded: v.number(),
+    handsAllIn: v.number(),
+    
+    // Financial tracking
+    totalBuyIns: v.number(),
+    totalCashOuts: v.number(),
+    totalWagered: v.number(),   // Sum of all bets/raises/calls
+    totalWon: v.number(),        // Sum of all pot winnings
+    biggestPot: v.number(),
+    
+    // Net result
+    netProfit: v.number(),       // totalCashOuts + currentTableChips - totalBuyIns
+    
+    // Starting/current balances
+    startingPoints: v.number(),
+    currentPoints: v.number(),
+    
+    // Tables
+    tablesJoined: v.array(v.id("pokerTables")),
+  })
+    .index("by_player", ["playerId"])
+    .index("by_session_start", ["sessionStart"])
+    .index("by_last_activity", ["lastActivity"]),
 });

@@ -457,6 +457,45 @@
     width: 100%;
   }
 
+  /* Another spin is still being revealed: the game shows, but blurred and locked. */
+  .arcade-stage--veiled .arcade-stage__mount {
+    filter: blur(12px) saturate(0.7);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .arcade-stage__veil {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 5rem 1rem 1rem;
+  }
+
+  .arcade-stage__veil-card {
+    position: sticky;
+    top: 35vh;
+    display: grid;
+    gap: 0.35rem;
+    max-width: 24rem;
+    margin: 0;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--color-ocean);
+    border-radius: 0.75rem;
+    background: var(--color-light);
+    color: var(--color-night);
+    text-align: center;
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.25);
+  }
+
+  .arcade-stage__veil-card strong {
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    letter-spacing: 0.02em;
+  }
+
   /* Full-page status screens (closed, signed out, loading) */
   .arcade-screen {
     position: relative;
@@ -729,6 +768,16 @@
     color: var(--night-text);
   }
 
+  .arcade-theme--night .arcade-stage__veil-card {
+    border-color: var(--night-gold);
+    background: var(--night-panel);
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .arcade-stage__veil-card strong {
+    color: var(--night-gold);
+  }
+
   .arcade-theme--night .arcade-back {
     color: var(--night-gold);
   }
@@ -868,7 +917,13 @@
      fast load doesn't flash it. */
   .arcade-stage__mount {
     opacity: 0;
-    transition: opacity 0.45s var(--ease-out);
+    transition:
+      opacity 0.45s var(--ease-out),
+      filter 0.45s var(--ease-out);
+  }
+
+  .arcade-stage__veil-card {
+    animation: arcade-pop 0.35s var(--ease-out) backwards;
   }
 
   .arcade-stage__mount--ready {
@@ -916,10 +971,24 @@
       display: none;
     }
 
-    /* Mobile tab labels: 11px → 12px. */
+    /* Mobile tab labels: 11px → 12px. Tabs fit their label and share any spare
+       width; when they don't all fit (7 tabs on a phone), the bar scrolls sideways
+       instead of squeezing labels into each other. */
+    .participant-dashboard__nav {
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .participant-dashboard__nav::-webkit-scrollbar {
+      display: none;
+    }
+
     .participant-dashboard__nav-item,
     .participant-dashboard__nav-item:hover,
     .participant-dashboard__nav-item--active {
+      flex: 1 0 auto;
+      min-width: 3.25rem;
+      padding-inline: 0.45rem;
       font-size: 0.75rem;
     }
 
@@ -957,6 +1026,588 @@
     .arcade-play .participant-frieze__art {
       height: 9rem;
     }
+  }
+
+  /* ---- Wallet page (deposit / withdraw) ---- */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .arcade-deposit-prompt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+  }
+
+  .arcade-play > .arcade-deposit-prompt {
+    margin-bottom: 1rem;
+  }
+
+  .arcade-wallet__inner {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  /* Grid items grow to fit their content by default; the log table must scroll inside its box instead. */
+  .arcade-wallet__inner > *,
+  .arcade-wallet__balances > *,
+  .arcade-wallet__forms > * {
+    min-width: 0;
+  }
+
+  .arcade-wallet__balances,
+  .arcade-wallet__forms {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .arcade-wallet__balance {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .arcade-wallet__balance--arcade {
+    border-color: var(--color-ocean);
+  }
+
+  .arcade-wallet__balance-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-ocean);
+  }
+
+  .arcade-wallet__balance-value {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 2.6rem);
+    line-height: 1.1;
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .arcade-wallet__balance-note {
+    font-size: 0.9rem;
+    color: var(--color-ocean);
+  }
+
+  .arcade-wallet__form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .arcade-wallet__form .participant-dashboard__panel-copy {
+    margin: 0;
+  }
+
+  .arcade-wallet__presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .arcade-wallet__preset {
+    min-height: 2.5rem;
+    padding: 0.4rem 0.9rem;
+    border: 1.5px solid var(--color-sand);
+    border-radius: 0.65rem;
+    background: var(--color-light);
+    color: var(--color-ink);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      border-color 0.2s var(--ease-out),
+      background 0.2s var(--ease-out);
+  }
+
+  .arcade-wallet__preset.is-active {
+    border-color: var(--color-ocean);
+    background: var(--color-clay);
+  }
+
+  .arcade-wallet__preset:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .arcade-wallet__label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+
+  .arcade-wallet__input {
+    min-height: 2.75rem;
+    padding: 0.55rem 0.8rem;
+    border: 1.5px solid var(--color-sand);
+    border-radius: 0.65rem;
+    background: #fff;
+    color: var(--color-ink);
+    font: inherit;
+    font-size: 1.05rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .arcade-wallet__input:focus-visible,
+  .arcade-wallet__preset:focus-visible,
+  .arcade-confirm-dialog__cancel:focus-visible {
+    outline: 2px solid var(--color-ocean);
+    outline-offset: 2px;
+  }
+
+  .arcade-wallet__input[aria-invalid="true"] {
+    border-color: #7f1d1d;
+  }
+
+  .arcade-wallet__input:disabled {
+    background: var(--color-clay);
+    cursor: not-allowed;
+  }
+
+  .arcade-wallet__help {
+    margin: 0;
+    min-height: 1.4em;
+    font-size: 0.875rem;
+    color: var(--color-ocean);
+  }
+
+  .arcade-wallet__help.is-error {
+    color: #7f1d1d;
+  }
+
+  .arcade-wallet__form .participant-dashboard__cta {
+    margin-top: auto;
+  }
+
+  .arcade-wallet__table-wrap {
+    overflow-x: auto;
+  }
+
+  .arcade-wallet__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .arcade-wallet__table th,
+  .arcade-wallet__table td {
+    padding: 0.55rem 0.6rem;
+    border-bottom: 1px solid var(--color-sand);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .arcade-wallet__table th {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-ocean);
+  }
+
+  .arcade-wallet__table .is-num {
+    text-align: right;
+  }
+
+  .arcade-wallet__kind {
+    display: inline-block;
+    padding: 0.1rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .arcade-wallet__kind--deposit {
+    background: var(--color-clay);
+    color: var(--color-ink);
+  }
+
+  .arcade-wallet__kind--withdraw {
+    background: var(--color-ocean);
+    color: var(--color-light);
+  }
+
+  /* Confirmation modal: same frame as profile's resume dialog, sized for a question. */
+  .arcade-confirm-dialog {
+    width: min(26rem, calc(100vw - 2rem));
+    padding: 1.35rem 1.4rem 1.2rem;
+    border: 1px solid rgb(26 58 82 / 0.1);
+    border-radius: 1rem;
+    background: var(--color-light);
+    color: var(--color-ink);
+    box-shadow: 0 20px 50px rgb(0 0 0 / 0.25);
+  }
+
+  .arcade-confirm-dialog[open] {
+    display: grid;
+    gap: 0.85rem;
+    animation: arcade-pop 0.25s var(--ease-out) backwards;
+  }
+
+  .arcade-confirm-dialog::backdrop {
+    background: rgb(0 0 0 / 0.6);
+  }
+
+  body:has(.arcade-confirm-dialog[open]) {
+    overflow: hidden;
+  }
+
+  .arcade-confirm-dialog__title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.45rem;
+    line-height: 1.2;
+  }
+
+  .arcade-confirm-dialog__copy {
+    margin: 0;
+    color: var(--color-ocean);
+  }
+
+  .arcade-confirm-dialog__balances {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.8rem 0.9rem;
+    border-radius: 0.75rem;
+    background: var(--color-clay);
+  }
+
+  .arcade-confirm-dialog__balances div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .arcade-confirm-dialog__balances dt {
+    font-weight: 600;
+  }
+
+  .arcade-confirm-dialog__balances dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .arcade-confirm-dialog__error {
+    margin: 0;
+    color: #7f1d1d;
+    font-weight: 600;
+  }
+
+  .arcade-confirm-dialog__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+  }
+
+  .arcade-confirm-dialog__cancel {
+    padding: 0.65rem 1rem;
+    border: 1.5px solid var(--color-sand);
+    border-radius: 0.65rem;
+    background: transparent;
+    color: var(--color-ink);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .arcade-confirm-dialog__cancel:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 640px) {
+    .arcade-wallet__balances,
+    .arcade-wallet__forms {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .arcade-confirm-dialog__actions > * {
+      flex: 1;
+    }
+  }
+
+  /* Sign-in form on the signed-out screen (profile's sign-in card). */
+  .arcade-sign-in {
+    display: grid;
+    gap: 0.45rem;
+    width: 100%;
+    text-align: left;
+  }
+
+  .arcade-sign-in__label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+
+  .arcade-sign-in__input {
+    min-height: 2.75rem;
+    margin-bottom: 0.35rem;
+    padding: 0.55rem 0.8rem;
+    border: 1.5px solid var(--color-sand);
+    border-radius: 0.65rem;
+    background: #fff;
+    color: var(--color-ink);
+    font: inherit;
+  }
+
+  .arcade-sign-in__input:focus-visible,
+  .arcade-screen__link:focus-visible {
+    outline: 2px solid var(--color-ocean);
+    outline-offset: 2px;
+  }
+
+  .arcade-sign-in__error {
+    margin: 0;
+    color: #7f1d1d;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .arcade-sign-in .arcade-screen__cta {
+    margin-top: 0.4rem;
+  }
+
+  .arcade-screen__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-ocean);
+    font: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+
+  /* ---- Night theme everywhere: lobby, Wallet, dialog, sign-in (the game pages already had it) ---- */
+  .arcade-theme--night .participant-dashboard__section-title,
+  .arcade-theme--night .arcade-status__title {
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .arcade-status,
+  .arcade-theme--night .arcade-game-card,
+  .arcade-theme--night .participant-dashboard__panel,
+  .arcade-theme--night .participant-dashboard__section:not(.participant-dashboard__section--links) {
+    border-color: var(--night-faint);
+    background: rgb(11 29 51 / 0.82);
+    box-shadow: 0 10px 28px rgb(0 0 0 / 0.35);
+    backdrop-filter: blur(2px);
+  }
+
+  .arcade-theme--night .arcade-status__copy,
+  .arcade-theme--night .arcade-status__icon,
+  .arcade-theme--night .participant-dashboard__panel-copy,
+  .arcade-theme--night .arcade-wallet__balance-note,
+  .arcade-theme--night .arcade-wallet__help {
+    color: var(--night-text);
+  }
+
+  .arcade-theme--night .arcade-game-card:not(.arcade-game-card--locked):hover {
+    box-shadow: 0 16px 34px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(255 210 63 / 0.25);
+  }
+
+  .arcade-theme--night .arcade-game-card__art {
+    background:
+      radial-gradient(90% 120% at 50% 110%, rgb(255 210 63 / 0.16) 0%, transparent 60%),
+      var(--night-deep);
+    color: var(--night-gold);
+  }
+
+  .arcade-theme--night .arcade-game-card__facts li {
+    border-color: var(--night-faint);
+    color: var(--night-text);
+  }
+
+  .arcade-theme--night .arcade-game-card__cta:disabled {
+    background: var(--night-faint);
+    color: var(--night-text);
+  }
+
+  .arcade-theme--night .participant-dashboard__section--links {
+    background: rgb(7 21 38 / 0.9);
+    border-color: var(--night-faint);
+  }
+
+  /* Wallet */
+  .arcade-theme--night .arcade-wallet__balance-label,
+  .arcade-theme--night .arcade-wallet__table th {
+    color: var(--night-gold);
+  }
+
+  .arcade-theme--night .arcade-wallet__balance-value {
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .arcade-wallet__balance--arcade {
+    border-color: rgb(255 210 63 / 0.45);
+  }
+
+  .arcade-theme--night .arcade-wallet__label {
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .arcade-wallet__input,
+  .arcade-theme--night .arcade-sign-in__input {
+    border-color: var(--night-faint);
+    background: var(--night-sky);
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .arcade-wallet__input::placeholder {
+    color: rgb(246 237 223 / 0.4);
+  }
+
+  .arcade-theme--night .arcade-wallet__input:disabled {
+    background: rgb(7 21 38 / 0.5);
+  }
+
+  .arcade-theme--night .arcade-wallet__preset {
+    border-color: var(--night-faint);
+    background: var(--night-deep);
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .arcade-wallet__preset.is-active {
+    border-color: var(--night-gold);
+    background: rgb(255 210 63 / 0.14);
+  }
+
+  .arcade-theme--night .arcade-wallet__table td {
+    border-bottom-color: var(--night-faint);
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .arcade-wallet__table th {
+    border-bottom-color: var(--night-faint);
+  }
+
+  .arcade-theme--night .arcade-wallet__kind--deposit {
+    background: rgb(255 210 63 / 0.16);
+    color: var(--night-gold);
+  }
+
+  .arcade-theme--night .arcade-wallet__kind--withdraw {
+    background: var(--night-deep);
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .arcade-wallet__input:focus-visible,
+  .arcade-theme--night .arcade-wallet__preset:focus-visible,
+  .arcade-theme--night .arcade-confirm-dialog__cancel:focus-visible,
+  .arcade-theme--night .arcade-sign-in__input:focus-visible,
+  .arcade-theme--night .arcade-screen__link:focus-visible {
+    outline-color: var(--night-gold);
+  }
+
+  /* Errors on dark panels: the portal's error red is too dark, so a light red that reads on navy. */
+  .arcade-theme--night .arcade-wallet__help.is-error,
+  .arcade-theme--night .arcade-confirm-dialog__error,
+  .arcade-theme--night .arcade-sign-in__error {
+    color: #fca5a5;
+  }
+
+  .arcade-theme--night .arcade-wallet__input[aria-invalid="true"] {
+    border-color: #fca5a5;
+  }
+
+  /* Confirmation dialog */
+  .arcade-theme--night .arcade-confirm-dialog {
+    border-color: rgb(255 210 63 / 0.4);
+    background: var(--night-panel);
+    color: var(--night-marble);
+    box-shadow: 0 24px 60px rgb(0 0 0 / 0.55);
+  }
+
+  .arcade-theme--night .arcade-confirm-dialog::backdrop {
+    background: rgb(3 10 20 / 0.75);
+  }
+
+  .arcade-theme--night .arcade-confirm-dialog__title {
+    color: var(--night-gold);
+  }
+
+  .arcade-theme--night .arcade-confirm-dialog__copy {
+    color: var(--night-text);
+  }
+
+  .arcade-theme--night .arcade-confirm-dialog__balances {
+    background: var(--night-sky);
+  }
+
+  .arcade-theme--night .arcade-confirm-dialog__cancel {
+    border-color: var(--night-faint);
+    color: var(--night-marble);
+  }
+
+  /* Sign-in and status screens: the starry sky behind the temple, a dark card. */
+  .arcade-screen.arcade-theme--night {
+    background:
+      radial-gradient(1.5px 1.5px at 12% 18%, var(--arcade-star) 99%, transparent),
+      radial-gradient(1.5px 1.5px at 78% 9%, var(--arcade-star-gold) 99%, transparent),
+      radial-gradient(1px 1px at 41% 63%, var(--arcade-star) 99%, transparent),
+      radial-gradient(1px 1px at 88% 47%, var(--arcade-star) 99%, transparent),
+      radial-gradient(1.5px 1.5px at 23% 84%, var(--arcade-star) 99%, transparent),
+      radial-gradient(120% 60% at 50% -10%, var(--arcade-glow) 0%, transparent 60%),
+      var(--night-sky);
+    background-size: 420px 420px, 520px 520px, 360px 360px, 300px 300px, 460px 460px, 100% 100%, auto;
+  }
+
+  .arcade-screen.arcade-theme--night .arcade-screen__temple {
+    opacity: 0.16;
+    filter: invert(1);
+  }
+
+  .arcade-theme--night .sign-in-card {
+    border: 1px solid rgb(255 210 63 / 0.3);
+    background: rgb(11 29 51 / 0.92);
+    box-shadow: 0 24px 60px rgb(0 0 0 / 0.5);
+  }
+
+  .arcade-theme--night .sign-in-card__title {
+    color: var(--night-gold);
+  }
+
+  .arcade-theme--night .sign-in-card__subtitle,
+  .arcade-theme--night .arcade-screen__kicker {
+    color: var(--night-text);
+  }
+
+  .arcade-theme--night .arcade-sign-in__label {
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .sign-in-btn {
+    background: var(--night-gold);
+    color: var(--night-sky);
+  }
+
+  .arcade-theme--night .sign-in-btn:hover:not(:disabled) {
+    background: #ffe27a;
+  }
+
+  .arcade-theme--night .arcade-screen__link {
+    color: var(--night-gold);
   }
 }
 

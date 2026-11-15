@@ -8,6 +8,7 @@
  */
 import type { DocumentByName } from "convex/server";
 import { getAuthUser } from "../lib/applications";
+import { normalizeEmail } from "../lib/normalizeEmail";
 import type { DataModel, MutationCtx, QueryCtx } from "../lib/dataModel";
 import { checkedInForParticipant } from "../admin/checkedInLookup";
 import { isParticipantEligible } from "../admin/pointsLedger";
@@ -117,7 +118,9 @@ export async function loadPlayer(ctx: Ctx): Promise<Player> {
 }
 
 /** First reason this player can't play (identity only), or null. */
-export function playerProblem(player: Player): ArcadePlayErrorCode | null {
+export type PlayerProblem = Extract<ArcadePlayErrorCode, "NOT_SIGNED_IN" | "NOT_PARTICIPANT" | "NOT_ELIGIBLE" | "NOT_CHECKED_IN">;
+
+export function playerProblem(player: Player): PlayerProblem | null {
   if (!player.user) return "NOT_SIGNED_IN";
   if (!player.participant) return "NOT_PARTICIPANT";
   if (!player.eligible) return "NOT_ELIGIBLE";
@@ -151,4 +154,11 @@ export async function requireGameOpen(ctx: MutationCtx, gameKey: ArcadeGameKey, 
   const { code, state } = await gameGate(ctx, gameKey, now);
   if (code) return { ok: false, code };
   return { ok: true, checkedIn: player.checkedIn!, player, state };
+}
+
+/** The hacker's name as the profile shows it: application name, else account name, else email. */
+export async function playerDisplayName(ctx: Ctx, player: Player): Promise<string> {
+  const application = player.participant ? await ctx.db.get(player.participant.applicationId) : null;
+  const name = [application?.firstName?.trim(), application?.lastName?.trim()].filter(Boolean).join(" ");
+  return name || player.user?.name?.trim() || normalizeEmail(player.user?.email) || "Hacker";
 }

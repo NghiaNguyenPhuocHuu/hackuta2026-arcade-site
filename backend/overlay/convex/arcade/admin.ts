@@ -9,7 +9,7 @@
  */
 import { ConvexError, v, type GenericId } from "convex/values";
 import { internalMutation, mutation, query } from "../_generated/server";
-import type { MutationCtx } from "../lib/dataModel";
+import type { MutationCtx, QueryCtx } from "../lib/dataModel";
 import { requireAdminRole, sessionTokenArgs } from "../admin/staffAuth";
 import {
   ARCADE_GAMES,
@@ -19,6 +19,8 @@ import {
   type ArcadeSettingsErrorCode,
 } from "../../shared/arcade/rules";
 import { gameRow, loadArcade, loadGames, settingsRow, DEFAULT_SETTINGS } from "./access";
+import { transferView } from "./transfers";
+import { arcadeBalance } from "./wallet";
 
 type AdminId = GenericId<"admins">;
 
@@ -137,5 +139,54 @@ export const updateArcadeGameInternal = internalMutation({
   handler: async (ctx, input) => {
     await writeGame(ctx, input, undefined);
     return { ok: true as const };
+  },
+});
+
+/** Most transfers one admin listing returns. */
+export const MAX_ADMIN_TRANSFERS = 200;
+
+/**
+ * Wallet check for one attendee: the stored arcade balance must equal
+ * deposits − withdrawals + every game result. A mismatch means a write
+ * bypassed the transfer or play path and needs a look.
+ */
+async function walletCheck(ctx: QueryCtx, checkedInId: GenericId<"checkedIn">) {
+  const transfers = await ctx.db
+    .query("arcadeTransfers")
+    .withIndex("by_checkedIn_createdAt", (q) => q.eq("checkedInId", checkedInId))
+    .collect();
+  const plays = await ctx.db
+    .query("arcadePlays")
+    .withIndex("by_checkedIn_createdAt", (q) => q.eq("checkedInId", checkedInId))
+    .collect();
+  let expected = 0;
+  for (const t of transfers) expected += t.kind === "deposit" ? t.amount : -t.amount;
+  for (const p of plays) expected += p.pointsDelta;
+  const stored = await arcadeBalance(ctx, { _id: checkedInId });
+  return { checkedInId, stored, expected, walletConsistent: stored === expected };
+}
+
+/**
+ * The deposit / withdraw log for admins, newest first: every attendee, or one
+ * (`checkedInId`). Each attendee in the listing gets a wallet check.
+ */
+export const listArcadeTransfers = query({
+  args: { ...sessionTokenArgs, checkedInId: v.optional(v.id("checkedIn")), limit: v.optional(v.number()) },
+  handler: async (ctx, { sessionToken, checkedInId, limit }) => {
+    await requireAdminRole(ctx, sessionToken);
+    const take = Math.min(MAX_ADMIN_TRANSFERS, Math.max(1, Math.floor(limit ?? 50)));
+    const rows = checkedInId
+      ? await ctx.db
+          .query("arcadeTransfers")
+          .withIndex("by_checkedIn_createdAt", (q) => q.eq("checkedInId", checkedInId))
+          .order("desc")
+          .take(take)
+      : await ctx.db.query("arcadeTransfers").withIndex("by_createdAt").order("desc").take(take);
+    const attendees = [...new Set(rows.map((row) => row.checkedInId))];
+    if (checkedInId && !attendees.includes(checkedInId)) attendees.push(checkedInId);
+    return {
+      transfers: rows.map((row) => ({ checkedInId: row.checkedInId, ...transferView(row) })),
+      wallets: await Promise.all(attendees.map((id) => walletCheck(ctx, id))),
+    };
   },
 });

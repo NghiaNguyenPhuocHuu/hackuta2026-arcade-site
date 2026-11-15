@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   BET_CATALOGUE,
   FIRE_NUMBERS,
@@ -13,8 +13,15 @@ import {
   returnFor,
   spinPocket,
   winningBetIds,
+  type PlacedBet,
 } from "../../shared/roulette/rules";
-import { createRouletteMockAdapter } from "../../src/games/wheel-of-the-fates/adapters/mockAdapter";
+import {
+  createRouletteConvexAdapter,
+  mapRouletteSpin,
+  mapRouletteTable,
+  type RouletteConvexClient,
+} from "../../src/games/wheel-of-the-fates/adapters/convexAdapter";
+import type { RouletteServerTable } from "../../src/convex/rouletteApi";
 import { DEMON_MAPS, demonSvg } from "../../src/games/wheel-of-the-fates/demons";
 import { errorLine, resultLine } from "../../src/games/wheel-of-the-fates/dialogue";
 import { omenFor } from "../../src/games/wheel-of-the-fates/omens";
@@ -121,44 +128,106 @@ describe("roulette rules", () => {
   });
 });
 
-describe("roulette mock adapter", () => {
-  const make = (overrides = {}) => {
-    let now = Date.UTC(2026, 10, 14, 20);
-    const adapter = createRouletteMockAdapter({ balance: 100, latencyMs: 0, random: () => 17.5 / 37, now: () => now, ...overrides });
-    return { adapter, advance: (ms: number) => (now += ms) };
-  };
+describe("roulette on the server (Convex adapter)", () => {
+  function fakeClient() {
+    const watches: Array<{ value: RouletteServerTable | null | undefined; listeners: Set<() => void>; stopped: boolean }> = [];
+    const mutation = vi.fn(async (_ref: unknown, args: { spinId: string; bets: PlacedBet[] }) => ({
+      status: "ok" as const,
+      spin: { spinId: args.spinId, pocket: 17, bets: args.bets, stake: 10, returned: 360, net: 350, at: 1 },
+      balance: 450,
+    }));
+    const client = {
+      watchQuery: () => {
+        const entry = { value: undefined as RouletteServerTable | null | undefined, listeners: new Set<() => void>(), stopped: false };
+        watches.push(entry);
+        return {
+          onUpdate(callback: () => void) {
+            entry.listeners.add(callback);
+            return () => {
+              entry.stopped = true;
+              entry.listeners.delete(callback);
+            };
+          },
+          localQueryResult: () => entry.value,
+          journal: () => undefined,
+        };
+      },
+      mutation,
+    } as unknown as RouletteConvexClient;
+    const push = (value: RouletteServerTable | null) => {
+      const entry = watches[watches.length - 1]!;
+      entry.value = value;
+      for (const listener of entry.listeners) listener();
+    };
+    return { client, mutation, push, watches };
+  }
 
-  it("settles a spin and never charges the same spin twice", async () => {
-    const { adapter } = make();
-    const first = await adapter.spin({ spinId: "a", bets: [{ betId: "straight:17", amount: 10 }, { betId: "fire", amount: 10 }] });
-    expect(first).toMatchObject({ status: "ok", spin: { pocket: 17, stake: 20, returned: 360, net: 340 }, balance: 440 });
-    expect(await adapter.spin({ spinId: "a", bets: [] })).toEqual(first);
-    expect(adapter.getState().balance).toBe(440);
-    expect(adapter.getState().history).toHaveLength(1);
+  const table = (patch: Partial<RouletteServerTable> = {}): RouletteServerTable => ({
+    status: "live",
+    closesAt: null,
+    serverNow: 1,
+    problem: null,
+    balance: 100,
+    lossToday: 0,
+    limits: ROULETTE_LIMITS,
+    history: [],
+    ...patch,
   });
 
-  it("enforces the cooldown, the rules and the daily loss limit", async () => {
-    const { adapter, advance } = make({ random: () => 0 }); // always 0: every outside bet loses
-    expect(await adapter.spin({ spinId: "1", bets: [{ betId: "straight:7", amount: 25 }] })).toEqual({ status: "error", code: "STRAIGHT_LIMIT" });
-    expect((await adapter.spin({ spinId: "2", bets: [{ betId: "fire", amount: 50 }] })).status).toBe("ok");
-    expect(await adapter.spin({ spinId: "3", bets: [{ betId: "fire", amount: 5 }] })).toMatchObject({ status: "error", code: "COOLDOWN" });
-    advance(ROULETTE_LIMITS.cooldownMs);
-    expect(adapter.getState()).toMatchObject({ balance: 50, lossToday: 50 });
-    const rich = make({ random: () => 0, balance: 1000 });
-    for (let i = 0; i < 6; i++) {
-      expect((await rich.adapter.spin({ spinId: `s${i}`, bets: [{ betId: "fire", amount: 50 }] })).status).toBe("ok");
-      rich.advance(ROULETTE_LIMITS.cooldownMs);
+  it("shows the server's table live, and closed while loading, signed out or unable to play", () => {
+    expect(mapRouletteTable(undefined)).toMatchObject({ status: "closed", balance: 0 });
+    expect(mapRouletteTable(null)).toMatchObject({ status: "closed" });
+    expect(mapRouletteTable(table({ problem: "NOT_CHECKED_IN" })).status).toBe("closed");
+    expect(mapRouletteTable(table({ balance: 75, lossToday: 25 }))).toMatchObject({ status: "live", balance: 75, lossToday: 25 });
+
+    const { client, push } = fakeClient();
+    const adapter = createRouletteConvexAdapter({ client });
+    const seen: string[] = [];
+    adapter.subscribe(() => seen.push(`${adapter.getState().status}:${adapter.getState().balance}`));
+    expect(adapter.getState().status).toBe("closed");
+    push(table({ balance: 120 }));
+    push(table({ balance: 90 }));
+    expect(seen).toEqual(["live:120", "live:90"]);
+    adapter.dispose();
+  });
+
+  it("sends spins to the server and maps its refusals to the game's codes", async () => {
+    const { client, mutation } = fakeClient();
+    const adapter = createRouletteConvexAdapter({ client });
+    const bets = [{ betId: "straight:17", amount: 10 }];
+    expect(await adapter.spin({ spinId: "s1", bets })).toMatchObject({ status: "ok", balance: 450, spin: { pocket: 17 } });
+    expect(mutation).toHaveBeenCalledWith(expect.anything(), { spinId: "s1", bets });
+    const cases: Array<[string, string]> = [
+      ["ARCADE_CLOSED", "CLOSED"],
+      ["GAME_DISABLED", "CLOSED"],
+      ["NOT_SIGNED_IN", "SIGNED_OUT"],
+      ["NOT_CHECKED_IN", "NOT_ELIGIBLE"],
+      ["INVALID_PLAY_ID", "ERROR"],
+      ["DAILY_LOSS_LIMIT", "DAILY_LOSS_LIMIT"],
+      ["STRAIGHT_LIMIT", "STRAIGHT_LIMIT"],
+    ];
+    for (const [server, game] of cases) {
+      expect(mapRouletteSpin({ status: "error", code: server as never })).toEqual({ status: "error", code: game });
     }
-    expect(rich.adapter.getState().lossToday).toBe(300);
-    expect(await rich.adapter.spin({ spinId: "s6", bets: [{ betId: "fire", amount: 5 }] })).toEqual({ status: "error", code: "DAILY_LOSS_LIMIT" });
+    expect(mapRouletteSpin({ status: "error", code: "COOLDOWN", retryAfterMs: 1200 })).toEqual({ status: "error", code: "COOLDOWN", retryAfterMs: 1200 });
+    mutation.mockRejectedValueOnce(new Error("offline"));
+    expect(await adapter.spin({ spinId: "s2", bets })).toEqual({ status: "error", code: "ERROR" });
+    adapter.dispose();
+    expect(await adapter.spin({ spinId: "s3", bets })).toEqual({ status: "error", code: "CLOSED" });
   });
 
-  it("carries history and today's tally into a new mount", async () => {
-    const { adapter } = make({ random: () => 0 });
-    await adapter.spin({ spinId: "x", bets: [{ betId: "odd", amount: 10 }] });
-    const again = createRouletteMockAdapter({ balance: adapter.getState().balance, saved: adapter.saved(), latencyMs: 0, now: () => Date.UTC(2026, 10, 14, 21) });
-    expect(again.getState()).toMatchObject({ balance: 90, lossToday: 10, history: [{ spinId: "x", pocket: 0 }] });
-    expect(createRouletteMockAdapter({ saved: { junk: true } }).getState().history).toEqual([]);
+  it("re-reads the table when the arcade's closing time passes", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    const { client, push, watches } = fakeClient();
+    const adapter = createRouletteConvexAdapter({ client });
+    push(table({ closesAt: 5_000 }));
+    expect(watches).toHaveLength(1);
+    vi.advanceTimersByTime(4_300);
+    expect(watches).toHaveLength(2);
+    expect(watches[0]!.stopped).toBe(true);
+    adapter.dispose();
+    vi.useRealTimers();
   });
 });
 

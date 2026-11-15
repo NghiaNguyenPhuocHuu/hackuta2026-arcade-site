@@ -30,7 +30,7 @@ export type RouletteSpinResult =
   | { status: "ok"; spin: RouletteSpin; balance: number }
   | { status: "error"; code: RouletteErrorCode; retryAfterMs?: number };
 
-/** What the game needs from a backend. Mock now, Convex in plan step 3. */
+/** What the game needs from its backend (the Convex adapter, arcade/roulette). */
 export interface RouletteAdapter {
   /** Returns the same object until something changes (safe for useSyncExternalStore). */
   getState(): RouletteState;
