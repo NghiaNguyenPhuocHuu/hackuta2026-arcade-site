@@ -828,7 +828,9 @@ export function mountOlympus21(el, options = {}) {
     if (!fan) return;
     const n = fan.children.length;
     const avail = fan.clientWidth || el.clientWidth || 320;
-    const step = fanStep(n, CARD_W2, avail - 8, mode === "table" ? CARD_W2 + 8 : 60);
+    // The table layout shows smaller cards in the side column: fan by the card's real width.
+    const w = Math.round(fan.firstElementChild?.getBoundingClientRect().width || CARD_W2);
+    const step = fanStep(n, w, avail - 8, mode === "table" ? w + 8 : 60);
     fan.style.setProperty("--step", `${step}px`);
   }
 

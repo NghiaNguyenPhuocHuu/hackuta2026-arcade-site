@@ -2382,3 +2382,265 @@
   max-width: 1440px;
   margin-inline: auto;
 }
+
+/* =========================================================================
+   Compact table layout: the whole game fits one laptop screen, no scrolling.
+   Felt + moves + Techno on the left; your hand, bets and last rounds in one
+   side column. (Comes last on purpose: it overrides the roomier rules above.)
+   ========================================================================= */
+.o21 {
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.o21__brand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.o21__tag {
+  margin-top: 0 !important;
+  font-size: 13px;
+}
+
+.o21__body {
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 12px;
+  align-items: start;
+}
+
+.o21__left {
+  gap: 8px;
+}
+
+.o21__felt {
+  min-height: 0;
+  padding: 10px 18px;
+  gap: 6px 10px;
+  border-radius: 140px / 90px;
+}
+
+.o21__seat {
+  gap: 4px;
+  padding: 6px 8px;
+}
+
+/* One line of recent moves; the newest is first. */
+.o21__ticker {
+  flex-wrap: nowrap;
+  overflow: hidden;
+  min-height: 0;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.o21__tk {
+  flex: none;
+}
+
+.o21__dlg {
+  align-items: center;
+  gap: 10px;
+  min-height: 0;
+  margin-top: 8px;
+  padding: 12px 12px 10px;
+}
+
+.o21__port {
+  width: 44px;
+  height: 44px;
+}
+
+.o21__hacker {
+  width: 34px;
+  height: 34px;
+}
+
+.o21__dlg-body {
+  gap: 3px;
+}
+
+/* ---- side column: hand, bets, last rounds */
+.o21__side {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-width: 0;
+}
+
+.o21__tray {
+  position: static;
+  animation: none;
+  box-shadow: inset 0 0 0 3px var(--cy);
+}
+
+.o21__tray-head {
+  padding: 4px 10px 0;
+}
+
+.o21__tray-toggle {
+  padding: 6px 2px;
+}
+
+.o21__tray-body {
+  padding: 2px 10px 10px;
+}
+
+.o21--table .o21__screen {
+  gap: 8px;
+}
+
+.o21__side .o21__x2,
+.o21__side .o21__fc {
+  width: 72px;
+  height: 102px;
+}
+
+.o21__side .o21__fc {
+  margin-left: calc(var(--step) - 72px);
+}
+
+.o21__side .o21__fc:first-child {
+  margin-left: 0;
+}
+
+.o21__fan {
+  min-height: 0;
+  padding: 10px 0 2px;
+}
+
+.o21__fan.has-tags {
+  padding-top: 26px;
+}
+
+.o21__btn {
+  padding: 11px 8px;
+}
+
+.o21__btn--sm {
+  padding: 8px 6px;
+}
+
+/* The bet timer sits in the title row instead of a big ring. */
+.o21__ring {
+  width: 36px;
+  height: 36px;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.o21__ring b {
+  width: 26px;
+  height: 26px;
+  font-size: 10px;
+}
+
+.o21__step {
+  grid-template-columns: 44px 1fr 44px;
+}
+
+.o21__stepval {
+  font-size: 18px;
+}
+
+.o21__bets,
+.o21__res {
+  font-size: 13px;
+}
+
+.o21__panel {
+  gap: 6px;
+}
+
+.o21__box {
+  gap: 4px;
+  padding: 8px 10px;
+}
+
+.o21__pair {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.o21__pair > div {
+  display: grid;
+  gap: 4px;
+}
+
+.o21__big {
+  font-size: 18px;
+}
+
+.o21__sub {
+  font-size: 13px;
+}
+
+.o21__leave {
+  padding: 4px 6px;
+}
+
+.o21__hist {
+  gap: 6px;
+  padding: 6px 10px;
+}
+
+/* Laptop widths keep the side column; only tablets stack (phones use the hand layout). */
+@container o21 (max-width: 980px) {
+  .o21__body {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+
+  .o21__panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@container o21 (max-width: 760px) {
+  .o21__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The felt's seats already show READY ✓ in the table layout; the phone keeps the list. */
+.o21__side .o21__ready {
+  display: none;
+}
+
+/* Title left, controls right on the same row; the controls wrap among themselves. */
+.o21__head {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+
+.o21__brand {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.o21__head .o21__status {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.o21__pilerow {
+  flex-wrap: nowrap;
+}
+
+@container o21 (max-width: 1200px) {
+  .o21__tag {
+    display: none;
+  }
+}
+
+@container o21 (max-width: 760px) {
+  .o21__head {
+    flex-wrap: wrap;
+  }
+}
+
+.o21__title,
+.o21__sn {
+  white-space: nowrap;
+}
