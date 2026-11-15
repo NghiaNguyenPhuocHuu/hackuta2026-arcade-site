@@ -135,47 +135,20 @@ Not testable in convex-test: the `arcade-launch` provider itself (Convex Auth's
 sign-in action). It only calls `consumeLaunchCode`, which is tested; try it end to
 end in step 2.
 
-## Scheduled teaser screen: 2026-11-14, not committed
+## Next step: 2, the site shell
 
-When the arcade is `scheduled`, `App.tsx` shows `src/pages/TeaserScreen.tsx`
-(full page) instead of the lobby: an HH:MM:SS countdown to `opensAt`, a "temple
-seal" meter that drains over the last hour, Techno's line for each phase, the
-enabled games and the hacker's points. At zero the temple doors close over the
-card and open on "Enter the arcade", which shows the lobby. Ported from the
-pixel-art prototype in the minigame repo (`profile-sandbox/teaser/`), restyled
-with the HackUTA tokens. Phase/seal/clock rules are in `src/arcade/teaser.ts`
-(tested in `tests/unit/teaser.test.ts`). `?preview=` is gone with the mocks;
-to see it, schedule the arcade on the sandbox.
-
-## Olympus 21 ported: 2026-11-14, not committed
-
-The whole Olympus 21 game from the prototype (`hackuta-2026-gambling-mini_game`,
-branch `4hacker-pvp-blackjack`) is in: engine in `shared/olympus21/`, game in
-`src/games/olympus-21/`, lobby card "Olympus 21" (key `pvp-blackjack`, was
-"PvP Blackjack"), 104 ported tests in `tests/olympus21/`. Mock points with bots
-only. The server engine is still the stub; everything left (engine on the
-arcade gate and points path, retiring `o21Windows`, organizer controls) is in
-`docs/OLYMPUS21_ADMIN.md`.
-
-## Olympus 21 PvP on the live site; merged with `main` (2026-11-14)
-
-- `blackjack` merged with `main`. `main`'s live-only shell won (email +
-  password sign-in, live session, Wallet, `mount(element, host)`); this
-  branch's own sign-in / `VITE_ARCADE_BACKEND` / `/launch` work was dropped as
-  a duplicate. The scheduled teaser screen is kept in `main`'s Gate.
-- Olympus 21 `mount` uses the Convex adapter over `host.client` (through
-  `adapters/reactClientBridge.ts`): server-side random matchmaking, no bots.
-  The mock adapter stays only for the engine tests.
-- Points decision: **two-phase, from the arcade wallet** (`ARCADE_PLAN.md`).
-- Until the server engine replaces the stub, every Olympus 21 action is
-  refused with `ENGINE_UNAVAILABLE`.
-
-## Next steps
-
-- User: Olympus 21 server engine (two-phase, arcade wallet), then
-  `npm run convex:push-dev` and two accounts at one table.
-- Profile → `/launch` hand-off (plan step 2) if still wanted alongside the
-  email + password sign-in.
+- Wrap the app in `ConvexAuthProvider` (from `@convex-dev/auth/react`, add the
+  dependency) instead of `ConvexProvider`.
+- `/launch` page: read `#code=`, clear it from the address bar
+  (`history.replaceState`), `signIn("arcade-launch", { code })`, go to `/`.
+- `useArcadeSession`: `useQuery(getArcadeSessionRef, { nowBucket })` instead of
+  the mock, bumping `nowBucket` at `arcade.nextChangeAt`; map `player.problem`
+  to the status screens. Keep the mock behind `?preview=` (or a dev flag) so
+  the site still runs without a backend.
+- Backup sign-in form on the signed-out screen when `signIn.backupSignIn`.
+- Sign-out button in the sidebar.
+- Then step 3 (Olympus Slots on its Convex adapter) and the roulette backend
+  on the same `beginPlay` / `applyPlay` path.
 
 ## Environment notes
 

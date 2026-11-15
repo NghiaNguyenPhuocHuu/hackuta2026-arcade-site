@@ -19,8 +19,6 @@ which stays as the Olympus Slots prototype and is not developed further.
 | Security | Every rule is enforced in Convex functions. Showing or hiding the button or the site is cosmetic. |
 | Live backend (2026-11-14) | No mock mode anymore. The site signs in with the profile's **email + password** provider (sign-in only; user decision), reads the live session, and every game runs on the server: Slots (`admin/slotSpin`), Wheel of the Fates (`arcade/roulette`, new) and Olympus Poker (`arcade/poker`, moved to real accounts: the signed-in hacker, buy-in from the arcade wallet, chips back on leaving; user decision). Pushed to `brazen-peccary-506`. |
 | Arcade wallet | (user decision, 2026-11-14) Games never touch the profile balance. Hackers **deposit** profile points into an arcade wallet (`arcadeWallets`, 1 point = 1 arcade point, any amount 1–500 at a time, only while the arcade is open) and **withdraw** them back (any time, even when closed). Every move is one transaction and one row in the `arcadeTransfers` log (both balances before and after); the site asks for confirmation in a modal first. `computeLedgerPoints` counts deposits and withdrawals, not spins. Poker keeps its own table chips. |
-| Olympus 21 points (2026-11-14) | **Two steps.** Bets come from the **arcade wallet** like every game. The wager is taken from the wallet when the round locks (one `arcadePlays` row, `payout: 0`) and the payout is added to that same row and the wallet at settlement. `points.ts` gets `reservePlay` / `settlePlay`; `playId` = `${tableId}:${roundNo}:${checkedInId}`. Matches the engine (bets at lock, pay at settle) and its per-command balance sync (from the wallet), and a withdrawal can't take a wager mid-round. |
-| Olympus 21 matchmaking | Random: `join` seats a signed-in, checked-in hacker at the fullest open table with a free seat, else opens a new one. Real tables never get bots. |
 
 ## System
 
@@ -111,13 +109,13 @@ prototype's Gamble tab used. If the query errors, the button stays hidden.
 | --- | --- | --- | --- |
 | 0 | **Repo setup:** Vite + React + TS, Convex client, safety check, tests, Olympus Slots copied in (mock points) | `npm test`, `npm run build`, `npm run backend:test` pass | **Done** |
 | 1 | **Backend:** `arcadeSettings` (incl. `launchEnabled`, `backupSignIn`), `arcadeGames`, `requireGameOpen`, launch codes + `arcade-launch` provider, `getArcadeSession`, admin functions, audit actions, convex-test tests | `npm run backend:test` passes | **Done** (2026-11-14): 32 arcade + slot tests; the profile's full suite (108) also passes on the build. Olympus Slots now uses the arcade switches; `slotWindows` is gone (it was never deployed). Not pushed. |
-| 2 | **Site shell:** routes (`/`, `/launch`, `/play/:game`), Convex Auth client, signed-out and closed screens, live hub | Sign-in works from the local dev launcher | Live: email + password sign-in, live session, status screens, Wallet (see "Live backend" above). `/launch` hand-off not built. |
+| 2 | **Site shell:** routes (`/`, `/launch`, `/play/:game`), Convex Auth client, signed-out and closed screens, live hub | Sign-in works from the local dev launcher | UI done (HackUTA theme, lobby, play, status screens on mock data); `/launch` + auth + backup sign-in form (shown only when `backupSignIn` is on) to do |
 | 3 | **Olympus Slots on the arcade:** mount from the registry with the Convex adapter; move its schedule from `slotWindows` to the arcade switches | Playable end to end locally | |
 | 4 | **Local dev pages** in `dev/`: fake profile Arcade button + admin switch panel | Whole flow works on one machine | |
 | 5 | **Push to the sandbox** (`brazen-peccary-506`) | Works against the sandbox | Blocked: Convex access |
 | 6 | **Real repos:** profile gets only the button and the launch-code call; admin gets the Arcade tab | PRs merged: admin first, then profile | |
 | 7 | **Deploy** the arcade as a static site; add its address to the allowed origins | Live, switched off until an admin turns it on | |
-| 8 | **Olympus 21** (was PvP Blackjack) | Real PvP on peccary | Game on the site, mounted live (Convex adapter, server-side random matchmaking). Server engine still the stub: `docs/OLYMPUS21_ADMIN.md` (user is doing it). |
+| 8 | **PvP Blackjack** as the second game | | |
 
 ## Open items
 
