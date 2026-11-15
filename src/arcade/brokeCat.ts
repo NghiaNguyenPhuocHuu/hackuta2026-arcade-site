@@ -10,15 +10,59 @@ import { ChipTune } from "../games/sound";
 export const TAUNT_GAMES: ReadonlySet<string> = new Set(["olympus-slots", "wheel-of-the-fates"]);
 
 /**
- * Meme files in `public/` (local, never hotlinked). The first one set wins:
- * a `video` autoplays with its own sound; else an `image` (with `audio`, or the
- * chiptune laugh); else the pixel cat and the chiptune laugh.
+ * Meme files in `public/` (local, never hotlinked). The `video` plays with its
+ * own sound; the `image` shows until it starts and stays if it can't play.
+ * With no video: the image with `audio` (or the chiptune laugh). With neither:
+ * the pixel cat and the chiptune laugh. The cat always laughs out loud: the
+ * game sound switch doesn't mute it.
  */
 export const BROKE_MEME: { video: string | null; image: string | null; audio: string | null } = {
   video: "/memes/laughing-cat.mp4",
-  image: null,
+  image: "/memes/laughing-cat.jpg",
   audio: null,
 };
+
+let clip: HTMLVideoElement | null = null;
+let primed = false;
+
+/** The one meme clip, made and preloaded once so it's ready the moment a wallet hits 0. */
+export function brokeClip(): HTMLVideoElement | null {
+  if (!BROKE_MEME.video || typeof document === "undefined") return null;
+  if (!clip) {
+    clip = document.createElement("video");
+    clip.src = BROKE_MEME.video;
+    if (BROKE_MEME.image) clip.poster = BROKE_MEME.image;
+    clip.loop = true;
+    clip.playsInline = true;
+    clip.preload = "auto";
+    clip.className = "broke-cat__video";
+    clip.setAttribute("aria-hidden", "true");
+    clip.load();
+  }
+  return clip;
+}
+
+/**
+ * Call from the player's first tap or key press: plays the clip silently for
+ * a moment, so browsers that want a gesture per media element (Safari) let it
+ * play with sound later, when the pop-up opens without a tap of its own.
+ */
+export function primeBrokeClip(): void {
+  if (primed) return;
+  const video = brokeClip();
+  if (!video) return;
+  primed = true;
+  video.muted = true;
+  void video
+    .play()
+    .then(() => {
+      video.pause();
+      video.currentTime = 0;
+    })
+    .catch(() => {
+      primed = false;
+    });
+}
 
 /** The headline, in big type. */
 export const ROAST_TITLES: readonly string[] = [
@@ -32,6 +76,7 @@ export const ROAST_TITLES: readonly string[] = [
 
 /** The roast under it. Trash talk about the play, never about the person. */
 export const ROAST_LINES: readonly string[] = [
+  "Look at you loser. You lost to a slot machine.",
   "The cat watched the whole thing. The cat has never laughed this hard.",
   "Even Hades leaves a tip. You left nothing.",
   "You bet it all. The Fates said no. The cat said HA.",
@@ -81,7 +126,7 @@ export function gameKeyOf(pathname: string): string | null {
 /** A chiptune cat laugh: wheezy "ha"s that fall in pitch, a snort, then a smug meow. */
 export class LaughTrack extends ChipTune {
   constructor() {
-    super(0.36);
+    super(0.36, true); // always laughs, whatever the game sound switch says
   }
 
   laugh() {

@@ -5,6 +5,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { MemoryRouter } from "react-router-dom";
+import { brokeClip, laughTrack, primeBrokeClip } from "../arcade/brokeCat";
 import { BrokeCatPopup } from "../components/BrokeCatPopup";
 import "../styles/theme.css";
 import "../styles/arcade.css";
@@ -128,15 +129,24 @@ function O21Preview() {
   return <div ref={ref} />;
 }
 
-/** ?game=broke: the balance drops from 10 to 0 on a slots page, so the cat laughs. */
+/** ?game=broke: tap LOSE EVERYTHING and the balance drops from 10 to 0 on a slots page. */
 function BrokePreview() {
   const [points, setPoints] = useState(10);
   useEffect(() => {
-    const id = setTimeout(() => setPoints(0), 300);
-    return () => clearTimeout(id);
+    brokeClip();
+    // Same as the arcade shell: the first tap opens the laugh's audio and primes the clip.
+    const prime = () => {
+      laughTrack().unlock();
+      primeBrokeClip();
+    };
+    window.addEventListener("pointerdown", prime);
+    return () => window.removeEventListener("pointerdown", prime);
   }, []);
   return (
     <MemoryRouter initialEntries={["/play/olympus-slots"]}>
+      <button type="button" onClick={() => setPoints(0)} style={{ padding: 12, fontFamily: "monospace" }}>
+        LOSE EVERYTHING ({points} pts)
+      </button>
       <BrokeCatPopup arcadePoints={points} />
     </MemoryRouter>
   );

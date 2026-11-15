@@ -36,6 +36,8 @@ describe("broke cat", () => {
     }
     // Served from public/, never hotlinked from another site.
     expect(BROKE_MEME.video).toBe("/memes/laughing-cat.mp4");
+    // The still shows until the clip plays, and stays if it can't.
+    expect(BROKE_MEME.image).toBe("/memes/laughing-cat.jpg");
     for (const path of [BROKE_MEME.video, BROKE_MEME.image, BROKE_MEME.audio]) {
       if (path) expect(existsSync(join("public", path))).toBe(true);
     }

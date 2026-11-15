@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getPointsHold, usePointsHold } from "../arcade/pointsReveal";
-import { BROKE_MEME, gameKeyOf, laughTrack, pickRoast, shouldTaunt, type Roast } from "../arcade/brokeCat";
-import { gameSoundEnabled } from "../games/sound";
+import { BROKE_MEME, brokeClip, gameKeyOf, laughTrack, pickRoast, shouldTaunt, type Roast } from "../arcade/brokeCat";
 
 /**
  * A pixel cat laughing, two frames on a 16×14 grid. K ink outline, S fur,
@@ -64,9 +63,11 @@ export function BrokeCatPopup({ arcadePoints }: { arcadePoints: number | null })
   const prev = useRef<number | null>(null);
   const [taunt, setTaunt] = useState<Roast | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  /** The browser refused autoplay with sound: the clip runs muted until tapped. */
+  const slotRef = useRef<HTMLDivElement>(null);
+  /** The browser refused autoplay with sound: the clip runs muted (the chiptune laughs) until tapped. */
   const [needsTap, setNeedsTap] = useState(false);
+  /** The clip can't play here: the still image shows instead. */
+  const [clipFailed, setClipFailed] = useState(false);
 
   useEffect(() => {
     // While a reveal is on, the visible balance is held: wait for the real one.
@@ -81,28 +82,36 @@ export function BrokeCatPopup({ arcadePoints }: { arcadePoints: number | null })
     if (!taunt) return;
     closeRef.current?.focus();
     let audio: HTMLAudioElement | null = null;
-    const video = videoRef.current;
-    if (video) {
-      // The clip carries its own laugh: with sound when game sounds are on and the
-      // browser allows it, else muted (tap the clip for sound).
-      const withSound = gameSoundEnabled();
-      video.muted = !withSound;
-      video.volume = 0.7;
-      setNeedsTap(!withSound);
+    const video = brokeClip();
+    const slot = slotRef.current;
+    const onError = () => {
+      setClipFailed(true);
+      laughTrack().laugh();
+    };
+    if (video && slot && !video.error) {
+      // Always with sound. If the browser still refuses, the clip runs muted
+      // (tap it for sound) and the chiptune laugh plays, so the cat is heard.
+      slot.prepend(video);
+      video.addEventListener("error", onError);
+      video.currentTime = 0;
+      video.muted = false;
+      video.volume = 0.8;
+      setNeedsTap(false);
+      setClipFailed(false);
       void video.play().catch(() => {
         video.muted = true;
         setNeedsTap(true);
+        laughTrack().laugh();
         void video.play().catch(() => {});
       });
-    } else if (gameSoundEnabled()) {
-      if (BROKE_MEME.audio) {
-        audio = new Audio(BROKE_MEME.audio);
-        // Under the music and game sounds' level; ends with the pop-up.
-        audio.volume = 0.7;
-        void audio.play().catch(() => {});
-      } else {
-        laughTrack().laugh();
-      }
+    } else if (BROKE_MEME.audio) {
+      setClipFailed(Boolean(video));
+      audio = new Audio(BROKE_MEME.audio);
+      audio.volume = 0.8;
+      void audio.play().catch(() => laughTrack().laugh());
+    } else {
+      setClipFailed(Boolean(video));
+      laughTrack().laugh();
     }
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setTaunt(null);
@@ -111,7 +120,11 @@ export function BrokeCatPopup({ arcadePoints }: { arcadePoints: number | null })
     return () => {
       window.removeEventListener("keydown", onKey);
       audio?.pause();
-      video?.pause();
+      if (video) {
+        video.removeEventListener("error", onError);
+        video.pause();
+        video.remove(); // kept for next time, preloaded
+      }
     };
   }, [taunt]);
 
@@ -133,22 +146,26 @@ export function BrokeCatPopup({ arcadePoints }: { arcadePoints: number | null })
             </span>
           ))}
         </p>
-        {BROKE_MEME.video ? (
-          <button
-            type="button"
+        {BROKE_MEME.video && !clipFailed ? (
+          <div
+            ref={slotRef}
             className="broke-cat__clip"
+            role="button"
+            tabIndex={needsTap ? 0 : -1}
             aria-label={needsTap ? "A cat laughing at you. Play with sound" : "A cat laughing at you"}
             onClick={() => {
-              const video = videoRef.current;
+              const video = brokeClip();
               if (!video) return;
               video.muted = false;
               setNeedsTap(false);
               void video.play().catch(() => {});
             }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") (event.currentTarget as HTMLDivElement).click();
+            }}
           >
-            <video ref={videoRef} className="broke-cat__video" src={BROKE_MEME.video} loop playsInline preload="auto" aria-hidden="true" />
             {needsTap ? <span className="broke-cat__tap">TAP FOR SOUND</span> : null}
-          </button>
+          </div>
         ) : BROKE_MEME.image ? (
           <img className="broke-cat__img" src={BROKE_MEME.image} alt="A cat laughing and pointing at you" />
         ) : (

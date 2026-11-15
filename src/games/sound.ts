@@ -60,11 +60,19 @@ export class ChipTune {
   private master: GainNode | null = null;
   private noise: AudioBuffer | null = null;
 
-  constructor(private readonly volume = 0.32) {}
+  /** `alwaysOn` ignores the game sound switch (the broke cat always laughs). */
+  constructor(
+    private readonly volume = 0.32,
+    private readonly alwaysOn = false,
+  ) {}
+
+  private allowed(): boolean {
+    return this.alwaysOn || gameSoundEnabled();
+  }
 
   /** Create or resume the audio context. Call from a user gesture. */
   unlock(): void {
-    if (!gameSoundEnabled()) return;
+    if (!this.allowed()) return;
     try {
       if (!this.ctx) {
         const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -98,7 +106,7 @@ export class ChipTune {
   }
 
   private ready(): AudioContext | null {
-    if (!gameSoundEnabled() || !this.ctx || !this.master || this.ctx.state !== "running") return null;
+    if (!this.allowed() || !this.ctx || !this.master || this.ctx.state !== "running") return null;
     return this.ctx;
   }
 

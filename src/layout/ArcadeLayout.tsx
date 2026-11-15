@@ -4,7 +4,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { ArcadeBrand } from "../components/ArcadeBrand";
 import { ExternalIcon, MusicOffIcon, MusicOnIcon, NavTempleIcon, NavWalletIcon } from "../components/brand/ArcadeIcons";
 import { arcadeMusic, musicEnabled, setMusicEnabled, subscribeMusic } from "../arcade/music";
-import { laughTrack } from "../arcade/brokeCat";
+import { brokeClip, laughTrack, primeBrokeClip } from "../arcade/brokeCat";
 import { BrokeCatPopup } from "../components/BrokeCatPopup";
 import { NavSignOutIcon } from "../components/brand/NavIcons";
 import { initials, type ArcadeSession } from "../arcade/useArcadeSession";
@@ -36,8 +36,10 @@ export function ArcadeLayout({ session }: { session: ArcadeSession }) {
       if (musicEnabled()) music.start();
       // The broke cat may laugh later without a tap of its own: open its audio now.
       laughTrack().unlock();
+      primeBrokeClip();
     };
     const visibility = () => music.setHidden(document.hidden);
+    brokeClip(); // preload the meme clip so it shows at once when a wallet hits 0
     window.addEventListener("pointerdown", start);
     window.addEventListener("keydown", start);
     document.addEventListener("visibilitychange", visibility);
