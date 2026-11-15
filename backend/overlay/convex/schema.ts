@@ -582,6 +582,26 @@ export default defineSchema({
     .index("by_user_createdAt", ["userId", "createdAt"]),
 
   /**
+   * Wheel of the Fates details for each spin: the bets, the pocket, and the
+   * event-local day (for the daily loss limit). The points side of the spin is
+   * its `arcadePlays` row (`playId`).
+   */
+  rouletteSpins: defineTable({
+    checkedInId: v.id("checkedIn"),
+    playId: v.id("arcadePlays"),
+    spinId: v.string(),
+    bets: v.array(v.object({ betId: v.string(), amount: v.number() })),
+    stake: v.number(),
+    returned: v.number(),
+    pocket: v.number(),
+    day: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_checkedIn_createdAt", ["checkedInId", "createdAt"])
+    .index("by_checkedIn_spinId", ["checkedInId", "spinId"])
+    .index("by_checkedIn_day", ["checkedInId", "day"]),
+
+  /**
    * Olympus Slots details for each spin (reels, outcome). The points side of
    * the spin is its `arcadePlays` row (`playId`).
    */
