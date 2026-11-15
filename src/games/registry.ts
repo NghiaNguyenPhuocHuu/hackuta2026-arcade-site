@@ -1,13 +1,15 @@
 import type { ComponentType } from 'react'
 import { NavCardsIcon, NavSlotsIcon, NavWheelIcon } from '../components/brand/ArcadeIcons'
 import type { GameModule } from './types'
+import type { ArcadeGameKey } from '../../shared/arcade/rules'
 
 /**
  * Every game the arcade can show. The hub lists these; whether each one is
  * playable right now comes from the server (arcadeGames, step 1 of the plan).
  * Each game is lazy-loaded so the hub never downloads code for games nobody opens.
  */
-export type GameKey = 'olympus-slots' | 'wheel-of-the-fates' | 'pvp-blackjack'
+/** One list of game keys for the site and the server (shared/arcade/rules.ts). */
+export type GameKey = ArcadeGameKey
 
 export type GameEntry = {
   key: GameKey

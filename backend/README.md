@@ -7,18 +7,22 @@ runs, plus the game.
 
 | Path | What |
 | --- | --- |
-| `BASE.json` | Pinned profile commit (`4ec8892`, the merge of profile PR #26). Its backend matches peccary's live function list exactly (143 functions/routes). It also records the base hashes of the 3 profile files we edit. |
-| `overlay/convex/admin/slotSpin.ts` | Hacker-facing `getMyGameState` and `spin` (real Convex Auth; balance on `checkedIn.points`) |
-| `overlay/convex/admin/slotWindows.ts` | Admin-only window create/update/cancel/list, plus `*Internal` versions for the CLI |
-| `../shared/admin/slotRules.ts` (repo root) | Slot rules, one copy shared by the site and the backend. The assemble script copies `shared/` into the build. |
-| `overlay/convex/schema.ts`, `overlay/convex/admin/pointsLedger.ts`, `overlay/convex/admin/fields.ts` | Full copies of the pinned files with additive edits only: the `slotWindows` and `slotSpins` tables, the optional `staffConfigLogs.targetSlotWindowId` field, spin deltas in `computeLedgerPoints`, and the 3 `slot_window_*` audit actions |
-| `overlay/tests/integration/slot-*.test.ts` | convex-test integration tests |
+| `BASE.json` | Pinned profile commit (`4ec8892`, the merge of profile PR #26). Its backend matches peccary's live function list exactly (143 functions/routes). It also records the base hashes of the 4 profile files we edit. |
+| `overlay/convex/arcade/access.ts` | Who may play (`loadPlayer`: signed in → participant → accepted → checked in, always from the session) and whether it's open (`gameGate`, `requireGameOpen`: arcade switch by the server clock + the game's switch) |
+| `overlay/convex/arcade/points.ts` | **The only place games change points.** `beginPlay` (identity, replay of a repeated `playId`, then the open check), `cooldownLeft`, `applyPlay` (refuses a stake above the balance, writes `arcadePlays`, updates `checkedIn.points`) |
+| `overlay/convex/arcade/session.ts` | `getArcadeSession` (switch, games, the caller's name and points; works signed out) and `getLauncherState` (profile's Arcade button) |
+| `overlay/convex/arcade/admin.ts` | Admin-only `getArcadeAdmin`, `updateArcadeSettings`, `updateArcadeGame`, plus `*Internal` versions for the CLI. Audited in `staffConfigLogs` |
+| `overlay/convex/arcade/launch.ts`, `launchProvider.ts` | One-time launch codes (`createLaunchCode`, `consumeLaunchCode`) and the `arcade-launch` Convex Auth provider |
+| `overlay/convex/admin/slotSpin.ts` | Olympus Slots `getMyGameState` and `spin`, built on the arcade code above |
+| `../shared/arcade/rules.ts`, `../shared/admin/slotRules.ts` (repo root) | Arcade and slot rules, one copy shared by the site and the backend. The assemble script copies `shared/` into the build. |
+| `overlay/convex/schema.ts`, `overlay/convex/admin/pointsLedger.ts`, `overlay/convex/admin/fields.ts`, `overlay/convex/auth.ts` | Full copies of the pinned files with additive edits only: the `arcadeSettings`, `arcadeGames`, `arcadePlays`, `arcadeLaunchCodes` and `slotSpins` tables, the optional `staffConfigLogs.targetArcadeGameKey` field, `arcadePlays` deltas in `computeLedgerPoints`, the 2 `arcade_*` audit actions, and the `arcade-launch` provider |
+| `overlay/tests/integration/arcade.test.ts`, `slot-spin.test.ts`, `overlay/tests/helpers/arcadeTestKit.ts` | convex-test integration tests |
 
 ## Commands
 
 ```bash
 npm run backend:assemble   # build/peccary = pinned profile backend + overlay + shared/ (+ npm ci on first run)
-npm run backend:test       # assemble with offline codegen stubs, run the slot integration tests
+npm run backend:test       # assemble with offline codegen stubs, run the arcade + slot integration tests
 npm run backend:check      # read-only: live function list vs build; fails if anything would be lost
 ```
 
@@ -41,12 +45,13 @@ node scripts/check-no-function-loss.mjs --post build/spec-pre.json
 
 In PowerShell, set the variable first with `$env:CONVEX_DEPLOYMENT="dev:brazen-peccary-506"`.
 
-**Opening a play window from the CLI** (times are epoch milliseconds):
+**Switching the arcade from the CLI** (times are epoch milliseconds):
 
 ```bash
 cd build/peccary
-CONVEX_DEPLOYMENT=dev:brazen-peccary-506 npx convex run admin/slotWindows:createSlotWindowInternal '{"opensAt": 1794540000000, "closesAt": 1794543600000}'
-CONVEX_DEPLOYMENT=dev:brazen-peccary-506 npx convex run admin/slotWindows:cancelSlotWindowInternal '{"windowId": "<id>"}'
+CONVEX_DEPLOYMENT=dev:brazen-peccary-506 npx convex run arcade/admin:updateArcadeSettingsInternal '{"mode": "scheduled", "opensAt": 1794540000000, "closesAt": 1794543600000}'
+CONVEX_DEPLOYMENT=dev:brazen-peccary-506 npx convex run arcade/admin:updateArcadeGameInternal '{"key": "olympus-slots", "enabled": true}'
+CONVEX_DEPLOYMENT=dev:brazen-peccary-506 npx convex run arcade/admin:updateArcadeSettingsInternal '{"mode": "off"}'
 ```
 
 The profile repo's `admin-schema-lock` manifest isn't checked here. That

@@ -220,7 +220,7 @@ export async function adjustPoints(
 
 /**
  * Awards plus signed `admin_adjust`, `shop_purchase`, and `shop_refund` deltas,
- * plus minigame `slotSpins` deltas. `point_scan` logs are not added again.
+ * plus arcade game deltas (`arcadePlays`). `point_scan` logs are not added again.
  */
 export async function computeLedgerPoints(
   ctx: QueryCtx | MutationCtx,
@@ -251,15 +251,15 @@ export async function computeLedgerPoints(
     }
     total += log.pointsDelta;
   }
-  const spins = await ctx.db
-    .query("slotSpins")
+  const plays = await ctx.db
+    .query("arcadePlays")
     .withIndex("by_checkedIn_createdAt", (q) => q.eq("checkedInId", checkedInId))
     .collect();
-  for (const spin of spins) {
-    if (!Number.isSafeInteger(spin.pointsDelta)) {
+  for (const play of plays) {
+    if (!Number.isSafeInteger(play.pointsDelta)) {
       throw adminError("INVALID_POINTS");
     }
-    total += spin.pointsDelta;
+    total += play.pointsDelta;
   }
   return assertPointBalance(total);
 }

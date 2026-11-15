@@ -88,8 +88,12 @@ the edited base files tracked in `backend/BASE.json`.
 - Every change is written to `staffConfigLogs` with new `arcade_*` actions.
 - Live subscriptions flip open tabs to the closed screen as soon as an admin
   switches off; in-flight spins are rejected by the server.
-- `slotWindows` (from the prototype) gets folded into the site schedule so
-  admins schedule play in one place.
+- `slotWindows` (from the prototype) is folded into the site schedule, so
+  admins schedule play in one place (done in step 1).
+- Every game changes points only through `convex/arcade/points.ts`
+  (`beginPlay` → `cooldownLeft` → `applyPlay`), which writes one
+  `arcadePlays` row per play. `computeLedgerPoints` counts those rows, so the
+  admin portal's balance-vs-ledger check stays correct for every game.
 
 ### Profile button
 
@@ -102,7 +106,7 @@ prototype's Gamble tab used. If the query errors, the button stays hidden.
 | # | Step | Done when | Status |
 | --- | --- | --- | --- |
 | 0 | **Repo setup:** Vite + React + TS, Convex client, safety check, tests, Olympus Slots copied in (mock points) | `npm test`, `npm run build`, `npm run backend:test` pass | **Done** |
-| 1 | **Backend:** `arcadeSettings` (incl. `launchEnabled`, `backupSignIn`), `arcadeGames`, `requireGameOpen`, launch codes + `arcade-launch` provider, `getArcadeSession`, admin functions, audit actions, convex-test tests | `npm run backend:test` passes | Next |
+| 1 | **Backend:** `arcadeSettings` (incl. `launchEnabled`, `backupSignIn`), `arcadeGames`, `requireGameOpen`, launch codes + `arcade-launch` provider, `getArcadeSession`, admin functions, audit actions, convex-test tests | `npm run backend:test` passes | **Done** (2026-11-14): 32 arcade + slot tests; the profile's full suite (108) also passes on the build. Olympus Slots now uses the arcade switches; `slotWindows` is gone (it was never deployed). Not pushed. |
 | 2 | **Site shell:** routes (`/`, `/launch`, `/play/:game`), Convex Auth client, signed-out and closed screens, live hub | Sign-in works from the local dev launcher | UI done (HackUTA theme, lobby, play, status screens on mock data); `/launch` + auth + backup sign-in form (shown only when `backupSignIn` is on) to do |
 | 3 | **Olympus Slots on the arcade:** mount from the registry with the Convex adapter; move its schedule from `slotWindows` to the arcade switches | Playable end to end locally | |
 | 4 | **Local dev pages** in `dev/`: fake profile Arcade button + admin switch panel | Whole flow works on one machine | |

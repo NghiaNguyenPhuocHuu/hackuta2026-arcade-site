@@ -1,9 +1,9 @@
 import { makeFunctionReference } from "convex/server";
 
 /**
- * Olympus Slots (points minigame) function references. The functions live in
- * admin's `convex/admin/slotSpin.ts` and arrive here through
- * `npm run admin-schema-lock:refresh`. Keep these shapes in sync with that file.
+ * Olympus Slots function references. The functions live in
+ * `backend/overlay/convex/admin/slotSpin.ts`; keep these shapes in sync with it.
+ * Its open/closed status comes from the arcade switch and the game's switch.
  */
 
 export type MinigameServerStatus = "none" | "teaser" | "live" | "closed";
@@ -17,6 +17,8 @@ export type MinigameServerState = {
     eligible: boolean;
     checkedIn: boolean;
     balance: number | null;
+    /** Signed in, accepted and checked in (switches aside). */
+    canPlay: boolean;
   };
   wagers: number[];
   defaultWager: number;
@@ -37,8 +39,9 @@ export type MinigameSpinErrorCode =
   | "NOT_PARTICIPANT"
   | "NOT_ELIGIBLE"
   | "NOT_CHECKED_IN"
-  | "INVALID_SPIN_ID"
-  | "WINDOW_CLOSED"
+  | "INVALID_PLAY_ID"
+  | "ARCADE_CLOSED"
+  | "GAME_DISABLED"
   | "INVALID_WAGER"
   | "INSUFFICIENT_POINTS"
   | "COOLDOWN";
