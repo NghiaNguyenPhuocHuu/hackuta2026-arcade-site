@@ -1,5 +1,6 @@
 /**
- * Player settings for Wheel of the Fates: wheel skin, table cloth, spin speed, sound.
+ * Player settings for Wheel of the Fates: wheel skin, table cloth, spin speed.
+ * Sound is the arcade-wide game sound switch (../sound.ts).
  * None of it touches points. Saved per browser.
  */
 
@@ -19,9 +20,9 @@ export const TABLE_CLOTHS = [
 
 export type WheelSkin = (typeof WHEEL_SKINS)[number]["id"];
 export type TableCloth = (typeof TABLE_CLOTHS)[number]["id"];
-export type RouletteSettings = { wheel: WheelSkin; table: TableCloth; fast: boolean; sound: boolean };
+export type RouletteSettings = { wheel: WheelSkin; table: TableCloth; fast: boolean };
 
-export const DEFAULT_SETTINGS: RouletteSettings = { wheel: "marble", table: "midnight", fast: false, sound: true };
+export const DEFAULT_SETTINGS: RouletteSettings = { wheel: "marble", table: "midnight", fast: false };
 
 const STORAGE_KEY = "wof-settings";
 
@@ -34,7 +35,6 @@ export function loadSettings(): RouletteSettings {
       wheel: WHEEL_SKINS.some((s) => s.id === value.wheel) ? (value.wheel as WheelSkin) : DEFAULT_SETTINGS.wheel,
       table: TABLE_CLOTHS.some((s) => s.id === value.table) ? (value.table as TableCloth) : DEFAULT_SETTINGS.table,
       fast: value.fast === true,
-      sound: value.sound !== false,
     };
   } catch {
     return DEFAULT_SETTINGS;

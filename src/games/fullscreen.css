@@ -70,3 +70,48 @@
   height: 12px;
   fill: currentColor;
 }
+
+/* ---- SOUND ON | OFF: the arcade-wide game sound switch (SoundSwitch.tsx) ---- */
+/* Two-part selectors beat the games' own button resets (`.wof button { font: inherit }`). */
+.sound-switch,
+.minigame .sound-switch,
+.wof .sound-switch {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  min-height: 36px;
+  padding: 0 12px;
+  font: 12px/1 var(--mg-display, ui-monospace, monospace);
+  white-space: nowrap;
+  color: var(--mg-marble, #f6eddf);
+  background: var(--mg-deep, #102f46);
+  border: 3px solid var(--mg-marble, #f6eddf);
+  box-shadow: 3px 3px 0 #000;
+  cursor: pointer;
+}
+
+.minigame .sound-switch:hover,
+.wof .sound-switch:hover {
+  background: var(--mg-ocean, #305873);
+}
+
+/* Off reads as dimmed, like a switched-off lamp, but stays legible. */
+.minigame .sound-switch[aria-pressed="false"],
+.wof .sound-switch[aria-pressed="false"] {
+  color: var(--mg-mist, #9fb3c8);
+  border-color: var(--mg-mist, #9fb3c8);
+}
+
+.sound-switch:focus-visible {
+  outline: 4px solid var(--mg-cyan, #5ce1e6);
+  outline-offset: 2px;
+}
+
+.sound-switch .sound-switch__icon {
+  flex: none;
+  width: 15px;
+  height: 12px;
+  fill: currentColor;
+}

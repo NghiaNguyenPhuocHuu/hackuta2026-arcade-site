@@ -1,90 +1,10 @@
 /**
- * 8-bit sound effects, made with the Web Audio API (no audio files). Browsers
- * only allow sound after a tap or click, so `unlock()` is called from those.
- * Everything fails quietly: no AudioContext means no sound, never an error.
+ * Wheel of the Fates' sounds, on the arcade's shared 8-bit engine
+ * (../sound.ts: unlock, the game sound switch, even/error/coins).
  */
+import { ChipTune } from "../sound";
 
-type Wave = OscillatorType;
-
-export class Sfx {
-  private ctx: AudioContext | null = null;
-  private master: GainNode | null = null;
-  private noise: AudioBuffer | null = null;
-  enabled = true;
-
-  /** Create or resume the audio context. Call from a user gesture. */
-  unlock(): void {
-    if (!this.enabled) return;
-    try {
-      if (!this.ctx) {
-        const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-        if (!Ctor) return;
-        this.ctx = new Ctor();
-        this.master = this.ctx.createGain();
-        this.master.gain.value = 0.32;
-        this.master.connect(this.ctx.destination);
-      }
-      if (this.ctx.state === "suspended") void this.ctx.resume();
-    } catch {
-      this.ctx = null;
-    }
-  }
-
-  dispose(): void {
-    void this.ctx?.close().catch(() => {});
-    this.ctx = null;
-  }
-
-  private ready(): AudioContext | null {
-    if (!this.enabled || !this.ctx || !this.master || this.ctx.state !== "running") return null;
-    return this.ctx;
-  }
-
-  /** One enveloped oscillator note. `at` is seconds from now. */
-  private tone(freq: number, dur: number, { wave = "square" as Wave, gain = 0.2, at = 0, slideTo = 0 } = {}) {
-    const ctx = this.ready();
-    if (!ctx) return;
-    const t = ctx.currentTime + at;
-    const osc = ctx.createOscillator();
-    const env = ctx.createGain();
-    osc.type = wave;
-    osc.frequency.setValueAtTime(freq, t);
-    if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
-    env.gain.setValueAtTime(0.0001, t);
-    env.gain.exponentialRampToValueAtTime(gain, t + 0.008);
-    env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    osc.connect(env).connect(this.master!);
-    osc.start(t);
-    osc.stop(t + dur + 0.02);
-  }
-
-  /** Filtered noise burst (whooshes, clacks, growls). */
-  private hiss(dur: number, { freq = 2000, to = 0, q = 1, gain = 0.2, at = 0, type = "bandpass" as BiquadFilterType } = {}) {
-    const ctx = this.ready();
-    if (!ctx) return;
-    if (!this.noise) {
-      this.noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
-      const data = this.noise.getChannelData(0);
-      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-    }
-    const t = ctx.currentTime + at;
-    const src = ctx.createBufferSource();
-    const filter = ctx.createBiquadFilter();
-    const env = ctx.createGain();
-    src.buffer = this.noise;
-    src.loop = true;
-    filter.type = type;
-    filter.Q.value = q;
-    filter.frequency.setValueAtTime(freq, t);
-    if (to) filter.frequency.exponentialRampToValueAtTime(to, t + dur);
-    env.gain.setValueAtTime(0.0001, t);
-    env.gain.exponentialRampToValueAtTime(gain, t + Math.min(0.08, dur / 3));
-    env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    src.connect(filter).connect(env).connect(this.master!);
-    src.start(t);
-    src.stop(t + dur + 0.02);
-  }
-
+export class Sfx extends ChipTune {
   chip() {
     this.hiss(0.05, { freq: 3200, q: 3, gain: 0.25 });
     this.tone(1400, 0.05, { wave: "triangle", gain: 0.12, slideTo: 900 });
@@ -123,16 +43,5 @@ export class Sfx {
     notes.forEach((f, i) => this.tone(f, 0.18, { wave: "square", gain: 0.11, at: i * 0.11 }));
     this.tone(big ? 70 : 90, big ? 0.9 : 0.6, { wave: "sawtooth", gain: 0.16, slideTo: big ? 40 : 55 });
     this.hiss(big ? 0.9 : 0.6, { freq: 180, q: 2, gain: 0.18, type: "lowpass" });
-  }
-
-  /** Stake comes back: a shrug. */
-  even() {
-    this.tone(440, 0.12, { wave: "square", gain: 0.1 });
-    this.tone(440, 0.16, { wave: "square", gain: 0.1, at: 0.16 });
-  }
-
-  error() {
-    this.tone(150, 0.14, { wave: "square", gain: 0.12 });
-    this.tone(120, 0.18, { wave: "square", gain: 0.12, at: 0.12 });
   }
 }

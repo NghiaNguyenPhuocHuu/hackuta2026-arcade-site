@@ -15,6 +15,8 @@ import { SLOT_DEFAULT_WAGER, SLOT_REEL_COUNT, SLOT_SPIN_COOLDOWN_MS, SLOT_SYMBOL
 import { dialogueFor, lossRun, TUTORIAL_STEPS, TUTORIAL_STORAGE_KEY, type Dialogue, type DialogTone, type ResultContext } from "./dialogue";
 import { hackerFrame, HACKER_FRAME_MS } from "./hacker";
 import { createFullscreenControl } from "../fullscreen";
+import { gameSoundEnabled, setGameSoundEnabled, SOUND_OFF_ICON_PATH, SOUND_ON_ICON_PATH, subscribeGameSound } from "../sound";
+import { SlotsSfx } from "./sound";
 import fullscreenCss from "../fullscreen.css?inline";
 import minigameCss from "./minigame.css?inline";
 import { symbolLabel, symbolSvg } from "./symbols";
@@ -204,6 +206,9 @@ function template({ uid }: { uid: number }) {
         </div>
       </div>
       <div class="minigame__status">
+        <button type="button" class="sound-switch" data-ref="sound" aria-label="Game sounds" aria-pressed="true">
+          <svg class="sound-switch__icon" viewBox="0 0 9 7" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path data-ref="sound-icon" d=""/></svg><span data-ref="sound-text"></span>
+        </button>
         <div class="fullscreen-switch" data-ref="display" role="group" aria-label="Display size" hidden>
           <button type="button" class="fullscreen-switch__option" data-display="normal" aria-pressed="true">NORMAL</button>
           <button type="button" class="fullscreen-switch__option" data-display="full" aria-pressed="false">
@@ -323,6 +328,9 @@ export function mountMinigame(el: HTMLElement, options: MountMinigameOptions): (
     return node;
   }
   const els = {
+    sound: ref("sound"),
+    soundIcon: root.querySelector<SVGPathElement>('[data-ref="sound-icon"]')!,
+    soundText: ref("sound-text"),
     display: ref("display"),
     badge: ref("badge"),
     badgeText: ref("badge-text"),
@@ -676,6 +684,7 @@ export function mountMinigame(el: HTMLElement, options: MountMinigameOptions): (
     root.classList.add("minigame--spinning");
     els.reels.setAttribute("aria-busy", "true");
     return every(REEL_TICK_MS, () => {
+      sfx.reelTick();
       reelEls.forEach((reelEl, index) => {
         if (index < landed.count) return;
         setReel(reelEl, SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)] ?? "zeus", { label: ". . ." });
@@ -690,6 +699,7 @@ export function mountMinigame(el: HTMLElement, options: MountMinigameOptions): (
       landed.count = index + 1;
       const reelEl = reelEls[index];
       if (!reelEl) continue;
+      if (animated) sfx.reelStop(index);
       setReel(reelEl, symbols[index] ?? "");
       reelEl.classList.add("minigame__reel--landed");
     }
@@ -702,6 +712,7 @@ export function mountMinigame(el: HTMLElement, options: MountMinigameOptions): (
     failure = null;
     stopCelebration();
     clearReelHighlights();
+    sfx.lever();
     // What every screen shows until the reels land: the stake taken, nothing more.
     const heldBalance = state.balance - wager;
     setText(els.balance, formatPoints(heldBalance));
@@ -751,9 +762,11 @@ export function mountMinigame(el: HTMLElement, options: MountMinigameOptions): (
         sr: `${result.symbols.map(symbolLabel).join(", ")}. `,
       };
       celebrate(net, result.outcome.id === "big");
+      sfx.result(result.outcome.id, net);
       cooldownUntil = startedAt + SLOT_SPIN_COOLDOWN_MS;
     } else {
       if (ticker !== null) stopInterval(ticker);
+      sfx.error();
       failure = {
         title: "HOLD, MORTAL!",
         line: FAILURE_COPY[result.status],
@@ -778,6 +791,7 @@ export function mountMinigame(el: HTMLElement, options: MountMinigameOptions): (
     const button = target?.closest<HTMLButtonElement>(".minigame__wager");
     if (!button || button.disabled) return;
     wager = Number(button.dataset.wager);
+    sfx.blip();
     renderControls();
     renderMessage();
   });
@@ -797,6 +811,28 @@ export function mountMinigame(el: HTMLElement, options: MountMinigameOptions): (
     finishTutorial();
     renderMessage();
   });
+
+  // ---- 8-bit sounds: the arcade-wide SOUND ON | OFF switch, unlocked by the first tap
+  const sfx = new SlotsSfx();
+  cleanups.push(sfx.unlockOn(root));
+
+  function renderSound() {
+    const on = gameSoundEnabled();
+    els.sound.setAttribute("aria-pressed", String(on));
+    els.soundIcon.setAttribute("d", on ? SOUND_ON_ICON_PATH : SOUND_OFF_ICON_PATH);
+    setText(els.soundText, on ? "SOUND ON" : "SOUND OFF");
+  }
+
+  on(els.sound, "click", () => {
+    const next = !gameSoundEnabled();
+    setGameSoundEnabled(next);
+    if (next) {
+      sfx.unlock();
+      sfx.hello();
+    }
+  });
+  cleanups.push(subscribeGameSound(renderSound));
+  renderSound();
 
   // ---- optional full screen: the arcade-wide control does the browser work
   const fullscreen = createFullscreenControl(root, { className: "minigame--fullscreen" });
@@ -852,6 +888,7 @@ export function mountMinigame(el: HTMLElement, options: MountMinigameOptions): (
     unsubscribe();
     stopFullscreen();
     fullscreen.dispose();
+    sfx.dispose();
     root.remove();
     releaseStylesheet();
     mountedElements.delete(el);

@@ -169,3 +169,15 @@ end in step 2.
   `PROFILE_ASSETS`, `createLaunchCodeRef`, `HACKER_MAPS`, four unused nav icons.
   Backend overlay functions were not touched (never delete live functions).
 - Inspect without signing in: `npm run dev`, then `/preview-fullscreen.html?game=slots|wheel|poker`.
+
+## Game sound effects (2026-11-15, local)
+
+- `src/games/sound.ts`: shared Web Audio engine (`ChipTune`) + one arcade-wide
+  game-sound switch (localStorage `arcade-game-sound`), separate from the site music.
+  `<SoundSwitch>` (React) / the same markup in Slots puts SOUND ON | OFF in every header.
+- Slots (`olympus-slots/sound.ts`): wager blip, lever, reel ticks, reel stops, win/jackpot/push/loss, error.
+- Wheel (`wheel-of-the-fates/sound.ts`): its old sounds, now on the shared engine;
+  its own `sound` setting is gone (uses the shared switch).
+- Poker (`poker/sound.ts` + pure `poker/cues.ts`): own actions on click; deal, board,
+  others' bets/folds, your turn, win/lose, seated, cash-out from view changes. Tests in
+  `tests/unit/game-sound.test.ts`.

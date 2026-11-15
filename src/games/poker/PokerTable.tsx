@@ -11,9 +11,12 @@ import {
 } from "../../../shared/poker";
 import { convexClient } from "../../convex/client";
 import { FullscreenSwitch } from "../FullscreenSwitch";
+import { SoundSwitch } from "../SoundSwitch";
 import { useGameFullscreen } from "../useGameFullscreen";
 import { createLivePokerClient } from "./liveMatchmaking";
+import { pokerCues } from "./cues";
 import { type PokerView } from "./matchmaking";
+import { PokerSfx } from "./sound";
 import { PlayingCard } from "./PlayingCard";
 
 const STARS = (() => {
@@ -354,6 +357,23 @@ export function PokerApp() {
   const [view, setView] = useState<PokerView>(() => client.getView());
   const rootRef = useRef<HTMLDivElement>(null);
   const fullscreen = useGameFullscreen(rootRef, "minigame--fullscreen");
+  const sfx = useMemo(() => new PokerSfx(), []);
+  const lastView = useRef<PokerView>(view);
+
+  useEffect(() => {
+    const stopUnlock = rootRef.current ? sfx.unlockOn(rootRef.current) : undefined;
+    return () => {
+      stopUnlock?.();
+      sfx.dispose();
+    };
+  }, [sfx]);
+
+  // Sounds for what changed at the table (cards, other players, your turn, the pot).
+  useEffect(() => {
+    for (const cue of pokerCues(lastView.current, view)) sfx.cue(cue);
+    if (view.error && view.error !== lastView.current.error) sfx.error();
+    lastView.current = view;
+  }, [view, sfx]);
 
   useEffect(() => {
     const stop = client.subscribe(setView);
@@ -415,6 +435,7 @@ export function PokerApp() {
           </div>
         </div>
         <div className="minigame__status">
+          <SoundSwitch sfx={sfx} />
           <FullscreenSwitch {...fullscreen} />
           <span
             className={`minigame__badge minigame__badge--${view.phase === "table" ? "live" : view.phase === "queued" ? "soon" : "closed"}`}
@@ -526,7 +547,10 @@ export function PokerApp() {
               type="button"
               className="minigame__spin"
               disabled={!canAfford}
-              onClick={() => client.findTable()}
+              onClick={() => {
+                sfx.blip();
+                client.findTable();
+              }}
             >
               TAKE A SEAT
             </button>
@@ -536,7 +560,10 @@ export function PokerApp() {
             <button
               type="button"
               className="minigame__wager"
-              onClick={() => client.cancelQueue()}
+              onClick={() => {
+                sfx.blip();
+                client.cancelQueue();
+              }}
             >
               LEAVE QUEUE
             </button>
@@ -545,7 +572,10 @@ export function PokerApp() {
           {view.table ? (
             <ActionPanel
               table={view.table}
-              onAct={(action) => client.act(action)}
+              onAct={(action) => {
+                sfx.action(action.type);
+                client.act(action);
+              }}
               secondsLeft={secondsLeft}
             />
           ) : null}
@@ -554,7 +584,10 @@ export function PokerApp() {
             <button
               type="button"
               className="minigame__wager"
-              onClick={() => client.leaveTable()}
+              onClick={() => {
+                sfx.blip();
+                client.leaveTable();
+              }}
             >
               STAND UP
             </button>

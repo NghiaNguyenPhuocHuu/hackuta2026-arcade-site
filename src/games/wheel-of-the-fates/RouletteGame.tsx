@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import type { PointsRevealPort } from "../types";
 import { checkBets, pocketColor, winningBetIds, type PlacedBet } from "../../../shared/roulette/rules";
 import { FullscreenSwitch } from "../FullscreenSwitch";
+import { SoundSwitch } from "../SoundSwitch";
 import { hackerFrame } from "../olympus-slots/hacker";
 import { useGameFullscreen } from "../useGameFullscreen";
 import { Board, Chip, type Orientation } from "./Board";
@@ -67,14 +68,14 @@ export function RouletteGame({ adapter, points = NO_REVEAL }: { adapter: Roulett
   const sfxRef = useRef<Sfx | null>(null);
   if (!sfxRef.current) sfxRef.current = new Sfx();
   const sfx = sfxRef.current;
-  sfx.enabled = settings.sound;
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    const stopUnlock = rootRef.current ? sfx.unlockOn(rootRef.current) : undefined;
+    return () => {
       mounted.current = false;
-      sfxRef.current?.dispose();
-    },
-    [],
-  );
+      stopUnlock?.();
+      sfx.dispose();
+    };
+  }, [sfx]);
 
   // The god or demon leaves after a few seconds.
   useEffect(() => {
@@ -238,22 +239,7 @@ export function RouletteGame({ adapter, points = NO_REVEAL }: { adapter: Roulett
           <p className="wof__tagline">Clotho spins. Lachesis measures. Atropos cuts.</p>
         </div>
         <div className="wof__status">
-          <button
-            type="button"
-            className="wof-btn wof-btn--ghost"
-            aria-pressed={settings.sound}
-            onClick={() => {
-              const sound = !settings.sound;
-              setSettings((s) => ({ ...s, sound }));
-              sfx.enabled = sound;
-              if (sound) {
-                sfx.unlock();
-                sfx.chip();
-              }
-            }}
-          >
-            {settings.sound ? "SOUND ON" : "SOUND OFF"}
-          </button>
+          <SoundSwitch sfx={sfx} />
           <button
             type="button"
             className="wof-btn wof-btn--ghost"
