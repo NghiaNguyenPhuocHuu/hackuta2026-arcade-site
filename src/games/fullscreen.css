@@ -1,7 +1,11 @@
 /*
- * The NORMAL | FULL SCREEN switch, shared by every game. Games load this file
- * next to their own stylesheet (Olympus Slots and Poker inline it into their
- * runtime stylesheet; Wheel of the Fates imports it).
+ * The NORMAL | FULL SCREEN switch, shared by every game. React games get it
+ * through <FullscreenSwitch> (which imports this file); Olympus Slots draws the
+ * switch in plain DOM and inlines this file into its runtime stylesheet.
+ *
+ * Every game header control (this switch, the LIVE/OPEN badges, Wheel's
+ * SOUND/THEMES) is 36px tall with 12px pixel type, a 3px border and a 3px
+ * shadow, so the headers line up the same way in every game.
  *
  * Colours and fonts come from the --mg-* game palette with the 16-bit night
  * defaults, so the switch looks native in every game that defines them.
@@ -22,13 +26,14 @@
  * Two-part selectors on purpose: the games reset their own buttons
  * (font/colour/height) with a more specific rule than a class alone, and the
  * switch has to win. The font shorthand also keeps the line box at 1.
- * Sized to sit level with the LIVE badge and clock chips in the headers.
+ * The options are 30px so the whole switch (3px border top and bottom) is 36px,
+ * level with the LIVE badge and clock chips in the headers.
  */
 .fullscreen-switch .fullscreen-switch__option {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
+  min-height: 30px;
   padding: 0 12px;
   font: 12px/1 var(--mg-display, ui-monospace, monospace);
   white-space: nowrap;

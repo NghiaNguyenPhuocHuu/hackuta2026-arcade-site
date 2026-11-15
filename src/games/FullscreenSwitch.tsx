@@ -1,5 +1,7 @@
 import type { FullscreenControl, FullscreenState } from "./fullscreen";
 import type { GameFullscreen } from "./useGameFullscreen";
+// React games get the switch's styles wherever they mount it (site or dev preview).
+import "./fullscreen.css";
 
 /** Pixel-art "expand" corners, drawn on the 7×7 grid the games' icons use. */
 const FULLSCREEN_ICON_PATH = "M0 0h3v1H1v2H0zM4 0h3v3H6V1H4zM0 4h1v2h2v1H0zM6 4h1v3H4V6h2z";

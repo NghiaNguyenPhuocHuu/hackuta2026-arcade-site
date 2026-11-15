@@ -154,3 +154,18 @@ end in step 2.
   `~/Library/Caches/ms-playwright`.
 - `npm run backend:test` leaves offline stubs in `build/peccary`; run
   `npm run backend:assemble` before any push.
+
+## Full screen + uniform game headers + dead code (2026-11-14, local)
+
+- **Full screen** is on every game (Slots, Wheel, Poker) through the shared
+  `src/games/fullscreen.ts` control. `<FullscreenSwitch>` now imports
+  `fullscreen.css` itself, so React games (Wheel, Poker) get its styles however
+  they mount; Slots (plain DOM) still inlines it. Laptop/desktop only.
+- **Header controls are uniform**: the switch, LIVE/OPEN badges, Slots' clock
+  and Wheel's SOUND/THEMES are all 36px, 12px pixel type, 3px marble/ink
+  border + 3px shadow. Wheel's disabled buttons are 60% opacity (was 40%).
+- **Removed unused code** (no references anywhere, profile repo included):
+  `isValidWager`, `expectedRtp`, `SLOT_SPIN_ID_MAX_LENGTH`, `betDef`,
+  `PROFILE_ASSETS`, `createLaunchCodeRef`, `HACKER_MAPS`, four unused nav icons.
+  Backend overlay functions were not touched (never delete live functions).
+- Inspect without signing in: `npm run dev`, then `/preview-fullscreen.html?game=slots|wheel|poker`.

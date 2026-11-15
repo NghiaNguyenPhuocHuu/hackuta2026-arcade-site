@@ -127,10 +127,6 @@ function buildCatalogue(): ReadonlyMap<string, BetDef> {
 
 export const BET_CATALOGUE: ReadonlyMap<string, BetDef> = buildCatalogue();
 
-export function betDef(betId: string): BetDef | undefined {
-  return BET_CATALOGUE.get(betId);
-}
-
 /** Merge repeated bet IDs and drop empty ones, keeping first-seen order. */
 export function mergeBets(bets: readonly PlacedBet[]): PlacedBet[] {
   const totals = new Map<string, number>();

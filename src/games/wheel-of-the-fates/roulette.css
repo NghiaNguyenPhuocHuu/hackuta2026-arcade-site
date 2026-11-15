@@ -194,17 +194,22 @@
 
 .wof__status {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .wof__badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 11px;
+  box-sizing: border-box;
+  min-height: 36px;
+  padding: 0 12px;
   font-family: var(--mg-display);
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 1;
   border: 3px solid var(--mg-ink);
   box-shadow: 3px 3px 0 #000;
 }
@@ -270,13 +275,19 @@
   box-shadow: 1px 1px 0 #000;
 }
 
+/* Dimmed, but still readable on the night panel. */
 .wof-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.6;
 }
 
-.wof-btn--ghost {
+/* Header controls: same size and marble border as the shared full screen switch
+   (scoped under .wof so it beats the `.wof button { font: inherit }` reset). */
+.wof .wof-btn--ghost {
   min-height: 36px;
-  border-color: var(--mg-ocean);
+  padding: 0 12px;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .wof-spin {
@@ -1352,21 +1363,6 @@
     visibility: hidden;
   }
 }
-/* ---- full screen: the shared switch (fullscreen.css) in the wheel's ghost-button look ---- */
-.wof__status .fullscreen-switch {
-  border-color: var(--mg-ocean);
-}
-
-/* Same height and 11px pixel type as the SOUND / THEMES ghosts beside it. */
-.wof .wof__status .fullscreen-switch .fullscreen-switch__option {
-  padding: 0 10px;
-  font: 11px/1 var(--mg-display);
-}
-
-.wof .wof__status .fullscreen-switch .fullscreen-switch__option + .fullscreen-switch__option {
-  border-left-color: var(--mg-ocean);
-}
-
 /* ---- browser full screen (the root is the fullscreen element; the UA sizes it) ---- */
 .wof--fullscreen {
   overflow-x: hidden;

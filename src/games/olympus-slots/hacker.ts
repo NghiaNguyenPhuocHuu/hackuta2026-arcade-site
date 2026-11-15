@@ -64,9 +64,6 @@ const MOUTH: Readonly<Record<MouthName, readonly [string, string]>> = Object.fre
 
 const CHEER_ROWS = Object.freeze([".y............y.", "y..............y"] as const);
 
-/** Exposed for tests. */
-export const HACKER_MAPS = Object.freeze({ BASE, EYES, MOUTH, CHEER_ROWS });
-
 const MOODS: Readonly<Record<HackerMood, { eyes: EyeName; mouth: MouthName; visor: string; blink: boolean }>> = Object.freeze({
   idle: { eyes: "center", mouth: "flat", visor: "#7ee081", blink: true },
   focus: { eyes: "center", mouth: "flat", visor: "#7ee081", blink: true },

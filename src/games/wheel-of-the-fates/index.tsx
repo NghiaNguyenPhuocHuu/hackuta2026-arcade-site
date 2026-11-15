@@ -2,7 +2,6 @@ import { createRoot } from "react-dom/client";
 import type { GameModule } from "../types";
 import { createRouletteConvexAdapter } from "./adapters/convexAdapter";
 import { RouletteGame } from "./RouletteGame";
-import "../fullscreen.css";
 import "./roulette.css";
 
 /** Wheel of the Fates as an arcade game module, on the live server (arcade/roulette). */

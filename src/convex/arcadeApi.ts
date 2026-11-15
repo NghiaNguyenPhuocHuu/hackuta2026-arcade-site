@@ -29,15 +29,6 @@ export const getArcadeSessionRef = makeFunctionReference<"query", { nowBucket?: 
   "arcade/session:getArcadeSession",
 );
 
-export type LaunchCodeResponse =
-  | { status: "ok"; code: string; expiresAt: number }
-  | { status: "error"; code: string; retryAfterMs?: number };
-
-/** Profile calls this (signed in there) before opening `<arcade>/launch#code=…`. */
-export const createLaunchCodeRef = makeFunctionReference<"mutation", Record<string, never>, LaunchCodeResponse>(
-  "arcade/launch:createLaunchCode",
-);
-
 /** One deposit or withdrawal, as logged in `arcadeTransfers`. */
 export type ArcadeTransfer = {
   transferId: string;

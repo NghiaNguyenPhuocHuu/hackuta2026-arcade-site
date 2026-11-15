@@ -233,9 +233,12 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 12px;
+  box-sizing: border-box;
+  min-height: 36px;
+  padding: 0 12px;
   font-family: var(--mg-display);
   font-size: 12px;
+  line-height: 1;
   border: 3px solid var(--mg-ink);
   box-shadow: 3px 3px 0 #000;
 }
@@ -267,11 +270,17 @@
 }
 
 .minigame__clock {
-  padding: 9px 12px;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 36px;
+  padding: 0 12px;
   background: var(--mg-deep);
-  border: 3px solid var(--mg-ocean);
+  border: 3px solid var(--mg-marble);
+  box-shadow: 3px 3px 0 #000;
   font-family: var(--mg-display);
   font-size: 12px;
+  line-height: 1;
   color: var(--mg-marble);
 }
 

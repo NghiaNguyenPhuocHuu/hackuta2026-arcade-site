@@ -35,9 +35,6 @@ export const SLOT_SYMBOLS: readonly SlotSymbol[] = Object.freeze([
 ] as const);
 export const SLOT_JACKPOT_SYMBOL: SlotSymbol = "zeus";
 
-/** Longest spin idempotency key a client may send. */
-export const SLOT_SPIN_ID_MAX_LENGTH = 64;
-
 const REGULAR_SYMBOLS: readonly SlotSymbol[] = Object.freeze(
   SLOT_SYMBOLS.filter((symbol) => symbol !== SLOT_JACKPOT_SYMBOL),
 );
@@ -112,20 +109,9 @@ export function isAllowedWager(wager: unknown): wager is number {
   return typeof wager === "number" && Number.isInteger(wager) && SLOT_WAGERS.includes(wager);
 }
 
-/** True when `wager` is an allowed preset and the balance covers it. */
-export function isValidWager(wager: unknown, balance: unknown): boolean {
-  if (!isAllowedWager(wager)) return false;
-  return typeof balance === "number" && Number.isSafeInteger(balance) && balance >= wager;
-}
-
 /** Gross payout (wager included) for a spin. */
 export function payoutFor(wager: number, outcome: SlotOutcome): number {
   return wager * outcome.multiplier;
-}
-
-/** Long-run return to player implied by the odds table (0.9 = 90%). */
-export function expectedRtp(): number {
-  return SLOT_OUTCOMES.reduce((sum, outcome) => sum + (outcome.weight / SLOT_WEIGHT_TOTAL) * outcome.multiplier, 0);
 }
 
 // Slot window management utilities
