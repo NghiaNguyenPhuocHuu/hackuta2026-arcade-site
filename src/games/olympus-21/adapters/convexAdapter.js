@@ -1,7 +1,7 @@
 /**
  * Olympus 21 Convex adapter, backed by `arcade/olympus21` on the deployment the `client`
  * points at. Matchmaking works like Olympus Poker: `join()` buys in from the arcade wallet
- * and waits in the event-wide queue; the server seats you (with bots if nobody else comes).
+ * and waits in the event-wide queue; the server seats you with other hackers (humans only).
  *
  *   const adapter = createConvexAdapter({ client, onError });
  *

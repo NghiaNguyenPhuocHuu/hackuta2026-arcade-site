@@ -15,7 +15,11 @@
  * source of truth; the SPA never decides legality or previews.
  */
 import { hackerFrame, HACKER_FRAME_MS } from "../olympus-slots/hacker";
+import { createFullscreenControl } from "../fullscreen";
+import fullscreenCss from "../fullscreen.css?inline";
+import { gameSoundEnabled, setGameSoundEnabled, SOUND_OFF_ICON_PATH, SOUND_ON_ICON_PATH, subscribeGameSound } from "../sound";
 import olympus21Css from "./olympus21.css?inline";
+import { O21Sfx } from "./sound";
 import { renderCard } from "./art.js";
 import { eventLine, stateLine, EVENT_MS, TUTORIAL_OVER_LINE } from "./dialogue.js";
 import { autoPlayDecision, createTutorial, readSeen } from "./tutorial.js";
@@ -79,7 +83,6 @@ const ERROR_COPY = {
   ARCADE_CLOSED: "The arcade is closed right now.",
   GAME_DISABLED: "Organizers paused Olympus 21.",
   INSUFFICIENT_POINTS: "You don't have enough points for that.",
-  NO_BOTS: "Real tables don't have bots.",
 };
 
 const mountedElements = new WeakSet();
@@ -91,7 +94,7 @@ function acquireStylesheet() {
   stylesheetRefs += 1;
   if (stylesheetRefs === 1) {
     stylesheetLink = document.createElement("style");
-    stylesheetLink.textContent = olympus21Css;
+    stylesheetLink.textContent = `${fullscreenCss}\n${olympus21Css}`;
     stylesheetLink.dataset.olympus21Stylesheet = "";
     document.head.appendChild(stylesheetLink);
   }
@@ -134,7 +137,18 @@ function template(uid) {
         <h2 class="o21__title">OLYMPUS 21</h2>
         <p class="o21__tag">Land the count on 21. Not 22.</p>
       </div>
-      <div class="o21__badges" data-ref="badges"></div>
+      <div class="o21__status">
+        <button type="button" class="sound-switch" data-ref="sound" aria-label="Game sounds" aria-pressed="true">
+          <svg class="sound-switch__icon" viewBox="0 0 9 7" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path data-ref="sound-icon" d=""/></svg><span data-ref="sound-text"></span>
+        </button>
+        <div class="fullscreen-switch" data-ref="display" role="group" aria-label="Display size" hidden>
+          <button type="button" class="fullscreen-switch__option" data-display="normal" aria-pressed="true">NORMAL</button>
+          <button type="button" class="fullscreen-switch__option" data-display="full" aria-pressed="false">
+            <svg class="fullscreen-switch__icon" viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path d="M0 0h3v1H1v2H0zM4 0h3v3H6V1H4zM0 4h1v2h2v1H0zM6 4h1v3H4V6h2z"/></svg>FULL SCREEN
+          </button>
+        </div>
+        <div class="o21__badges" data-ref="badges"></div>
+      </div>
     </header>
     <div class="o21__body">
       <div class="o21__left">
@@ -224,6 +238,10 @@ export function mountOlympus21(el, options = {}) {
   const ref = (name) => root.querySelector(`[data-ref="${name}"]`);
   const slot = (name) => root.querySelector(`[data-slot="${name}"]`);
   const els = {
+    sound: ref("sound"),
+    soundIcon: ref("sound-icon"),
+    soundText: ref("sound-text"),
+    display: ref("display"),
     badges: ref("badges"),
     felt: ref("felt"),
     seats: { s1: ref("s1"), s2: ref("s2"), s3: ref("s3"), s4: ref("s4") },
@@ -759,7 +777,7 @@ export function mountOlympus21(el, options = {}) {
       case "status":
         return statusHtml();
       case "waiting": {
-        const names = view.seats.map((s) => `<li><span>${esc(s.name)}${s.isMe ? " (you)" : ""}</span><b>${s.bot ? "BOT" : ""}</b></li>`).join("");
+        const names = view.seats.map((s) => `<li><span>${esc(s.name)}${s.isMe ? " (you)" : ""}</span></li>`).join("");
         return simpleHtml(
           "WAITING FOR PLAYERS",
           view.seats.length < 2 ? "Bets open once a second player sits down." : "Seats lock soon, then the bet window opens.",
@@ -1091,6 +1109,8 @@ export function mountOlympus21(el, options = {}) {
     }
     const fresh = unseenMoves(view, lastSeq);
     lastSeq = Math.max(lastSeq, seq);
+    // A burst of moves (e.g. after a slow connection) plays only its last few sounds.
+    for (const move of fresh.slice(-3)) sfx.move(move, move.seat === me()?.seat);
     let slid = false;
     for (const move of fresh) {
       if (["play", "wild", "skip", "reverse", "plus2", "bust", "win"].includes(move.kind) && move.card && !slid) {
@@ -1151,6 +1171,10 @@ export function mountOlympus21(el, options = {}) {
     const prev = view;
     view = next;
     receivedAt = performance.now();
+    if (!prev) sfx.seated();
+    const myTurnNow = Boolean(next.me?.myTurn);
+    if (myTurnNow && !soundTurn) sfx.turn();
+    soundTurn = myTurnNow;
     if (view.deadline !== lastDeadline) {
       lastDeadline = view.deadline;
       const left = remaining() ?? 0;
@@ -1223,6 +1247,7 @@ export function mountOlympus21(el, options = {}) {
   }
 
   function showError(code) {
+    sfx.error();
     errorText = ERROR_COPY[code] ?? (code ? `Couldn't do that (${code}).` : "Something went wrong.");
     cancelAfter(errorTimer);
     errorTimer = after(4000, () => {
@@ -1296,6 +1321,7 @@ export function mountOlympus21(el, options = {}) {
 
   function placeBet() {
     if (!me() || busy) return;
+    sfx.chips();
     act(() => adapter.placeWager(betDraft));
   }
 
@@ -1306,6 +1332,7 @@ export function mountOlympus21(el, options = {}) {
       render();
       return;
     }
+    sfx.blip();
     act(() => adapter.ready());
   }
 
@@ -1328,6 +1355,7 @@ export function mountOlympus21(el, options = {}) {
   async function join() {
     if (joining) return;
     joining = true;
+    sfx.blip();
     errorText = "";
     render();
     let result;
@@ -1485,6 +1513,43 @@ export function mountOlympus21(el, options = {}) {
     },
   });
 
+  // ---- 8-bit sounds (the arcade-wide SOUND ON | OFF switch) and optional full screen
+  const sfx = new O21Sfx();
+  let soundTurn = false;
+  cleanups.push(sfx.unlockOn(root));
+  function renderSound() {
+    const on = gameSoundEnabled();
+    els.sound.setAttribute("aria-pressed", String(on));
+    els.soundIcon.setAttribute("d", on ? SOUND_ON_ICON_PATH : SOUND_OFF_ICON_PATH);
+    els.soundText.textContent = on ? "SOUND ON" : "SOUND OFF";
+  }
+  els.sound.addEventListener("click", () => {
+    const next = !gameSoundEnabled();
+    setGameSoundEnabled(next);
+    if (next) {
+      sfx.unlock();
+      sfx.hello();
+    }
+  });
+  cleanups.push(subscribeGameSound(renderSound));
+  renderSound();
+
+  const fullscreen = createFullscreenControl(root, { className: "o21--fullscreen" });
+  const displayOptions = Array.from(els.display.querySelectorAll("[data-display]"));
+  function renderFullscreen() {
+    const { offered, active } = fullscreen.getState();
+    els.display.hidden = !offered && !active;
+    for (const option of displayOptions) option.setAttribute("aria-pressed", String((option.dataset.display === "full") === active));
+  }
+  els.display.addEventListener("click", (event) => {
+    const option = event.target instanceof Element ? event.target.closest("[data-display]") : null;
+    if (!option) return;
+    if (option.dataset.display === "full") fullscreen.enter();
+    else fullscreen.exit();
+  });
+  cleanups.push(fullscreen.subscribe(renderFullscreen));
+  renderFullscreen();
+
   // ---- start
   applyMode();
   const unsubscribe = adapter.subscribe(onView);
@@ -1512,6 +1577,8 @@ export function mountOlympus21(el, options = {}) {
     intervals.clear();
     for (const fn of cleanups.splice(0)) fn();
     tutorial.destroy();
+    fullscreen.dispose();
+    sfx.dispose();
     ro?.disconnect();
     root.remove();
     mountedElements.delete(el);

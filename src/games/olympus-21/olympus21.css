@@ -28,6 +28,15 @@
 }
 
 .o21 {
+  /* The shared game header controls (../fullscreen.css) read the --mg-* palette. */
+  --mg-ink: var(--ink);
+  --mg-deep: var(--dp);
+  --mg-ocean: var(--oc);
+  --mg-mist: var(--mi);
+  --mg-marble: var(--ma);
+  --mg-gold: var(--g);
+  --mg-cyan: var(--cy);
+  --mg-display: var(--px);
   --n: #0b1d33;
   --dp: #102f46;
   --oc: #305873;
@@ -194,10 +203,29 @@
   margin-top: 6px !important;
 }
 
+/* SOUND | FULL SCREEN | badges: same 36px controls as every other game header. */
+.o21__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
 .o21__badges {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.o21__badges .o21__badge,
+.o21__badges .o21__howto {
+  box-sizing: border-box;
+  min-height: 36px;
+  padding: 0 12px;
+  font: 12px/1 var(--px);
+  border-width: 3px;
+  box-shadow: 3px 3px 0 #000;
 }
 
 .o21__badge {
@@ -878,27 +906,6 @@
   display: block;
   height: 100%;
   background: var(--ls);
-}
-
-.o21__qrrow {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.o21__qr {
-  flex: none;
-  display: block;
-  width: 99px;
-  height: 99px;
-  background: #fff;
-  outline: 2px solid var(--ink);
-}
-
-.o21__qr svg {
-  display: block;
-  width: 100%;
-  height: 100%;
 }
 
 .o21__leave {
@@ -2354,4 +2361,24 @@
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ---- browser full screen (the root is the fullscreen element; the UA sizes it) ---- */
+.o21--fullscreen {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 0;
+  padding: clamp(16px, 3vh, 40px) clamp(16px, 4vw, 56px);
+}
+
+/* The starfield covers the whole screen, not just the game box. */
+.o21--fullscreen .o21__stars {
+  position: fixed;
+}
+
+.o21--fullscreen > :not(.o21__stars) {
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
 }

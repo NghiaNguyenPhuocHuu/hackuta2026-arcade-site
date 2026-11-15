@@ -414,7 +414,7 @@ export function PokerApp() {
     view.table?.log ??
     (view.phase === "queued"
       ? waiting <= 1
-        ? "Seeking other heroes across the event. Shades take empty seats if none arrive."
+        ? "Seeking other heroes across the event. You sit down as soon as one arrives."
         : `${waiting} heroes waiting. The Fates will seat you shortly.`
       : view.phase === "result"
         ? `${view.result?.reason} Returned ${formatPts(view.result?.returned ?? 0)} pts.`

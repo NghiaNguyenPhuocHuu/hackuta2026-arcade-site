@@ -1,10 +1,11 @@
 # Olympus 21: module contract
 
-> **Arcade note (2026-11-14):** the arcade runs only the live server
-> (`convex/arcade/olympus21.ts`, poker-style matchmaking, rules in `live.ts`).
-> The mock adapter (§5), the LAN sandbox (§6) and phone QR pairing were not
-> kept, and §9's `admin/o21Tables` design is replaced by `arcade/olympus21`.
-> The engine, rules, wagers and bots below are unchanged.
+> **Arcade note (2026-11-15):** the arcade runs only the live server
+> (`convex/arcade/olympus21.ts`, poker-style matchmaking, humans only, rules in
+> `live.ts`). There is no mock adapter, LAN sandbox or phone QR pairing; §8's
+> `admin/o21Tables` design is replaced by `arcade/olympus21`. The engine's bots
+> remain only to drive the engine's seeded simulation tests; no live table
+> seats one.
 
 Olympus 21 is a 2–4 player card game. Each turn you play a card that matches the top card's color or rank, or a Wild. Number cards add to one shared count. Land the count on exactly 21 and you win; push it past 21 and you're out for the round. Each player picks their own bet, and side pots mean you can win from each opponent at most what you bet yourself.
 
@@ -14,7 +15,6 @@ This file is the contract between three parts that are built in parallel:
 | --- | --- | --- |
 | Rules + engine + bots | `shared/olympus21/*.js`, `tests/o21*.test.mjs` | rules |
 | SPA (table + hand screens) | `olympus21/**` | spa |
-| Sandbox host (LAN server, bots, Blackjack tab) | `scripts/serve-sandbox.mjs`, `profile-sandbox/**`, `tests/o21Server.test.mjs` | sandbox |
 
 Everything is plain browser/Node ES modules (no build step, no dependencies), like `minigame/` and `shared/minigame/`. Node ≥ 20. Tests use `node --test` (`npm test` runs `tests/**/*.test.mjs`).
 
@@ -87,7 +87,7 @@ export function viewFor(table, playerId | null, now): TableView          // play
 export function addListener(table, fn): () => void                       // fn() after any state change (commands and tick)
 ```
 
-Players persist across rounds while seated: `{ id, name, bot, balance, lostThisWindow }`. Balances are sandbox points (the host gives humans 200 and bots 500 by default). `lossRoom = lossCap - lostThisWindow`.
+Players persist across rounds while seated: `{ id, name, bot, balance, lostThisWindow }`. On the live server a player's balance is their table chips (the 50-point buy-in). `lossRoom = lossCap - lostThisWindow`.
 
 Round flow: `waiting` → (2+ seated: seat-lock timer, or table full → immediately) `wagering` → `countdown` (bets taken from balances) → `turns` (deal 5 each, flip number card as starter, count = its value, first turn = lowest seat) → `settled` (`result` filled, balances paid) → after `resultMs`, `wagering` again if 2+ seated, else `waiting`. A player who joins mid-round sits as `waiting` until the next wager window. Busted, folded, and sitting-out players are skipped. Round ends: count hits 21 (`"21"`), one live player left (`"last"`), `PLAY_CAP` cards played or both piles empty (`"cap"`), `closeTable` (`"closed"`). For "cap"/"closed", everyone still `playing` splits. Draw pile empty → reshuffle played pile except the top card. Action effects: Skip skips the next player; Reverse flips direction (with 2 live players it acts as Skip); +2 makes the next player draw 2 and lose their turn; a bust cancels the busting card's action and resets the count to 0; the card stays on top. Turn timeout runs `autoMove` for that player; 3 timeouts in a row unseats them after the round.
 
@@ -149,12 +149,11 @@ import { mountOlympus21 } from "/olympus21/index.js";
 const unmount = mountOlympus21(el, {
   adapter,                        // see below
   view: "auto",                   // "table" | "hand" | "auto" (auto: hand on narrow screens < 720 px, table + hand tray otherwise)
-  pairUrl: "http://192.168.1.20:5380/?o21=hand&player=…",   // optional; shown as a QR on the table screen
   playerName: "Riley",            // optional; used by adapter.join
 });
 ```
 
-Adapter (same shape for the in-browser mock and the LAN client):
+Adapter (`src/games/olympus-21/adapters/convexAdapter.js`, on `arcade/olympus21`):
 
 ```js
 {
@@ -169,24 +168,7 @@ Adapter (same shape for the in-browser mock and the LAN client):
 }
 ```
 
-- `olympus21/adapters/mockAdapter.js`: `createMockAdapter({ playerId?, name?, bots = 3, balance = 200, timings?, seed? })`. Runs the engine in the browser with `setInterval(tick, 200)`, joins `bots` bot players when the human joins.
-- `olympus21/adapters/lanAdapter.js`: `createLanAdapter({ baseUrl = "", playerId })`. Talks to the sandbox server (section 6). Corrects for clock skew with `serverNow` from responses (`deadline` is on the server's clock: the SPA should compute remaining time as `deadline - view.now` adjusted by the time since the view arrived).
-
-## 6. Sandbox LAN server API (served by `scripts/serve-sandbox.mjs`)
-
-One shared in-memory table (`id: "sandbox"`), real timers, bots. Both laptop and phone talk to it, so they show the same game.
-
-| Method | Path | Body / query | Response |
-| --- | --- | --- | --- |
-| GET | `/o21/events?player=<id>` | — | `text/event-stream`; each `data:` line is `JSON.stringify({ view: TableView, serverNow })`, sent on every change and at least every 2 s |
-| GET | `/o21/state?player=<id>` | — | `{ view, serverNow }` |
-| POST | `/o21/join` | `{ player, name, bots? }` | `{ ok, code?, serverNow }`; tops the table up to `bots` bot players (default 3, 0–3) |
-| POST | `/o21/leave` · `/o21/wager` · `/o21/play` · `/o21/draw` | `{ player, amount? , card?, color? }` | `{ ok, code?, serverNow }` |
-| POST | `/o21/reset` | `{}` | from this PC only: new empty table |
-
-`player` is an opaque id (`/^[a-z0-9-]{8,64}$/i`) the browser makes once and stores in localStorage. A phone opened from the table screen's QR (`/?o21=hand&player=<id>`) uses the laptop's id, so the two screens are the same player. POST bodies must be JSON with `Content-Type: application/json`, and request bodies are capped at 4 KB. Bots leave when no human is seated for 60 s.
-
-## 7. Play again (v2)
+## 6. Play again (v2)
 
 Rounds no longer roll on automatically. After a round settles, each player taps **PLAY AGAIN** to be dealt into the next one.
 
@@ -214,15 +196,15 @@ TableView.tableKey: string;       // unique per created table: `${id}:${createdA
 TableView.me.ready: boolean;
 ```
 
-Adapter addition: `ready(): Promise<{ ok, code? }>`. LAN API addition: `POST /o21/ready` with `{ player }` returns `{ ok, code?, serverNow }`.
+Adapter addition: `ready(): Promise<{ ok, code? }>`.
 
-## 8. Tutorial (v2, SPA only)
+## 7. Tutorial (v2, SPA only)
 
 An animated walkthrough by Techno that covers the board (each element and what it means) and the cards (each card and what it does). It auto-plays once per table per browser: localStorage key `o21-tutorial-seen:<tableKey>`, written when the tutorial finishes or is skipped. A **HOW TO PLAY** button replays it at any time. It never plays automatically while it's your turn or while your bet is still open, and it never blocks the game (SKIP always works, and Esc closes it).
 
-## 9. Real backend on peccary (v3)
+## 8. Real backend on peccary (v3)
 
-The same engine runs inside Convex. Peccary tables are **player vs player with real points**; bots exist only in the sandbox server and in-browser modes (bot winnings would create or destroy real points).
+The same engine runs inside Convex. Peccary tables are **player vs player with real points**; no bots are ever seated (bot winnings would create or destroy real points).
 
 ### Files (overlay, copied into the assembled backend by `scripts/assemble-backend.mjs`)
 
@@ -277,4 +259,4 @@ Eligibility uses the same helpers as slots (`getAuthUser`, `isParticipantEligibl
 
 ### SPA adapter
 
-`olympus21/adapters/convexAdapter.js`: `createConvexAdapter({ client, onError? })`, where `client` is a `ConvexClient` from `convex/browser` that is already signed in (the sandbox's `profile-sandbox/js/peccary.js` provides it). It implements the section 5 adapter on top of `onUpdate(getMyTable)` and the mutations, adding `actionId`s and keeping a clock offset from `serverNow`. It also exposes `getStatus()` → `{ status, window, player }` for the host. The SPA shows "No table open right now" (with the next opening time) when `status` isn't `"live"` and the player isn't seated, and "Sign in on peccary" / "Not checked in" messages from `player`.
+`olympus21/adapters/convexAdapter.js`: `createConvexAdapter({ client, onError? })`, where `client` is a `ConvexClient` from `convex/browser` that is already signed in (the arcade's signed-in `ConvexReactClient`, through `reactClientBridge.ts`). It implements the section 5 adapter on top of `onUpdate(getMyTable)` and the mutations, adding `actionId`s and keeping a clock offset from `serverNow`. It also exposes `getStatus()` → `{ status, window, player }` for the host. The SPA shows "No table open right now" (with the next opening time) when `status` isn't `"live"` and the player isn't seated, and "Sign in on peccary" / "Not checked in" messages from `player`.

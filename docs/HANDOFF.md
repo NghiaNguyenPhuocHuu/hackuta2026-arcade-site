@@ -211,3 +211,17 @@ Olympus Slots → **Reels of Tartarus**, Wheel of the Fates → **Wheel of Doom*
 Olympus Poker → **Hades' Hold'em** (registry, in-game titles/taglines,
 `shared/arcade/rules.ts`). The server's game list shows the new names only after
 the next `npm run convex:push-dev`; the site uses the registry names already.
+
+## Merge of Olympus 21 + PvP cleanup (2026-11-15)
+
+- Merged `origin/main` (PR #4, Olympus 21 = `pvp-blackjack`): conflicts in README and
+  `shared/arcade/rules.ts` resolved (new game names kept, plus "Olympus 21").
+- Mock/offline leftovers removed: contract doc's mock adapter + LAN sandbox sections,
+  QR-pairing CSS, the "BOT" seat label and dead `NO_BOTS` copy, poker's "Shades take
+  empty seats" queue text (poker seats humans only). The engine's bots stay: they only
+  drive the engine's seeded simulation tests; no live table seats one.
+- Olympus 21 now has the shared SOUND ON | OFF switch + its own 8-bit sounds
+  (`olympus-21/sound.ts`), full screen, and the uniform 36px header controls.
+  Preview: `/preview-fullscreen.html?game=o21`.
+- Backend (`arcade/olympus21`): `backend:test` 72 pass; `backend:check` 202 live
+  functions kept, 10 new.

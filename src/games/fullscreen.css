@@ -75,7 +75,8 @@
 /* Two-part selectors beat the games' own button resets (`.wof button { font: inherit }`). */
 .sound-switch,
 .minigame .sound-switch,
-.wof .sound-switch {
+.wof .sound-switch,
+.o21 .sound-switch {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -93,13 +94,15 @@
 }
 
 .minigame .sound-switch:hover,
-.wof .sound-switch:hover {
+.wof .sound-switch:hover,
+.o21 .sound-switch:hover {
   background: var(--mg-ocean, #305873);
 }
 
 /* Off reads as dimmed, like a switched-off lamp, but stays legible. */
 .minigame .sound-switch[aria-pressed="false"],
-.wof .sound-switch[aria-pressed="false"] {
+.wof .sound-switch[aria-pressed="false"],
+.o21 .sound-switch[aria-pressed="false"] {
   color: var(--mg-mist, #9fb3c8);
   border-color: var(--mg-mist, #9fb3c8);
 }

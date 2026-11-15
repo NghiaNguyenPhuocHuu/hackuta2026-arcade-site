@@ -266,7 +266,7 @@ export function handScreen(view, { picking = false } = {}) {
 export function readyRows(view) {
   return (view?.seats ?? [])
     .filter((s) => typeof s.ready === "boolean")
-    .map((s) => ({ seat: s.seat, name: s.name, isMe: Boolean(s.isMe), bot: Boolean(s.bot), ready: s.ready }));
+    .map((s) => ({ seat: s.seat, name: s.name, isMe: Boolean(s.isMe), ready: s.ready }));
 }
 
 /** "Ana", "Ana and Sam", "Ana, Sam and Jo". */

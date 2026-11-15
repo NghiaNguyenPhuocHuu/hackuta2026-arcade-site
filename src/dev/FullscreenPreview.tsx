@@ -8,6 +8,8 @@ import { createRoot } from "react-dom/client";
 import { ROULETTE_LIMITS } from "../../shared/roulette/rules";
 import { LAPTOP_MEDIA_QUERY } from "../games/fullscreen";
 import { PokerApp } from "../games/poker/PokerTable";
+import type { O21ConvexAdapter } from "../games/olympus-21/adapters/convexAdapter.js";
+import { mountOlympus21 } from "../games/olympus-21/mountOlympus21.js";
 import { mountMinigame } from "../games/olympus-slots/mountMinigame";
 import type { GameState, MinigameAdapter } from "../games/olympus-slots/types";
 import { RouletteGame } from "../games/wheel-of-the-fates/RouletteGame";
@@ -80,10 +82,48 @@ function SlotsPreview() {
   return <div ref={ref} />;
 }
 
+function o21Adapter(): O21ConvexAdapter {
+  const ok = () => Promise.resolve({ ok: false, code: "PREVIEW" });
+  return {
+    getState: () => null,
+    getStatus: () => ({
+      status: "live",
+      window: null,
+      player: { signedIn: true, eligible: true, checkedIn: true, name: "Preview", balance: 500 },
+      buyIn: 50,
+      queue: null,
+      leaving: false,
+      result: null,
+      unavailable: false,
+    }),
+    subscribe: () => () => {},
+    join: ok,
+    cancelQueue: ok,
+    leave: ok,
+    placeWager: ok,
+    play: ok,
+    draw: ok,
+    ready: ok,
+    serverOffset: () => 0,
+    serverNow: () => Date.now(),
+    dispose: () => {},
+  };
+}
+
+function O21Preview() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    return mountOlympus21(ref.current, { adapter: o21Adapter(), view: "auto" });
+  }, []);
+  return <div ref={ref} />;
+}
+
 const PANES: Record<string, () => React.ReactElement> = {
   slots: () => <SlotsPreview />,
   wheel: () => <RouletteGame adapter={rouletteAdapter()} />,
   poker: () => <PokerApp />,
+  o21: () => <O21Preview />,
 };
 
 function App() {
