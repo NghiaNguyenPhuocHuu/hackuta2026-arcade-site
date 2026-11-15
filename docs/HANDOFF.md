@@ -225,3 +225,8 @@ the next `npm run convex:push-dev`; the site uses the registry names already.
   Preview: `/preview-fullscreen.html?game=o21`.
 - Backend (`arcade/olympus21`): `backend:test` 72 pass; `backend:check` 202 live
   functions kept, 10 new.
+- **Pushed 2026-11-15 00:06** with `npm run convex:push-dev` after a backup
+  (`backups/peccary-20261115-0005.zip`): 212 functions live (was 202), 10 added
+  (`arcade/olympus21`), none lost; new indexes on `o21LiveTables`, `o21Queue`, `o21Seats`.
+- **Next:** an admin switches `pvp-blackjack` on in the arcade settings, then try
+  two signed-in, checked-in accounts in two browsers.
