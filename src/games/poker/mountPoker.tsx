@@ -41,8 +41,12 @@ export function mountPoker(el: HTMLElement): () => void {
   return () => {
     if (disposed) return;
     disposed = true;
-    root.unmount();
-    mounted.delete(el);
-    releaseStylesheet();
+    // The arcade unmounts games while React renders the next page; unmounting
+    // this root synchronously then is an error, so wait for that render to end.
+    queueMicrotask(() => {
+      root.unmount();
+      mounted.delete(el);
+      releaseStylesheet();
+    });
   };
 }
