@@ -11,6 +11,7 @@ import { PokerApp } from "../games/poker/PokerTable";
 import type { O21ConvexAdapter } from "../games/olympus-21/adapters/convexAdapter.js";
 import { mountOlympus21 } from "../games/olympus-21/mountOlympus21.js";
 import { mountMinigame } from "../games/olympus-slots/mountMinigame";
+import { previewTableView, type PreviewPhase } from "./o21PreviewTable";
 import type { GameState, MinigameAdapter } from "../games/olympus-slots/types";
 import { RouletteGame } from "../games/wheel-of-the-fates/RouletteGame";
 import type { RouletteAdapter, RouletteState } from "../games/wheel-of-the-fates/types";
@@ -82,10 +83,14 @@ function SlotsPreview() {
   return <div ref={ref} />;
 }
 
+/** ?game=o21&state=wagering|turns|settled shows a real engine table; no state shows the lobby. */
 function o21Adapter(): O21ConvexAdapter {
   const ok = () => Promise.resolve({ ok: false, code: "PREVIEW" });
+  const params = new URLSearchParams(window.location.search);
+  const phase = params.get("state") as PreviewPhase | null;
+  const view = phase ? previewTableView(phase, Number(params.get("players") ?? 3)) : null;
   return {
-    getState: () => null,
+    getState: () => view,
     getStatus: () => ({
       status: "live",
       window: null,

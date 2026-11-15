@@ -172,18 +172,19 @@ function template(uid) {
         <div class="o21__ticker" data-ref="ticker" aria-label="Recent moves"></div>
         <div class="o21__dslot" data-slot="dialog-table"></div>
       </div>
-      <aside class="o21__panel" data-ref="panel" aria-label="Bets and pots"></aside>
-    </div>
-    <div class="o21__hist" data-ref="hist"></div>
-    <section class="o21__tray" data-ref="tray" aria-label="Your hand">
-      <div class="o21__tray-head">
-        <button type="button" class="o21__tray-toggle" data-act="tray" aria-expanded="true" aria-controls="o21-tray-${uid}">
-          <span>YOUR HAND</span><span class="o21__tray-caret" aria-hidden="true"></span>
-        </button>
-        <span class="o21__keys" aria-hidden="true">LEFT/RIGHT CHOOSE · ENTER PLAY · D DRAW</span>
+      <div class="o21__side">
+        <section class="o21__tray" data-ref="tray" aria-label="Your hand">
+          <div class="o21__tray-head">
+            <button type="button" class="o21__tray-toggle" data-act="tray" aria-expanded="true" aria-controls="o21-tray-${uid}" title="Keys: Left/Right choose · Enter play · D draw">
+              <span>YOUR HAND</span><span class="o21__tray-caret" aria-hidden="true"></span>
+            </button>
+          </div>
+          <div class="o21__tray-body" id="o21-tray-${uid}" data-slot="hand-table"></div>
+        </section>
+        <aside class="o21__panel" data-ref="panel" aria-label="Bets and pots"></aside>
+        <div class="o21__hist" data-ref="hist"></div>
       </div>
-      <div class="o21__tray-body" id="o21-tray-${uid}" data-slot="hand-table"></div>
-    </section>
+    </div>
     <section class="o21__phone" aria-label="Your hand">
       <div class="o21__phead" data-ref="phead"></div>
       <div class="o21__pseats" data-ref="pseats"></div>
@@ -397,7 +398,6 @@ export function mountOlympus21(el, options = {}) {
     let html = `<span class="o21__badge o21__badge--${badge.tone}"><span class="o21__dot" aria-hidden="true"></span>${esc(badge.text)}</span>`;
     if (m) html += `<span class="o21__badge o21__badge--dim">BALANCE ${m.balance}</span>`;
     else if (screen === "status" && backendStatus()?.player?.checkedIn) html += `<span class="o21__badge o21__badge--dim">BALANCE ${backendStatus().player.balance}</span>`;
-    html += `<span class="o21__badge o21__badge--dim">HAND: TRAY BELOW</span>`;
     html += howtoButton();
     patch(els.badges, html);
   }
@@ -489,20 +489,21 @@ export function mountOlympus21(el, options = {}) {
   function renderPanel() {
     const m = me();
     const layers = potLayers(view);
-    let html = `<div class="o21__box"><p class="o21__lbl">IN PLAY</p><p class="o21__big">${view?.pot ?? 0} <span class="o21__unit">pts</span></p>`;
-    if (layers.length) {
-      html += `<ul class="o21__layers">${layers.map((l) => `<li class="${l.mine ? "is-mine" : ""}"><span>${l.each} × ${l.count} · ${esc(l.who)}</span><span>${l.amount}</span></li>`).join("")}</ul>`;
-    } else {
-      html += `<p class="o21__sub">${view?.status === "wagering" ? "Bets are being placed." : "Pots form when bets lock."}</p>`;
-    }
-    html += `</div>`;
+    let bet = null;
+    let sub = view?.status === "wagering" ? "Bets are being placed." : "Pots form when bets lock.";
     if (m) {
       const win = winIfHit21(view);
-      const bet = typeof m.wager === "number" ? m.wager : null;
+      bet = typeof m.wager === "number" ? m.wager : null;
       const settledDelta = view.result ? view.result.deltas[m.seat] : undefined;
-      const sub = typeof settledDelta === "number" ? `This round: ${signed(settledDelta)}.` : bet == null ? "No bet yet this round." : view.pots.length ? `Hit 21 now and you win +${win}.` : `Win up to ${bet} from each player.`;
-      html += `<div class="o21__box"><p class="o21__lbl">YOUR BET</p><p class="o21__big">${bet ?? "—"}</p><p class="o21__sub">${esc(sub)}</p></div>`;
+      sub = typeof settledDelta === "number" ? `This round: ${signed(settledDelta)}.` : bet == null ? "No bet yet this round." : view.pots.length ? `Hit 21 now and you win +${win}.` : `Win up to ${bet} from each player.`;
     }
+    let html = `<div class="o21__box"><div class="o21__pair"><div><p class="o21__lbl">IN PLAY</p><p class="o21__big">${view?.pot ?? 0} <span class="o21__unit">pts</span></p></div>${
+      m ? `<div><p class="o21__lbl">YOUR BET</p><p class="o21__big">${bet ?? "—"}</p></div>` : ""
+    }</div>`;
+    if (layers.length) {
+      html += `<ul class="o21__layers">${layers.map((l) => `<li class="${l.mine ? "is-mine" : ""}"><span>${l.each} × ${l.count} · ${esc(l.who)}</span><span>${l.amount}</span></li>`).join("")}</ul>`;
+    }
+    html += `<p class="o21__sub">${esc(sub)}</p></div>`;
     html += leaveHtml();
     patch(els.panel, html);
   }
@@ -546,8 +547,7 @@ export function mountOlympus21(el, options = {}) {
     const placed = m.picked && m.wager === betDraft;
     const why = max < m.balance ? "loss cap" : "balance";
     return `<div class="o21__screen o21__bet">
-      <div class="o21__shead"><span class="o21__h">PLACE YOUR BET</span><span class="o21__badge o21__badge--dim">R${view.roundNo}</span></div>
-      <div class="o21__ring" data-timer="ring" role="timer" aria-label="Bet window"><b data-timer="secs"></b></div>
+      <div class="o21__shead"><span class="o21__h">PLACE YOUR BET</span><div class="o21__ring" data-timer="ring" role="timer" aria-label="Bet window"><b data-timer="secs"></b></div></div>
       <div class="o21__step">
         <button type="button" class="o21__btn o21__btn--sm o21__btn--blue" data-act="step" data-d="-5" data-focus="step-down" aria-label="Lower bet by 5" ${betDraft <= min ? "disabled" : ""}>-</button>
         <output class="o21__stepval" aria-live="polite">${betDraft}</output>
@@ -593,7 +593,6 @@ export function mountOlympus21(el, options = {}) {
     return `<div class="o21__screen o21__turn">
       ${fanHtml("turn")}
       <button type="button" class="o21__btn o21__btn--play" data-act="play" data-focus="play" ${!h || busy ? "disabled" : ""}>${esc(label)}</button>
-      <p class="o21__sub o21__c">Tap a card, then PLAY. Grey cards don't match.</p>
       ${errorHtml()}
     </div>`;
   }
