@@ -35,11 +35,12 @@ The games themselves (e.g. Olympus Slots' pixel-art look) keep their own style.
 | `src/styles/` | `theme.css` = HackUTA tokens, fonts, base (from profile's index.css). `portal.css` = profile's participant-dashboard.css **copied verbatim, don't edit**. `arcade.css` = arcade-only styles. |
 | `src/components/brand/` | Logo, LogoMark and nav icons copied from profile; `ArcadeIcons.tsx` adds arcade icons in the same style. |
 | `src/layout/`, `src/pages/` | Portal-style shell (sidebar + main) and the Lobby, Play and full-page status screens. |
-| `src/arcade/useArcadeSession.ts` | What the UI reads from the server. **Mock data until step 1**; preview screens with `?preview=off|scheduled|signed-out|loading`. |
+| `src/arcade/useArcadeSession.ts` | What the UI reads from the server: `arcade/session:getArcadeSession`, live. |
 | `public/` | Fonts, logos, favicons and art copied from profile's `public/`. |
 | `src/games/olympus-slots/` | Olympus Slots: `mountMinigame(el, { adapter })` returns `unmount()`. Mock and Convex adapters. |
+| `src/games/olympus-21/` | Olympus 21 (key `pvp-blackjack`): plain-JS game ported from the prototype, `.d.ts` for what TS imports. Mock only; server work in `docs/OLYMPUS21_ADMIN.md`. |
 | `src/convex/` | Convex client and function references used by the site. |
-| `shared/` | Pure rules used by both the site and the backend (one copy). |
+| `shared/` | Pure rules used by both the site and the backend (one copy). `shared/olympus21/` is the Olympus 21 engine (JS + `.d.ts`), byte-identical to the prototype's. |
 | `backend/overlay/` | The games' Convex files, laid over the pinned profile backend. |
 | `backend/BASE.json` | Pinned profile commit and the hashes of the profile files the overlay edits. |
 | `scripts/` | Target guard, backend assemble, function-loss check, backend tests, auth key setup. |
