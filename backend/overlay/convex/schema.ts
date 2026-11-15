@@ -554,13 +554,18 @@ export default defineSchema({
    */
   slotSpins: defineTable({
     checkedInId: v.id("checkedIn"),
-    playId: v.id("arcadePlays"),
+    playId: v.optional(v.id("arcadePlays")), // Optional to support existing data
     spinId: v.string(),
     wager: v.number(),
     payout: v.number(),
     outcome: v.string(),
     symbols: v.array(v.string()),
     createdAt: v.number(),
+    // Legacy fields from old version - optional to support existing data
+    pointsDelta: v.optional(v.number()),
+    newPoints: v.optional(v.number()),
+    previousPoints: v.optional(v.number()),
+    windowId: v.optional(v.id("slotWindows")),
   })
     .index("by_checkedIn_createdAt", ["checkedInId", "createdAt"])
     .index("by_checkedIn_spinId", ["checkedInId", "spinId"]),
@@ -578,6 +583,23 @@ export default defineSchema({
     cancelledBy: v.optional(v.id("admins")),
     createdAt: v.number(),
     updatedAt: v.number(),
+  })
+    .index("by_opensAt", ["opensAt"])
+    .index("by_closesAt", ["closesAt"]),
+
+  /**
+   * Olympus Slots play windows. Same structure as o21Windows for consistency.
+   * Already deployed on peccary — keep every field so a push never fails schema validation.
+   */
+  slotWindows: defineTable({
+    opensAt: v.number(),
+    closesAt: v.number(),
+    label: v.optional(v.string()),
+    createdBy: v.optional(v.id("admins")),
+    cancelledAt: v.optional(v.number()),
+    cancelledBy: v.optional(v.id("admins")),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
   })
     .index("by_opensAt", ["opensAt"])
     .index("by_closesAt", ["closesAt"]),
@@ -710,4 +732,102 @@ export default defineSchema({
   })
     .index("by_table", ["tableId"])
     .index("by_player", ["playerId"]),
+
+  /**
+   * Comprehensive gambling transaction log for poker. Records every bet, raise, call,
+   * fold, win, buy-in, and cash-out for audit and dispute resolution.
+   */
+  pokerTransactions: defineTable({
+    playerId: v.id("pokerPlayers"),
+    playerName: v.string(),
+    isBot: v.boolean(),
+    tableId: v.id("pokerTables"),
+    handNumber: v.number(),
+    
+    // Transaction type and details
+    eventType: v.union(
+      v.literal("buy_in"),
+      v.literal("bet"),
+      v.literal("call"),
+      v.literal("raise"),
+      v.literal("fold"),
+      v.literal("check"),
+      v.literal("all_in"),
+      v.literal("win"),
+      v.literal("cash_out"),
+      v.literal("timeout_forfeit"),
+      v.literal("table_end")
+    ),
+    
+    // Chip amounts
+    chipsBefore: v.number(),
+    chipsChange: v.number(),  // Positive for wins, negative for bets
+    chipsAfter: v.number(),
+    
+    // Game context
+    street: v.union(
+      v.literal("preflop"),
+      v.literal("flop"),
+      v.literal("turn"),
+      v.literal("river"),
+      v.literal("showdown"),
+      v.literal("n/a")
+    ),
+    potSize: v.number(),
+    
+    // Additional context
+    reason: v.optional(v.string()),
+    timestamp: v.number(),
+    
+    // For wins: what hand won
+    winningHand: v.optional(v.object({
+      category: v.string(),
+      label: v.string(),
+    })),
+  })
+    .index("by_player", ["playerId"])
+    .index("by_table", ["tableId"])
+    .index("by_timestamp", ["timestamp"])
+    .index("by_hand", ["tableId", "handNumber"])
+    .index("by_player_timestamp", ["playerId", "timestamp"]),
+
+  /**
+   * Session summary for each poker player. Tracks aggregate stats across all hands
+   * played during their session for quick analytics.
+   */
+  pokerSessionStats: defineTable({
+    playerId: v.id("pokerPlayers"),
+    playerName: v.string(),
+    
+    // Session timing
+    sessionStart: v.number(),
+    sessionEnd: v.optional(v.number()),
+    lastActivity: v.number(),
+    
+    // Game statistics
+    handsPlayed: v.number(),
+    handsWon: v.number(),
+    handsFolded: v.number(),
+    handsAllIn: v.number(),
+    
+    // Financial tracking
+    totalBuyIns: v.number(),
+    totalCashOuts: v.number(),
+    totalWagered: v.number(),   // Sum of all bets/raises/calls
+    totalWon: v.number(),        // Sum of all pot winnings
+    biggestPot: v.number(),
+    
+    // Net result
+    netProfit: v.number(),       // totalCashOuts + currentTableChips - totalBuyIns
+    
+    // Starting/current balances
+    startingPoints: v.number(),
+    currentPoints: v.number(),
+    
+    // Tables
+    tablesJoined: v.array(v.id("pokerTables")),
+  })
+    .index("by_player", ["playerId"])
+    .index("by_session_start", ["sessionStart"])
+    .index("by_last_activity", ["lastActivity"]),
 });
