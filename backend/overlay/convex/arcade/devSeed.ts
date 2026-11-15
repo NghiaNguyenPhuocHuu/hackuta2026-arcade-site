@@ -90,7 +90,9 @@ export const seedArcadeTesterInternal = internalMutation({
     await ensureEventConfig(ctx);
 
     // 1. Account (email + password, verified), or the existing one with this email.
-    let user = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", email)).unique();
+    const user = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", email)).unique();
+    // An existing account keeps its own password; only a new one gets `password`.
+    const existingAccount = user !== null;
     let userId: GenericId<"users">;
     if (user) {
       userId = user._id;
@@ -103,7 +105,6 @@ export const seedArcadeTesterInternal = internalMutation({
         secret: await new Scrypt().hash(args.password),
         emailVerified: email,
       });
-      user = await ctx.db.get(userId);
     }
 
     // 2. Submitted application.
@@ -169,6 +170,6 @@ export const seedArcadeTesterInternal = internalMutation({
       }
       checkedIn = await ctx.db.get(id);
     }
-    return { email, userId, checkedInId: checkedIn!._id, profilePoints: checkedIn!.points, existingAccount: user?._id === userId && !!user };
+    return { email, userId, checkedInId: checkedIn!._id, profilePoints: checkedIn!.points, existingAccount };
   },
 });

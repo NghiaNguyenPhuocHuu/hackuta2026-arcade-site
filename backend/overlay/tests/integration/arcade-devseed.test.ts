@@ -34,9 +34,9 @@ describe("arcade test-account seed", () => {
     vi.stubEnv("CONVEX_CLOUD_URL", "https://brazen-peccary-506.convex.cloud");
     await openArcade(t, ["wheel-of-the-fates"]);
     const first = await t.mutation(seed, ARGS);
-    expect(first).toMatchObject({ email: "arcade-tester@hackuta.dev", profilePoints: 500 });
+    expect(first).toMatchObject({ email: "arcade-tester@hackuta.dev", profilePoints: 500, existingAccount: false });
     const again = await t.mutation(seed, ARGS);
-    expect(again.checkedInId).toBe(first.checkedInId);
+    expect(again).toMatchObject({ checkedInId: first.checkedInId, existingAccount: true });
     expect(await t.run((ctx) => ctx.db.query("checkedIn").collect())).toHaveLength(1);
     expect(await t.run((ctx) => computeLedgerPoints(ctx, first.checkedInId))).toBe(500);
 
