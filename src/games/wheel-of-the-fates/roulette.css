@@ -1,0 +1,1354 @@
+/*
+ * Wheel of the Fates: same 16-bit night look as Olympus Slots. Everything is
+ * scoped under .wof (or .wof-*), so nothing leaks into the arcade page.
+ * Wheel skins and table cloths are color sets on [data-wheel] / [data-table].
+ */
+@font-face {
+  font-family: "Press Start 2P";
+  src: url("../olympus-slots/fonts/press-start-2p-latin-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pixelify Sans";
+  src: url("../olympus-slots/fonts/pixelify-sans-latin-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pixelify Sans";
+  src: url("../olympus-slots/fonts/pixelify-sans-latin-600.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+
+.wof {
+  --mg-night: #0b1d33;
+  --mg-deep: #102f46;
+  --mg-ocean: #305873;
+  --mg-mist: #8ca1aa;
+  --mg-marble: #f6eddf;
+  --mg-ink: #1a1028;
+  --mg-gold: #ffd23f;
+  --mg-gold-dark: #c98a1a;
+  --mg-gold-light: #fff2b3;
+  --mg-red: #d8483f;
+  --mg-dialog: #1f3f8a;
+  --mg-cyan: #5ce1e6;
+  --mg-win: #7ee081;
+  --mg-loss: #ffa49b;
+  --mg-display: "Press Start 2P", ui-monospace, monospace;
+  --mg-body: "Pixelify Sans", ui-monospace, monospace;
+
+  position: relative;
+  box-sizing: border-box;
+  display: grid;
+  gap: 18px;
+  width: 100%;
+  /* clip, not hidden: hidden would make this a scroll box and break the sticky panel on phones. */
+  overflow: clip;
+  padding: 24px 28px;
+  background: var(--mg-night);
+  border: 4px solid var(--mg-ink);
+  color: var(--mg-marble);
+  font-family: var(--mg-body);
+  font-size: 17px;
+  line-height: 1.3;
+  -webkit-font-smoothing: none;
+}
+
+.wof *,
+.wof *::before,
+.wof *::after {
+  box-sizing: border-box;
+}
+
+.wof p,
+.wof h2,
+.wof dl,
+.wof dd,
+.wof ol,
+.wof fieldset {
+  margin: 0;
+}
+
+.wof button {
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.wof button:not(:disabled) {
+  cursor: pointer;
+}
+
+.wof :focus-visible {
+  outline: 3px solid var(--mg-gold);
+  outline-offset: 2px;
+}
+
+.wof__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.wof__stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(2px 2px at 8% 12%, rgb(246 237 223 / 0.6) 99%, transparent),
+    radial-gradient(2px 2px at 92% 20%, rgb(255 210 63 / 0.7) 99%, transparent),
+    radial-gradient(2px 2px at 30% 55%, rgb(246 237 223 / 0.35) 99%, transparent),
+    radial-gradient(2px 2px at 70% 80%, rgb(246 237 223 / 0.4) 99%, transparent),
+    radial-gradient(2px 2px at 55% 35%, rgb(92 225 230 / 0.4) 99%, transparent);
+  background-size: 380px 380px;
+}
+
+.wof > :not(.wof__stars) {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- layout: wide (side panel) and tall (phones: sticky panel at the bottom) ---- */
+.wof--wide {
+  grid-template-columns: minmax(250px, 340px) minmax(0, 1fr);
+  grid-template-areas:
+    "header  header"
+    "themes  themes"
+    "stage   panel"
+    "dialog  panel"
+    "board   board"
+    "history history";
+  align-items: start;
+}
+
+.wof--wide .wof__panel {
+  grid-area: panel;
+}
+
+.wof--tall {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "header" "themes" "stage" "dialog" "board" "history" "panel";
+  gap: 14px;
+  padding: 20px 14px 0;
+}
+
+.wof__header {
+  grid-area: header;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wof-themes {
+  grid-area: themes;
+}
+
+.wof__stage {
+  grid-area: stage;
+}
+
+.wof__dialog {
+  grid-area: dialog;
+}
+
+.wof-board {
+  grid-area: board;
+}
+
+.wof__history {
+  grid-area: history;
+}
+
+.wof__panel {
+  grid-area: panel;
+}
+
+/* ---- header ---- */
+.wof__title {
+  font-family: var(--mg-display);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--mg-gold);
+  text-shadow:
+    3px 3px 0 #b5481c,
+    6px 6px 0 var(--mg-ink);
+}
+
+.wof__tagline {
+  margin-top: 8px;
+  font-size: 16px;
+  color: var(--mg-mist);
+}
+
+.wof__status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wof__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  font-family: var(--mg-display);
+  font-size: 11px;
+  border: 3px solid var(--mg-ink);
+  box-shadow: 3px 3px 0 #000;
+}
+
+.wof__badge--live {
+  background: var(--mg-red);
+  color: #fff;
+}
+
+.wof__badge--closed {
+  background: var(--mg-mist);
+  color: var(--mg-ink);
+}
+
+.wof__badge-dot {
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+}
+
+.wof__badge--live .wof__badge-dot {
+  animation: wof-blink 1s steps(1) infinite;
+}
+
+@keyframes wof-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ---- buttons ---- */
+.wof-btn {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 3px solid var(--mg-marble);
+  background: var(--mg-deep);
+  box-shadow: 3px 3px 0 #000;
+  font-family: var(--mg-display) !important;
+  font-size: 11px;
+  color: var(--mg-marble);
+}
+
+@media (hover: hover) {
+  .wof-btn:not(:disabled):hover {
+    background: var(--mg-ocean);
+  }
+
+  .wof-spin:not(:disabled):hover {
+    background: var(--mg-gold-light);
+  }
+
+  .wof-cell:not(:disabled):hover {
+    background: rgb(255 255 255 / 0.08);
+  }
+
+  .wof-hot:not(:disabled):hover {
+    background: rgb(255 210 63 / 0.55);
+  }
+}
+
+.wof-btn:not(:disabled):active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #000;
+}
+
+.wof-btn:disabled {
+  opacity: 0.4;
+}
+
+.wof-btn--ghost {
+  min-height: 36px;
+  border-color: var(--mg-ocean);
+}
+
+.wof-spin {
+  width: 100%;
+  min-height: 62px;
+  border: 4px solid var(--mg-ink);
+  background: var(--mg-gold);
+  box-shadow:
+    inset 0 -6px 0 var(--mg-gold-dark),
+    4px 4px 0 #000;
+  font-family: var(--mg-display) !important;
+  font-size: 18px;
+  color: var(--mg-ink) !important;
+}
+
+.wof-spin:not(:disabled):active {
+  transform: translate(3px, 3px);
+  box-shadow:
+    inset 0 -3px 0 var(--mg-gold-dark),
+    1px 1px 0 #000;
+}
+
+.wof-spin:disabled {
+  background: #6c7a80;
+  box-shadow:
+    inset 0 -6px 0 #4c585e,
+    4px 4px 0 #000;
+  color: #1a1028 !important;
+}
+
+/* ---- themes panel ---- */
+.wof-themes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 12px;
+  padding: 14px;
+  background: var(--mg-deep);
+  border: 3px solid var(--mg-ocean);
+}
+
+.wof-themes__group {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+.wof-themes__group legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-family: var(--mg-display);
+  font-size: 11px;
+  color: var(--mg-mist);
+}
+
+.wof-themes__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wof-themes__option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 10px 4px 6px;
+  border: 2px solid var(--mg-ocean);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.wof-themes__option.is-active {
+  border-color: var(--mg-gold);
+  color: var(--mg-gold);
+}
+
+.wof-themes__option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.wof-themes__option:has(input:focus-visible) {
+  outline: 3px solid var(--mg-gold);
+  outline-offset: 2px;
+}
+
+.wof-themes__swatch {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--mg-ink);
+}
+
+.wof-themes__swatch--marble { background: linear-gradient(135deg, #f6eddf 50%, #c9b48f 50%); }
+.wof-themes__swatch--bronze { background: linear-gradient(135deg, #d99a5b 50%, #7a4a1f 50%); }
+.wof-themes__swatch--night-sky { background: linear-gradient(135deg, #1f3f8a 50%, #5ce1e6 50%); }
+.wof-themes__swatch--underworld { background: linear-gradient(135deg, #3a0f1e 50%, #ff6b3d 50%); }
+.wof-themes__swatch--midnight { background: #102f46; }
+.wof-themes__swatch--gold { background: #5a4012; box-shadow: inset 0 0 0 2px #ffd23f; }
+.wof-themes__swatch--deep-sea { background: #0b4049; box-shadow: inset 0 0 0 2px #a8e6e8; }
+.wof-themes__swatch--ember { background: #4a1409; box-shadow: inset 0 0 0 2px #ffa49b; }
+.wof-themes__swatch--normal,
+.wof-themes__swatch--fast { display: none; }
+
+/* ---- wheel ---- */
+.wof {
+  --wof-rim: #f6eddf;
+  --wof-rim-shade: #c9b48f;
+  --wof-track: #b39c74;
+  --wof-cone: #eadcc2;
+  --wof-cone-line: #c9b48f;
+  --wof-hub: #ffd23f;
+  --wof-star: #f6eddf;
+  --wof-fire: #c8553d;
+  --wof-night: #1a1028;
+  --wof-olympus: #e0a91f;
+  --wof-divider: #eadcc2;
+  --wof-num: #f6eddf;
+}
+
+.wof[data-wheel="bronze"] {
+  --wof-rim: #d99a5b;
+  --wof-rim-shade: #7a4a1f;
+  --wof-track: #8f5a28;
+  --wof-cone: #b87333;
+  --wof-cone-line: #7a4a1f;
+  --wof-hub: #ffd23f;
+  --wof-star: #fff2b3;
+  --wof-fire: #b5481c;
+  --wof-night: #2a1a10;
+  --wof-olympus: #ffd23f;
+  --wof-divider: #e8b77f;
+}
+
+.wof[data-wheel="night-sky"] {
+  --wof-rim: #1f3f8a;
+  --wof-rim-shade: #0b1d33;
+  --wof-track: #142c5e;
+  --wof-cone: #0b1d33;
+  --wof-cone-line: #305873;
+  --wof-hub: #5ce1e6;
+  --wof-star: #ffd23f;
+  --wof-fire: #d8483f;
+  --wof-night: #050c18;
+  --wof-olympus: #ffd23f;
+  --wof-divider: #5ce1e6;
+}
+
+.wof[data-wheel="underworld"] {
+  --wof-rim: #3a0f1e;
+  --wof-rim-shade: #12060a;
+  --wof-track: #24090f;
+  --wof-cone: #1f0d14;
+  --wof-cone-line: #5a1e14;
+  --wof-hub: #ff6b3d;
+  --wof-star: #1f0d14;
+  --wof-fire: #e04a2a;
+  --wof-night: #0d0709;
+  --wof-olympus: #c9a227;
+  --wof-divider: #7a2a1a;
+}
+
+.wof__stage {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+.wof__wheel {
+  width: min(100%, 320px);
+  aspect-ratio: 1;
+}
+
+.wof--tall .wof__wheel {
+  width: min(78%, 270px);
+}
+
+.wof-wheel {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.wof-wheel__rim {
+  fill: var(--wof-rim);
+  stroke: var(--mg-ink);
+  stroke-width: 3;
+}
+
+.wof-wheel__track {
+  fill: var(--wof-track);
+  stroke: var(--wof-rim-shade);
+  stroke-width: 2;
+}
+
+.wof-wheel__divider {
+  fill: var(--wof-divider);
+}
+
+.wof-wedge {
+  stroke: var(--wof-divider);
+  stroke-width: 0.9;
+}
+
+.wof-wedge--fire {
+  fill: var(--wof-fire);
+}
+
+.wof-wedge--night {
+  fill: var(--wof-night);
+}
+
+.wof-wedge--olympus {
+  fill: var(--wof-olympus);
+}
+
+.wof-wedge.is-hit {
+  stroke: #fff2b3;
+  stroke-width: 2.4;
+  paint-order: stroke;
+  animation: wof-hit 0.9s steps(2) 3;
+}
+
+@keyframes wof-hit {
+  50% {
+    stroke: var(--mg-gold);
+  }
+}
+
+.wof-wedge__num {
+  fill: var(--wof-num);
+  font-family: var(--mg-body);
+  font-size: 8.5px;
+  font-weight: 600;
+}
+
+.wof-wheel__cone {
+  fill: var(--wof-cone);
+  stroke: var(--wof-rim-shade);
+  stroke-width: 2;
+}
+
+.wof-wheel__spoke {
+  stroke: var(--wof-cone-line);
+  stroke-width: 2.5;
+  stroke-linecap: square;
+}
+
+.wof-wheel__ring {
+  fill: none;
+  stroke: var(--wof-cone-line);
+  stroke-width: 2;
+}
+
+.wof-wheel__hub {
+  fill: var(--wof-hub);
+  stroke: var(--mg-ink);
+  stroke-width: 2;
+}
+
+.wof-wheel__star {
+  fill: var(--wof-star);
+}
+
+.wof-wheel__ball {
+  fill: #fffaf0;
+  stroke: var(--mg-ink);
+  stroke-width: 1.2;
+  filter: drop-shadow(0 0 2.5px rgb(255 242 179 / 0.95));
+  transition: opacity 0.2s;
+}
+
+.wof__readout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 46px;
+  font-family: var(--mg-display);
+  font-size: 12px;
+  color: var(--mg-mist);
+}
+
+.wof__readout-num {
+  display: grid;
+  place-items: center;
+  min-width: 46px;
+  height: 46px;
+  padding: 0 6px;
+  border: 3px solid var(--mg-marble);
+  font-size: 18px;
+  color: var(--mg-marble);
+  animation: wof-pop 0.35s steps(3) both;
+}
+
+.wof__readout--fire .wof__readout-num {
+  background: var(--wof-fire);
+}
+
+.wof__readout--night .wof__readout-num {
+  background: var(--wof-night);
+}
+
+.wof__readout--olympus .wof__readout-num {
+  background: var(--wof-olympus);
+  color: var(--mg-ink);
+}
+
+.wof__readout-net {
+  font-size: 13px;
+  color: var(--mg-marble);
+}
+
+@keyframes wof-pop {
+  from {
+    transform: scale(0.6);
+  }
+}
+
+/* ---- Techno ---- */
+.wof__dialog {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  margin: 18px 4px 4px;
+  padding: 16px 16px 14px 14px;
+  background: var(--mg-dialog);
+  border: 4px solid var(--mg-marble);
+  outline: 4px solid var(--mg-ink);
+}
+
+.wof__nametag {
+  position: absolute;
+  top: -17px;
+  left: 12px;
+  padding: 4px 7px;
+  background: var(--mg-cyan);
+  border: 3px solid var(--mg-ink);
+  font-family: var(--mg-display);
+  font-size: 10px;
+  color: var(--mg-ink);
+}
+
+.wof__portrait {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  background: var(--mg-deep);
+  border: 3px solid var(--mg-ink);
+}
+
+.wof__portrait svg {
+  width: 50px;
+  height: 50px;
+  image-rendering: pixelated;
+}
+
+.wof__dialog-title {
+  font-family: var(--mg-display);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.wof__dialog-title--gold { color: var(--mg-gold); }
+.wof__dialog-title--green { color: var(--mg-win); }
+.wof__dialog-title--cyan { color: var(--mg-cyan); }
+.wof__dialog-title--coral { color: var(--mg-loss); }
+.wof__dialog-title--marble { color: var(--mg-marble); }
+
+.wof__dialog-line {
+  margin-top: 6px;
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+/* ---- table ---- */
+.wof {
+  --wof-felt: #102f46;
+  --wof-felt-line: rgb(246 237 223 / 0.55);
+  --wof-felt-soft: rgb(246 237 223 / 0.16);
+  --wof-felt-text: #f6eddf;
+}
+
+.wof[data-table="gold"] {
+  --wof-felt: #3f2d0c;
+  --wof-felt-line: rgb(255 210 63 / 0.7);
+  --wof-felt-soft: rgb(255 210 63 / 0.2);
+  --wof-felt-text: #fff2b3;
+}
+
+.wof[data-table="deep-sea"] {
+  --wof-felt: #0b4049;
+  --wof-felt-line: rgb(168 230 232 / 0.6);
+  --wof-felt-soft: rgb(168 230 232 / 0.18);
+  --wof-felt-text: #e8fbfb;
+}
+
+.wof[data-table="ember"] {
+  --wof-felt: #431209;
+  --wof-felt-line: rgb(255 164 155 / 0.6);
+  --wof-felt-soft: rgb(255 164 155 / 0.18);
+  --wof-felt-text: #ffe9e4;
+}
+
+.wof-board {
+  display: grid;
+  margin: 4px;
+  background: var(--wof-felt);
+  border: 3px solid var(--wof-felt-line);
+  outline: 4px solid var(--mg-ink);
+  color: var(--wof-felt-text);
+}
+
+.wof-board--wide {
+  grid-template-columns: minmax(36px, 1.1fr) repeat(12, minmax(0, 1fr)) minmax(36px, 1.1fr);
+  grid-template-rows: repeat(3, 50px) 42px 42px;
+}
+
+.wof-board--tall {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) repeat(3, minmax(0, 1.55fr));
+  grid-template-rows: 42px repeat(12, 40px) 40px;
+}
+
+.wof-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid var(--wof-felt-soft);
+  background: transparent;
+  font-family: var(--mg-display) !important;
+  font-size: 10px;
+  color: var(--wof-felt-text) !important;
+}
+
+.wof-cell__n {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--wof-felt-line);
+  font-size: 11px;
+  color: #fff;
+}
+
+.wof-cell--fire .wof-cell__n {
+  background: var(--wof-fire);
+}
+
+.wof-cell--night .wof-cell__n {
+  background: var(--wof-night);
+}
+
+.wof-cell--olympus .wof-cell__n {
+  background: var(--wof-olympus);
+  color: var(--mg-ink);
+}
+
+.wof-cell--zero .wof-cell__n {
+  height: 64px;
+}
+
+.wof-board--tall .wof-cell--zero .wof-cell__n {
+  width: 64px;
+  height: 30px;
+}
+
+.wof-board--tall .wof-cell__n {
+  width: 30px;
+  height: 30px;
+}
+
+.wof-board--tall .wof-cell--dozen,
+.wof-board--tall .wof-cell--out:not(.wof-cell--column) {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.wof-swatch {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--wof-felt-line);
+}
+
+.wof-swatch--fire {
+  background: var(--wof-fire);
+}
+
+.wof-swatch--night {
+  background: var(--wof-night);
+}
+
+.wof-cell.is-hit {
+  z-index: 1;
+  box-shadow:
+    inset 0 0 0 3px var(--mg-gold),
+    0 0 0 2px var(--mg-ink);
+}
+
+.wof-cell.is-win,
+.wof-hot.is-win .wof-chip {
+  animation: wof-win 0.6s steps(2) 4;
+}
+
+.wof-cell.is-win {
+  background: rgb(255 210 63 / 0.22);
+}
+
+@keyframes wof-win {
+  50% {
+    filter: brightness(1.5);
+  }
+}
+
+.wof-cell:disabled {
+  cursor: default;
+}
+
+/* Split / street / corner spots on the lines between numbers. */
+.wof-board__overlay {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.wof-hot {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+
+.wof-hot:focus-visible {
+  background: rgb(255 210 63 / 0.55);
+}
+
+.wof-hot:disabled {
+  pointer-events: none;
+}
+
+.wof-hot .wof-chip {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+}
+
+/* ---- chips ---- */
+.wof-chip {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px dashed rgb(26 16 40 / 0.55);
+  box-shadow:
+    0 0 0 2px var(--mg-ink),
+    2px 2px 0 2px #000;
+  font-family: var(--mg-display);
+  font-size: 8px;
+  color: var(--mg-ink);
+  writing-mode: horizontal-tb;
+  pointer-events: none;
+}
+
+.wof-chip--5 {
+  background: var(--mg-marble);
+}
+
+.wof-chip--10 {
+  background: var(--mg-cyan);
+}
+
+.wof-chip--25 {
+  background: var(--mg-gold);
+}
+
+.wof-board--tall .wof-cell--out .wof-chip,
+.wof-board--tall .wof-cell--dozen .wof-chip {
+  transform: rotate(180deg);
+}
+
+/* ---- history ---- */
+.wof__history {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.wof__label,
+.wof__stats dt {
+  font-family: var(--mg-display);
+  font-size: 11px;
+  color: var(--mg-mist);
+}
+
+.wof__history-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.wof__history-item {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--mg-marble);
+  font-family: var(--mg-display);
+  font-size: 10px;
+  color: #fff;
+}
+
+.wof__history-item:first-child {
+  outline: 3px solid var(--mg-gold);
+  outline-offset: 1px;
+}
+
+.wof__history-item--fire { background: var(--wof-fire); }
+.wof__history-item--night { background: var(--wof-night); }
+.wof__history-item--olympus { background: var(--wof-olympus); color: var(--mg-ink); }
+
+.wof__history-empty {
+  font-size: 16px;
+  color: var(--mg-mist);
+}
+
+/* ---- panel ---- */
+.wof__panel {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  margin: 4px;
+  background: var(--mg-deep);
+  border: 4px solid var(--mg-marble);
+  outline: 4px solid var(--mg-ink);
+}
+
+.wof__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.wof__stats dd {
+  margin-top: 6px;
+  font-family: var(--mg-display);
+  font-size: 15px;
+  color: var(--mg-marble);
+  font-variant-numeric: tabular-nums;
+}
+
+.wof__stats small {
+  font-size: 10px;
+  color: var(--mg-mist);
+}
+
+.wof__balance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mg-gold) !important;
+}
+
+.wof__coin {
+  width: 14px;
+  height: 14px;
+  background: var(--mg-gold);
+  box-shadow:
+    inset -3px -3px 0 var(--mg-gold-dark),
+    0 0 0 2px var(--mg-ink);
+}
+
+.wof__controls {
+  display: grid;
+  gap: 12px;
+}
+
+.wof__chips {
+  display: flex;
+  gap: 10px;
+}
+
+.wof-chip-btn {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.wof-chip-btn .wof-chip {
+  position: static;
+  width: 40px;
+  height: 40px;
+  font-size: 11px;
+}
+
+.wof-chip-btn.is-active .wof-chip {
+  box-shadow:
+    0 0 0 2px var(--mg-ink),
+    0 0 0 5px var(--mg-gold),
+    2px 2px 0 5px #000;
+  transform: translateY(-3px);
+}
+
+.wof__actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.wof__limits {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--mg-mist);
+}
+
+/* Phones: the panel sticks to the bottom of the screen while you bet. */
+.wof--tall .wof__panel {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  gap: 10px;
+  margin: 0 -14px;
+  padding: 10px 14px 12px;
+  border-width: 3px 0 0;
+  outline: 0;
+  box-shadow: 0 -10px 24px rgb(0 0 0 / 0.45);
+}
+
+.wof--tall .wof__stats dd {
+  margin-top: 3px;
+  font-size: 13px;
+}
+
+.wof--tall .wof__controls {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.wof--tall .wof__chips {
+  gap: 4px;
+}
+
+.wof--tall .wof-chip-btn {
+  width: 40px;
+  height: 44px;
+}
+
+.wof--tall .wof-chip-btn .wof-chip {
+  width: 34px;
+  height: 34px;
+  font-size: 10px;
+}
+
+.wof--tall .wof__actions {
+  gap: 4px;
+}
+
+.wof--tall .wof-btn {
+  padding: 0 2px;
+  font-size: 9px;
+}
+
+.wof--tall .wof-spin {
+  min-height: 52px;
+  font-size: 16px;
+}
+
+.wof--tall .wof__limits {
+  font-size: 13px;
+}
+
+.wof--tall .wof__title {
+  font-size: 16px;
+  text-shadow:
+    2px 2px 0 #b5481c,
+    4px 4px 0 var(--mg-ink);
+}
+
+.wof--tall .wof__tagline {
+  font-size: 15px;
+}
+
+.wof--tall .wof__dialog-line {
+  font-size: 16px;
+}
+
+.wof--tall .wof__portrait {
+  width: 54px;
+  height: 54px;
+}
+
+.wof--tall .wof__portrait svg {
+  width: 42px;
+  height: 42px;
+}
+
+.wof--tall .wof-hot {
+  width: 22px;
+  height: 22px;
+}
+
+.wof--tall .wof-chip {
+  width: 22px;
+  height: 22px;
+  font-size: 7px;
+}
+
+/* Action buttons: words on wide screens, icons in the phone bar. */
+.wof-btn--action {
+  display: grid;
+  place-items: center;
+}
+
+.wof-btn__icon {
+  display: none;
+  width: 20px;
+  height: 20px;
+}
+
+.wof-btn__icon--text {
+  width: auto;
+  height: auto;
+  font-family: var(--mg-display);
+  font-size: 12px;
+}
+
+.wof--tall .wof-btn__text {
+  display: none;
+}
+
+.wof--tall .wof-btn__icon {
+  display: block;
+}
+
+/* Vertical outside bets on phones: one line each. */
+.wof-board--tall .wof-cell--out {
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+/* Rotated cells: put the chip in the visual bottom-right corner, clear of the label. */
+.wof-board--tall .wof-cell--out:not(.wof-cell--column) .wof-chip {
+  top: 1px;
+  left: 1px;
+  right: auto;
+  bottom: auto;
+}
+
+/* ---- gods and demons after a spin ---- */
+.wof__wheel {
+  position: relative;
+}
+
+.wof-omen {
+  position: absolute;
+  inset: -6%;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  animation: wof-omen-out 0.4s steps(4) 3s forwards;
+}
+
+.wof-omen--big {
+  animation-delay: 3.8s;
+}
+
+/* Light (gods) or smoke (demons) behind the figure. */
+.wof-omen__aura {
+  position: absolute;
+  inset: 4%;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: wof-aura-in 0.5s steps(5) both;
+}
+
+.wof-omen--god .wof-omen__aura {
+  background:
+    radial-gradient(circle, rgb(255 242 179 / 0.95) 0 18%, rgb(255 210 63 / 0.55) 34%, transparent 66%),
+    repeating-conic-gradient(rgb(255 210 63 / 0.55) 0 8deg, transparent 8deg 22deg);
+  mask: radial-gradient(circle, #000 40%, transparent 70%);
+}
+
+.wof-omen--god .wof-omen__aura::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: repeating-conic-gradient(rgb(255 255 255 / 0.25) 0 4deg, transparent 4deg 30deg);
+  mask: radial-gradient(circle, #000 30%, transparent 68%);
+  animation: wof-spin-rays 6s linear infinite;
+}
+
+.wof-omen--demon .wof-omen__aura {
+  background:
+    radial-gradient(circle, rgb(255 59 48 / 0.75) 0 16%, rgb(120 10 30 / 0.7) 36%, rgb(13 7 9 / 0.85) 52%, transparent 70%);
+  animation:
+    wof-aura-in 0.5s steps(5) both,
+    wof-smoke 0.8s steps(4) 0.5s infinite alternate;
+}
+
+.wof-omen--mortal .wof-omen__aura {
+  background: radial-gradient(circle, rgb(92 225 230 / 0.55) 0 22%, rgb(31 63 138 / 0.5) 44%, transparent 68%);
+}
+
+.wof-omen__sprite {
+  position: relative;
+  width: 42%;
+  aspect-ratio: 1;
+  filter: drop-shadow(4px 4px 0 rgb(26 16 40 / 0.9));
+  animation: wof-rise 0.55s steps(6) both;
+}
+
+.wof-omen__sprite svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.wof-omen--demon .wof-omen__sprite {
+  animation:
+    wof-rise 0.55s steps(6) both,
+    wof-shake 0.12s steps(2) 0.55s 6;
+}
+
+.wof-omen--big .wof-omen__sprite {
+  width: 52%;
+}
+
+/* Zeus and Hades: a flash across the wheel. */
+.wof-omen--big::before {
+  content: "";
+  position: absolute;
+  inset: 6%;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: wof-flash 0.6s steps(3) both;
+}
+
+.wof-omen--god.wof-omen--big::before {
+  background: #fff8e1;
+}
+
+.wof-omen--demon.wof-omen--big::before {
+  background: #ff3b30;
+}
+
+.wof-omen__bubble {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  max-width: 94%;
+  padding: 8px 12px;
+  background: var(--mg-ink);
+  border: 3px solid var(--mg-marble);
+  box-shadow: 4px 4px 0 #000;
+  text-align: center;
+  animation: wof-rise 0.4s steps(4) 0.3s both;
+}
+
+.wof-omen--god .wof-omen__bubble {
+  border-color: var(--mg-gold);
+}
+
+.wof-omen--demon .wof-omen__bubble {
+  border-color: #ff3b30;
+}
+
+.wof-omen__name {
+  font-family: var(--mg-display);
+  font-size: 11px;
+  color: var(--mg-gold);
+}
+
+.wof-omen--demon .wof-omen__name {
+  color: #ff6b5e;
+}
+
+.wof-omen--mortal .wof-omen__name {
+  color: var(--mg-cyan);
+}
+
+.wof-omen__quote {
+  font-size: 15px;
+  line-height: 1.25;
+  color: var(--mg-marble);
+}
+
+.wof--tall .wof-omen__quote {
+  font-size: 14px;
+}
+
+@keyframes wof-rise {
+  from {
+    opacity: 0;
+    transform: translateY(40%) scale(0.4);
+  }
+}
+
+@keyframes wof-aura-in {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+}
+
+@keyframes wof-spin-rays {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wof-smoke {
+  to {
+    transform: scale(1.08);
+    filter: brightness(1.3);
+  }
+}
+
+@keyframes wof-shake {
+  0% {
+    translate: -3px 0;
+  }
+  100% {
+    translate: 3px 0;
+  }
+}
+
+@keyframes wof-flash {
+  from {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes wof-omen-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8%);
+    visibility: hidden;
+  }
+}
