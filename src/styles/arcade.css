@@ -1638,4 +1638,82 @@
   .arcade-theme--night .arcade-screen__link {
     color: var(--night-gold);
   }
+
+  /* ---- Wallet and its dialog: larger type so balances, fields and the log read easily ---- */
+  .arcade-wallet .participant-dashboard__panel-title {
+    font-size: 1.5rem;
+  }
+
+  .arcade-wallet .participant-dashboard__panel-copy,
+  .arcade-wallet__balance-note {
+    font-size: 1.05rem;
+    line-height: 1.5;
+  }
+
+  .arcade-wallet__balance-label {
+    font-size: 0.95rem;
+  }
+
+  .arcade-wallet__balance-value {
+    font-size: clamp(2.4rem, 6vw, 3.1rem);
+  }
+
+  .arcade-wallet__label {
+    font-size: 1rem;
+  }
+
+  .arcade-wallet__input {
+    min-height: 3rem;
+    font-size: 1.2rem;
+  }
+
+  .arcade-wallet__preset {
+    min-height: 2.75rem;
+    padding-inline: 1.05rem;
+    font-size: 1.05rem;
+  }
+
+  .arcade-wallet__help {
+    font-size: 1rem;
+  }
+
+  .arcade-wallet__form .participant-dashboard__cta {
+    font-size: 1.1rem;
+  }
+
+  .arcade-wallet__table {
+    font-size: 1.05rem;
+  }
+
+  .arcade-wallet__table th {
+    font-size: 0.9rem;
+  }
+
+  .arcade-wallet__kind {
+    font-size: 0.9rem;
+    padding: 0.15rem 0.65rem;
+  }
+
+  .arcade-wallet .participant-dashboard__section-title {
+    font-size: 1.5rem;
+  }
+
+  .arcade-confirm-dialog__title {
+    font-size: 1.7rem;
+  }
+
+  .arcade-confirm-dialog__copy,
+  .arcade-confirm-dialog__balances,
+  .arcade-confirm-dialog__error {
+    font-size: 1.05rem;
+  }
+
+  .arcade-confirm-dialog__actions button {
+    font-size: 1.05rem;
+  }
+
+  .arcade-wallet .participant-dashboard__notice-copy,
+  .arcade-deposit-prompt .participant-dashboard__notice-copy {
+    font-size: 1.05rem;
+  }
 }
