@@ -2,7 +2,8 @@
 
 The website for the HackUTA points games. Hackers open it from the **Arcade**
 button on their profile (new tab, already signed in). Admins switch the site,
-or a single game, on and off. Games: **Olympus Slots** (PvP Blackjack next).
+or a single game, on and off. Games: **Olympus Slots**, **Wheel of the Fates**, **Olympus Poker** and **Olympus 21**
+(mock points; Olympus 21's server side is in [docs/OLYMPUS21_ADMIN.md](docs/OLYMPUS21_ADMIN.md)).
 
 The design, decisions and step plan are in [docs/ARCADE_PLAN.md](docs/ARCADE_PLAN.md).
 

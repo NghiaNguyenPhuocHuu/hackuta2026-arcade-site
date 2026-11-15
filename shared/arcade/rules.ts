@@ -8,7 +8,7 @@ export const ARCADE_GAMES = [
   { key: "olympus-slots", name: "Olympus Slots", order: 1 },
   { key: "wheel-of-the-fates", name: "Wheel of the Fates", order: 2 },
   { key: "olympus-poker", name: "Olympus Poker", order: 3 },
-  { key: "pvp-blackjack", name: "PvP Blackjack", order: 4 },
+  { key: "pvp-blackjack", name: "Olympus 21", order: 4 },
 ] as const;
 
 export type ArcadeGameKey = (typeof ARCADE_GAMES)[number]["key"];

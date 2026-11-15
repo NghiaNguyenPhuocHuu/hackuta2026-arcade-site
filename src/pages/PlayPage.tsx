@@ -6,6 +6,8 @@ import { formatClock, type ArcadeSession } from "../arcade/useArcadeSession";
 import { findGame, type GameEntry } from "../games/registry";
 import { mockWalletPort } from "../arcade/mockWallet";
 import { useRevealWait, useSecondsLeft } from "../arcade/pointsReveal";
+import { IS_LIVE } from "../arcade/backendMode";
+import { convexClient } from "../convex/client";
 
 export default function PlayPage() {
   const session = useOutletContext<ArcadeSession>();
@@ -82,7 +84,7 @@ function RevealGate({ game, player }: { game: GameEntry; player: ArcadeSession["
   );
 }
 
-/** Lazy-loads the game and mounts it. Mock points until step 3 swaps in the Convex adapter. */
+/** Lazy-loads the game and mounts it: real points when live and the game supports it, else the mock wallet. */
 function GameStage({ game, player }: { game: GameEntry; player: ArcadeSession["player"] }) {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -98,11 +100,14 @@ function GameStage({ game, player }: { game: GameEntry; player: ArcadeSession["p
       .load()
       .then((module) => {
         if (cancelled || !ref.current) return;
-        // The visit's shared mock wallet: balance and history survive leaving the
-        // game, and the lobby's points pill follows.
-        unmount = module.mountMock(ref.current, mockWalletPort(game.key), {
-          player: player ? { displayName: player.displayName } : undefined,
-        });
+        const options = { player: player ? { displayName: player.displayName } : undefined };
+        if (IS_LIVE && convexClient && module.mountLive) {
+          unmount = module.mountLive(ref.current, { client: convexClient, ...options });
+        } else {
+          // The visit's shared mock wallet: balance and history survive leaving the
+          // game, and the lobby's points pill follows.
+          unmount = module.mountMock(ref.current, mockWalletPort(game.key), options);
+        }
         setReady(true);
       })
       .catch(() => {

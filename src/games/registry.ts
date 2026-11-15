@@ -60,12 +60,13 @@ export const GAMES: readonly GameEntry[] = [
   },
   {
     key: 'pvp-blackjack',
-    name: 'PvP Blackjack',
-    shortName: 'Blackjack',
-    tagline: 'Face rival hackers across the table and conquer the dealer.',
-    facts: ['Multiplayer', 'Live tables'],
+    name: 'Olympus 21',
+    shortName: '21',
+    tagline: 'Push the count to 21 against rival hackers and bots. Bust past it and the gods laugh.',
+    facts: ['2–4 players', 'Wagers from 10 pts'],
     icon: NavCardsIcon,
-    load: null,
+    theme: 'night',
+    load: () => import('./olympus-21/index').then((m) => m.game),
   },
 ]
 

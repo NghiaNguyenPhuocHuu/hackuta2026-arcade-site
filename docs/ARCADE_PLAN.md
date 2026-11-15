@@ -17,6 +17,8 @@ which stays as the Olympus Slots prototype and is not developed further.
 | Sign-in | **The profile portal is the only way in:** one-click hand-off with the hacker's account, no second login. A **backup sign-in** (same HackUTA email and password) exists only for when the hand-off breaks or is compromised; admins switch it on, it is off by default. See below. |
 | Admin controls | A site switch (`off` / `scheduled` / `on`) **plus** a per-game switch. |
 | Security | Every rule is enforced in Convex functions. Showing or hiding the button or the site is cosmetic. |
+| Olympus 21 points (2026-11-14) | **Two steps.** The wager is taken when the round locks (one `arcadePlays` row, `payout: 0`) and the payout is added to that same row at settlement. `points.ts` gets `reservePlay` / `settlePlay`; `playId` = `${tableId}:${roundNo}:${checkedInId}`. Matches the engine (bets at lock, pay at settle) and its per-command balance sync, and the shop can't spend a wager mid-round. |
+| Olympus 21 matchmaking | Random: `join` seats a signed-in, checked-in hacker at the fullest open table with a free seat, else opens a new one. Real tables never get bots. |
 
 ## System
 
@@ -107,13 +109,13 @@ prototype's Gamble tab used. If the query errors, the button stays hidden.
 | --- | --- | --- | --- |
 | 0 | **Repo setup:** Vite + React + TS, Convex client, safety check, tests, Olympus Slots copied in (mock points) | `npm test`, `npm run build`, `npm run backend:test` pass | **Done** |
 | 1 | **Backend:** `arcadeSettings` (incl. `launchEnabled`, `backupSignIn`), `arcadeGames`, `requireGameOpen`, launch codes + `arcade-launch` provider, `getArcadeSession`, admin functions, audit actions, convex-test tests | `npm run backend:test` passes | **Done** (2026-11-14): 32 arcade + slot tests; the profile's full suite (108) also passes on the build. Olympus Slots now uses the arcade switches; `slotWindows` is gone (it was never deployed). Not pushed. |
-| 2 | **Site shell:** routes (`/`, `/launch`, `/play/:game`), Convex Auth client, signed-out and closed screens, live hub | Sign-in works from the local dev launcher | UI done (HackUTA theme, lobby, play, status screens on mock data); `/launch` + auth + backup sign-in form (shown only when `backupSignIn` is on) to do |
+| 2 | **Site shell:** routes (`/`, `/launch`, `/play/:game`), Convex Auth client, signed-out and closed screens, live hub | Sign-in works from the local dev launcher | UI done; `ConvexAuthProvider`, `/launch`, live session (`VITE_ARCADE_BACKEND=live`), blocked-account screen and sign-out done (2026-11-14, untested against a deployment). Backup sign-in form still to do. |
 | 3 | **Olympus Slots on the arcade:** mount from the registry with the Convex adapter; move its schedule from `slotWindows` to the arcade switches | Playable end to end locally | |
 | 4 | **Local dev pages** in `dev/`: fake profile Arcade button + admin switch panel | Whole flow works on one machine | |
 | 5 | **Push to the sandbox** (`brazen-peccary-506`) | Works against the sandbox | Blocked: Convex access |
 | 6 | **Real repos:** profile gets only the button and the launch-code call; admin gets the Arcade tab | PRs merged: admin first, then profile | |
 | 7 | **Deploy** the arcade as a static site; add its address to the allowed origins | Live, switched off until an admin turns it on | |
-| 8 | **PvP Blackjack** as the second game | | |
+| 8 | **Olympus 21** (was PvP Blackjack) | Real PvP on peccary | Game, mock mode and live mount done on the site. Server engine: `docs/OLYMPUS21_ADMIN.md` (user is doing it). |
 
 ## Open items
 

@@ -1,3 +1,5 @@
+import type { ConvexReactClient } from "convex/react";
+
 /**
  * The contract between the arcade shell and a game module. Each game's
  * `index.ts` exports a `GameModule`; the registry lazy-loads it.
@@ -29,7 +31,17 @@ export type MountGameOptions = {
   player?: { id?: string; displayName: string };
 };
 
+export type LiveGameContext = {
+  /** The arcade's shared client, already signed in by ConvexAuthProvider. */
+  client: ConvexReactClient;
+} & MountGameOptions;
+
 export type GameModule = {
   /** Mount on mock points. Returns `unmount`, safe to call more than once. */
   mountMock(element: HTMLElement, wallet: MockWalletPort, options?: MountGameOptions): () => void;
+  /**
+   * Mount on real points through Convex (VITE_ARCADE_BACKEND=live). Games
+   * without it keep running on mock points in live mode.
+   */
+  mountLive?(element: HTMLElement, context: LiveGameContext): () => void;
 };
