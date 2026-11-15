@@ -57,34 +57,21 @@ export default function PlayPage() {
           </Link>
         </div>
       ) : (
-        <RevealGate game={game} />
+        <GameStage game={game} />
       )}
     </section>
-  );
-}
-
-/**
- * A spin from another game (or this one, left mid-spin) is still being
- * revealed: wait for it before mounting, so this game can't show its result
- * early. Only a few seconds; the game opens by itself.
- */
-function RevealGate({ game }: { game: GameEntry }) {
-  const waiting = useRevealWait();
-  const seconds = useSecondsLeft(waiting ? waiting.until : null);
-  if (!waiting) return <GameStage game={game} />;
-  const from = findGame(waiting.game);
-  return (
-    <div className="arcade-stage">
-      <p className="arcade-stage__loading" role="status">
-        The Fates are still deciding your {from && from.key !== game.key ? `${from.shortName.toLowerCase()} ` : ""}spin… {game.name} opens in {seconds}s.
-      </p>
-    </div>
   );
 }
 
 /** Lazy-loads the game and mounts it. Mock points until step 3 swaps in the Convex adapter. */
 function GameStage({ game }: { game: GameEntry }) {
   const ref = useRef<HTMLDivElement>(null);
+  // A spin from another game (or this one, left mid-spin) is still being
+  // revealed: show this game at once, but veiled, so its balance can't give
+  // that result away early. The veil lifts by itself.
+  const waiting = useRevealWait();
+  const seconds = useSecondsLeft(waiting ? waiting.until : null);
+  const from = waiting ? findGame(waiting.game) : undefined;
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -113,7 +100,7 @@ function GameStage({ game }: { game: GameEntry }) {
   }, [game]);
 
   return (
-    <div className="arcade-stage">
+    <div className={`arcade-stage${waiting ? " arcade-stage--veiled" : ""}`}>
       {!ready && !error ? (
         <p className="arcade-stage__loading" role="status">
           Summoning {game.name}…
@@ -124,7 +111,22 @@ function GameStage({ game }: { game: GameEntry }) {
           {error}
         </p>
       ) : null}
-      <div ref={ref} className={`arcade-stage__mount${ready ? " arcade-stage__mount--ready" : ""}`} />
+      <div
+        ref={ref}
+        className={`arcade-stage__mount${ready ? " arcade-stage__mount--ready" : ""}`}
+        inert={waiting ? true : undefined}
+        aria-hidden={waiting ? true : undefined}
+      />
+      {waiting ? (
+        <div className="arcade-stage__veil">
+          <p className="arcade-stage__veil-card" role="status">
+            <strong>The Fates are still deciding</strong>
+            <span>
+              Your last {from ? `${from.shortName.toLowerCase()} ` : ""}spin is revealed in {seconds}s. Then {game.name} is yours.
+            </span>
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }
