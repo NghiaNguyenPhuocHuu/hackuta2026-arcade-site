@@ -20,13 +20,49 @@ export const BROKE_MEME: { video: string | null; image: string | null; audio: st
   audio: null,
 };
 
-export const TAUNTS: readonly string[] = [
-  "The cat saw that. The cat will never forget.",
-  "Zero points. Even Hades leaves a tip.",
-  "You bet it all. The Fates said no. The cat said HA.",
-  "Broke speedrun: new personal best.",
-  "Down to nothing. Somewhere on Olympus, a cat is wheezing.",
+/** The headline, in big type. */
+export const ROAST_TITLES: readonly string[] = [
+  "BROKE. 0 POINTS.",
+  "WALLET: EMPTY. EGO: ALSO EMPTY.",
+  "SKILL ISSUE DETECTED.",
+  "GG. GO NEXT.",
+  "YOU HAD ONE JOB.",
+  "0 POINTS. 100% COMMITMENT.",
 ];
+
+/** The roast under it. Trash talk about the play, never about the person. */
+export const ROAST_LINES: readonly string[] = [
+  "The cat watched the whole thing. The cat has never laughed this hard.",
+  "Even Hades leaves a tip. You left nothing.",
+  "You bet it all. The Fates said no. The cat said HA.",
+  "Broke speedrun, any%. New world record.",
+  "Zeus threw lightning blindfolded and still aimed better than your bets.",
+  "Your points are in a better place now. That place is the house.",
+  "Have you tried winning? Just a thought.",
+  "Imagine hacking for 24 hours and losing to a slot machine.",
+  "The house always wins. The house would like to thank you personally.",
+  "Sisyphus called. At least his rock comes back.",
+  "Icarus flew too close to the sun. You flew straight into it.",
+  "Your commit history is cleaner than your betting history.",
+];
+
+/** The close button: the player's cope. */
+export const COPE_BUTTONS: readonly string[] = [
+  "I'm not mad",
+  "It was rigged",
+  "I wasn't even trying",
+  "That was a warm-up",
+  "Lag. Definitely lag.",
+  "I'm literally fine",
+];
+
+export type Roast = { title: string; line: string; cope: string };
+
+/** One random headline, roast and cope; `random` is injectable for tests. */
+export function pickRoast(random: () => number = Math.random): Roast {
+  const pick = (list: readonly string[]) => list[Math.floor(random() * list.length) % list.length]!;
+  return { title: pick(ROAST_TITLES), line: pick(ROAST_LINES), cope: pick(COPE_BUTTONS) };
+}
 
 /**
  * Taunt once, when the balance the player can see goes from something to 0 in

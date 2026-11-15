@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getPointsHold, usePointsHold } from "../arcade/pointsReveal";
-import { BROKE_MEME, gameKeyOf, laughTrack, shouldTaunt, TAUNTS } from "../arcade/brokeCat";
+import { BROKE_MEME, gameKeyOf, laughTrack, pickRoast, shouldTaunt, type Roast } from "../arcade/brokeCat";
 import { gameSoundEnabled } from "../games/sound";
 
 /**
@@ -62,7 +62,7 @@ export function BrokeCatPopup({ arcadePoints }: { arcadePoints: number | null })
   const { pathname } = useLocation();
   const hold = usePointsHold();
   const prev = useRef<number | null>(null);
-  const [taunt, setTaunt] = useState<string | null>(null);
+  const [taunt, setTaunt] = useState<Roast | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   /** The browser refused autoplay with sound: the clip runs muted until tapped. */
@@ -72,7 +72,7 @@ export function BrokeCatPopup({ arcadePoints }: { arcadePoints: number | null })
     // While a reveal is on, the visible balance is held: wait for the real one.
     if (arcadePoints === null || hold || getPointsHold()) return;
     if (shouldTaunt(prev.current, arcadePoints, gameKeyOf(pathname))) {
-      setTaunt(TAUNTS[Math.floor(Math.random() * TAUNTS.length)]!);
+      setTaunt(pickRoast());
     }
     prev.current = arcadePoints;
   }, [arcadePoints, hold, pathname]);
@@ -158,17 +158,17 @@ export function BrokeCatPopup({ arcadePoints }: { arcadePoints: number | null })
           </svg>
         )}
         <h2 id="broke-cat-title" className="broke-cat__title">
-          BROKE. 0 POINTS.
+          {taunt.title}
         </h2>
         <p id="broke-cat-line" className="broke-cat__line">
-          {taunt}
+          {taunt.line}
         </p>
         <div className="broke-cat__actions">
           <Link to="/wallet" className="participant-dashboard__cta broke-cat__deposit" onClick={() => setTaunt(null)}>
-            Deposit more points
+            Deposit & run it back
           </Link>
           <button ref={closeRef} type="button" className="broke-cat__close" onClick={() => setTaunt(null)}>
-            I'm not mad
+            {taunt.cope}
           </button>
         </div>
       </div>

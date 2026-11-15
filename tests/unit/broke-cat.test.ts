@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { BROKE_MEME, gameKeyOf, shouldTaunt, TAUNT_GAMES, TAUNTS } from "../../src/arcade/brokeCat";
+import { BROKE_MEME, COPE_BUTTONS, gameKeyOf, pickRoast, ROAST_LINES, ROAST_TITLES, shouldTaunt, TAUNT_GAMES } from "../../src/arcade/brokeCat";
 import { CAT_FRAMES } from "../../src/components/BrokeCatPopup";
 
 describe("broke cat", () => {
@@ -34,11 +34,20 @@ describe("broke cat", () => {
         expect(row).toMatch(/^[.KSLPNT]+$/);
       }
     }
-    expect(TAUNTS.length).toBeGreaterThan(0);
     // Served from public/, never hotlinked from another site.
     expect(BROKE_MEME.video).toBe("/memes/laughing-cat.mp4");
     for (const path of [BROKE_MEME.video, BROKE_MEME.image, BROKE_MEME.audio]) {
       if (path) expect(existsSync(join("public", path))).toBe(true);
+    }
+  });
+
+  it("picks a headline, a roast and a cope from their lists, at both ends of the range", () => {
+    expect(pickRoast(() => 0)).toEqual({ title: ROAST_TITLES[0], line: ROAST_LINES[0], cope: COPE_BUTTONS[0] });
+    const last = pickRoast(() => 0.999999);
+    expect(last).toEqual({ title: ROAST_TITLES.at(-1), line: ROAST_LINES.at(-1), cope: COPE_BUTTONS.at(-1) });
+    for (const list of [ROAST_TITLES, ROAST_LINES, COPE_BUTTONS]) {
+      expect(list.length).toBeGreaterThan(3);
+      expect(new Set(list).size).toBe(list.length);
     }
   });
 });
