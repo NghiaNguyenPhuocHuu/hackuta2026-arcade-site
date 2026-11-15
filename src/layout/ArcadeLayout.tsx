@@ -1,15 +1,13 @@
 import { useEffect, useRef, type ComponentType } from "react";
-import { NavLink, Outlet, useLocation, useMatch } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { ArcadeBrand } from "../components/ArcadeBrand";
 import { ExternalIcon, NavTempleIcon, NavWalletIcon } from "../components/brand/ArcadeIcons";
 import { NavSignOutIcon } from "../components/brand/NavIcons";
 import { initials, type ArcadeSession } from "../arcade/useArcadeSession";
 import { PROFILE_URL } from "../constants/site";
-import { GAMES, findGame } from "../games/registry";
+import { GAMES } from "../games/registry";
 
-const DAY_THEME_COLOR = "#102f46";
-const NIGHT_THEME_COLOR = "#071526";
 
 /**
  * The portal shell from profile (ParticipantPortalLayout): sidebar with brand,
@@ -18,8 +16,8 @@ const NIGHT_THEME_COLOR = "#071526";
 export function ArcadeLayout({ session }: { session: ArcadeSession }) {
   const { signOut } = useAuthActions();
   const player = session.player;
-  const playing = useMatch("/play/:gameKey");
-  const night = findGame(playing?.params.gameKey)?.theme === "night";
+  // The whole arcade uses the night sky (blue, gold, pixel stars), not only the game pages.
+  const night = true;
   const { pathname } = useLocation();
   const mainRef = useRef<HTMLElement>(null);
 
@@ -37,18 +35,6 @@ export function ArcadeLayout({ session }: { session: ArcadeSession }) {
     }
   }, [pathname]);
 
-  // The page behind the app (overscroll) and the phone's browser bar follow the theme.
-  useEffect(() => {
-    const root = document.documentElement;
-    const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-    if (night) root.dataset.arcadeTheme = "night";
-    else delete root.dataset.arcadeTheme;
-    meta?.setAttribute("content", night ? NIGHT_THEME_COLOR : DAY_THEME_COLOR);
-    return () => {
-      delete root.dataset.arcadeTheme;
-      meta?.setAttribute("content", DAY_THEME_COLOR);
-    };
-  }, [night]);
 
   return (
     <div className={`participant-dashboard${night ? " arcade-theme--night" : ""}`}>
