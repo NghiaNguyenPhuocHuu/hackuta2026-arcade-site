@@ -55,6 +55,65 @@ describe("event poker matchmaking", () => {
     expect(va.table?.seats.find((seat: { id: string }) => seat.id === va.youId)?.name).toBe("Taylor Student");
   });
 
+  it("fills a running table up to 4, then opens a second table for the next arrivals", async () => {
+    const t = createConvexTest();
+    await openArcade(t, [POKER]);
+    const players = [];
+    for (let i = 0; i < 6; i += 1) players.push(await seedPlayer(t, { arcadePoints: 200 }));
+    const [a, b, c, d, e, f] = players;
+    await a!.player.mutation(joinQueue, {});
+    await b!.player.mutation(joinQueue, {});
+    await t.mutation(trySeat, {});
+    const first = (await a!.player.query(getView, {})).table?.id;
+    expect(first).toBeTruthy();
+
+    // Arrivals fill the running table (sitting out until the next hand) up to 4.
+    await c!.player.mutation(joinQueue, {});
+    await t.mutation(trySeat, {});
+    await d!.player.mutation(joinQueue, {});
+    await t.mutation(trySeat, {});
+    const vc = await c!.player.query(getView, {});
+    expect(vc.phase).toBe("table");
+    expect(vc.table?.id).toBe(first);
+    expect((await d!.player.query(getView, {})).table?.id).toBe(first);
+    expect(vc.table?.seats.filter((seat: { chips: number }) => seat.chips > 0)).toHaveLength(4);
+
+    // The table is full: the next two open a second one.
+    await e!.player.mutation(joinQueue, {});
+    await t.mutation(trySeat, {});
+    expect((await e!.player.query(getView, {})).phase).toBe("queued");
+    await f!.player.mutation(joinQueue, {});
+    await t.mutation(trySeat, {});
+    const ve = await e!.player.query(getView, {});
+    expect(ve.phase).toBe("table");
+    expect(ve.table?.id).not.toBe(first);
+    expect((await f!.player.query(getView, {})).table?.id).toBe(ve.table?.id);
+  });
+
+  it("gives a seat someone leaves to the next hacker in the queue, keeping the table at 4 slots", async () => {
+    const t = createConvexTest();
+    await openArcade(t, [POKER]);
+    const players = [];
+    for (let i = 0; i < 5; i += 1) players.push(await seedPlayer(t, { arcadePoints: 200 }));
+    const [a, b, c, d, e] = players;
+    for (const p of [a, b, c, d]) await p!.player.mutation(joinQueue, {});
+    await t.mutation(trySeat, {});
+    const tableId = (await a!.player.query(getView, {})).table?.id;
+    await e!.player.mutation(joinQueue, {});
+    await t.mutation(trySeat, {});
+    expect((await e!.player.query(getView, {})).phase).toBe("queued");
+
+    await b!.player.mutation(leaveTable, {});
+    await t.mutation(trySeat, {});
+    const ve = await e!.player.query(getView, {});
+    expect(ve.phase).toBe("table");
+    expect(ve.table?.id).toBe(tableId);
+    expect(ve.table?.seats).toHaveLength(4);
+    expect(ve.table?.seats.some((seat: { id: string }) => seat.id === ve.youId)).toBe(true);
+    // b got their chips back and is no longer at the table.
+    expect((await b!.player.query(getView, {})).phase).toBe("result");
+  });
+
   it("does not open new tables after the arcade closes", async () => {
     const t = createConvexTest();
     await openArcade(t, [POKER]);

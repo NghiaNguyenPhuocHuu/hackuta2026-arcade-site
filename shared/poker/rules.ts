@@ -9,9 +9,12 @@ export const POKER_MIN_PLAYERS = 2;
 export const POKER_MAX_PLAYERS = 4;
 export const POKER_TARGET_PLAYERS = 4;
 
-/** Start a table as soon as this many humans are waiting. */
+/**
+ * @deprecated Seating follows shared/arcade/matchmaking.ts now (a room starts
+ * with 2, newcomers fill open seats up to 4). Kept so old imports still build.
+ */
 export const POKER_INSTANT_SEATS = 4;
-/** If at least two humans are waiting, seat them after this delay. */
+/** @deprecated No fill delay any more: a room starts as soon as 2 are waiting. */
 export const POKER_QUEUE_FILL_MS = 2_500;
 /** @deprecated Bots removed — only humans seat at tables. Kept so old deploys don't break imports. */
 export const POKER_BOT_FILL_MS = 6_000;

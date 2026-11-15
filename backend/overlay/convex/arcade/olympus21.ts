@@ -2,8 +2,10 @@
  * Olympus 21 on the live server, with the same matchmaking as Olympus Poker.
  *
  * - One event-wide queue (`o21Queue`). `joinQueue` takes the buy-in from the
- *   arcade wallet (`applyPlay`). `trySeat` seats a full group at once, or 2–3
- *   humans after a short wait. Humans only: no bots (like poker).
+ *   arcade wallet (`applyPlay`). `trySeat` follows the room rules shared with
+ *   poker (shared/arcade/matchmaking.ts): a table starts with 2, newcomers fill
+ *   open tables up to 4 (dealt in next round), a seat someone leaves goes to the
+ *   next in the queue, and many tables run at once. Humans only: no bots.
  * - The buy-in becomes table chips; every wager comes out of the chips. Chips
  *   go back to the wallet (`creditWallet`) when the hacker leaves, is unseated
  *   for timing out, or the table closes. Every move is an `arcadePlays` row,
@@ -26,8 +28,10 @@ import type { MutationCtx, QueryCtx } from "../lib/dataModel";
 import { draw, importState, leave as engineLeave, placeWager, play, ready, viewFor, type CommandResult, type Table } from "../../shared/olympus21/engine.js";
 import {
   O21_BUY_IN,
-  O21_QUEUE_FILL_MS,
-  chooseSeating,
+  O21_MAX_SEATS,
+  O21_MIN_PLAYERS,
+  joinLive,
+  roomPlayers,
   openLiveTable,
   runLive,
   saveLive,
@@ -38,6 +42,10 @@ import {
 import { gameGate, gameRow, loadArcade, loadPlayer, playerDisplayName, playerProblem, type CheckedInDoc } from "./access";
 import { applyPlay, creditWallet } from "./points";
 import { arcadeBalance } from "./wallet";
+import { planSeating } from "../../shared/arcade/matchmaking";
+
+/** Every table status except "closed" (engine statuses). */
+const LIVE_STATUSES = ["waiting", "wagering", "countdown", "turns", "settled"] as const;
 
 const GAME = "pvp-blackjack" as const;
 const NAME_MAX = 24;
@@ -117,8 +125,11 @@ async function runOnTable<R extends CommandResult | null>(
 ) {
   const doc = await ctx.db.get(tableId);
   if (!doc || doc.status === "closed") return { result: undefined as R | undefined, closed: true };
-  const out = runLive(doc.state, { now, rng: serverRandom, open: await isOpen(ctx, now), idleSince: doc.idleSince ?? null, command });
+  const queueWaiting = (await ctx.db.query("o21Queue").withIndex("by_joinedAt").first()) !== null;
+  const out = runLive(doc.state, { now, rng: serverRandom, open: await isOpen(ctx, now), idleSince: doc.idleSince ?? null, queueWaiting, command });
   await payOut(ctx, tableId, out.cashOuts, now);
+  // Someone left a table that's still running: the next hacker in the queue takes the seat.
+  if (out.cashOuts.length && !out.closed && queueWaiting) await ctx.scheduler.runAfter(0, internal.arcade.olympus21.trySeat, {});
 
   // Schedule the next tick unless one is already pending at or before it.
   const pending = options.pendingCleared ? undefined : doc.wakeAt;
@@ -189,7 +200,6 @@ export const joinQueue = mutation({
     // Checked just above, so a refusal here means a race: undo everything.
     if (!paid.ok) throw new Error(`olympus21: buy-in refused (${paid.code})`);
     await ctx.scheduler.runAfter(0, internal.arcade.olympus21.trySeat, {});
-    await ctx.scheduler.runAfter(O21_QUEUE_FILL_MS, internal.arcade.olympus21.trySeat, {});
     return ok(now);
   },
 });
@@ -212,7 +222,7 @@ export const cancelQueue = mutation({
   },
 });
 
-/** Seats the queue by poker's rule. Scheduled after every join (now, and at the fill time). */
+/** Seats the queue by the room rules. Scheduled after every join and whenever a seat frees up. */
 export const trySeat = internalMutation({
   args: {},
   handler: async (ctx) => {
@@ -224,21 +234,38 @@ export const trySeat = internalMutation({
       for (const row of queue) await refundQueued(ctx, row, now);
       return;
     }
-    const seated = chooseSeating(queue, now);
-    if (!seated) return;
-    for (const row of seated) await ctx.db.delete(row._id);
-    const tableId = await ctx.db.insert("o21LiveTables", { status: "waiting", state: "{}", humans: seated.length, version: 0, createdAt: now, updatedAt: now });
-    const table = openLiveTable({
-      id: tableId,
-      humans: seated.map((row) => ({ id: row.checkedInId, name: row.name })),
-      now,
-      rng: serverRandom,
-    });
-    for (const row of seated) {
-      await ctx.db.insert("o21Seats", { tableId, checkedInId: row.checkedInId, buyIn: O21_BUY_IN, status: "seated", createdAt: now });
+    const rooms = [];
+    for (const status of LIVE_STATUSES) {
+      for (const doc of await ctx.db.query("o21LiveTables").withIndex("by_status", (q) => q.eq("status", status)).collect()) {
+        rooms.push({ id: doc._id, players: roomPlayers(importState(doc.state)), createdAt: doc.createdAt });
+      }
     }
-    await ctx.db.patch(tableId, { state: saveLive(table), status: table.status });
-    await runOnTable(ctx, tableId, now);
+    const plan = planSeating(queue, rooms, { min: O21_MIN_PLAYERS, max: O21_MAX_SEATS });
+
+    // Newcomers sit down at running tables (dealt in next round).
+    for (const { room, entry } of plan.joins) {
+      const out = await runOnTable(ctx, room, now, (table) => joinLive(table, { id: entry.checkedInId, name: entry.name }, now));
+      if (!out.result?.ok) continue; // table closed or full meanwhile: they stay queued
+      await ctx.db.delete(entry._id);
+      await ctx.db.insert("o21Seats", { tableId: room, checkedInId: entry.checkedInId, buyIn: O21_BUY_IN, status: "seated", createdAt: now });
+    }
+
+    // Everyone else starts new tables.
+    for (const group of plan.newRooms) {
+      for (const row of group) await ctx.db.delete(row._id);
+      const tableId = await ctx.db.insert("o21LiveTables", { status: "waiting", state: "{}", humans: group.length, version: 0, createdAt: now, updatedAt: now });
+      const table = openLiveTable({
+        id: tableId,
+        humans: group.map((row) => ({ id: row.checkedInId, name: row.name })),
+        now,
+        rng: serverRandom,
+      });
+      for (const row of group) {
+        await ctx.db.insert("o21Seats", { tableId, checkedInId: row.checkedInId, buyIn: O21_BUY_IN, status: "seated", createdAt: now });
+      }
+      await ctx.db.patch(tableId, { state: saveLive(table), status: table.status });
+      await runOnTable(ctx, tableId, now);
+    }
   },
 });
 

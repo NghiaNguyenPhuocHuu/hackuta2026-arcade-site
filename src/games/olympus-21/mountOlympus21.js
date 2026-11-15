@@ -714,8 +714,8 @@ export function mountOlympus21(el, options = {}) {
       return {
         title: "FINDING YOUR TABLE",
         sub: others
-          ? `${others} other hacker${others === 1 ? " is" : "s are"} waiting. The Fates seat you together in a moment.`
-          : "You're first in line. The Fates seat you as soon as another hacker joins.",
+          ? `${others} other hacker${others === 1 ? " is" : "s are"} waiting. The Fates seat you at the first free seat.`
+          : "No free seat yet. You take the next seat that opens, or start a table when another hacker arrives.",
         queued: true,
       };
     }
@@ -725,7 +725,7 @@ export function mountOlympus21(el, options = {}) {
     if (st.status === "live") {
       return {
         title: "TAKE A SEAT",
-        sub: `Buy in for ${st.buyIn} arcade points; they become your chips. You're matched with 1–3 other hackers. Your chips go back to your wallet when you leave.`,
+        sub: `Buy in for ${st.buyIn} arcade points; they become your chips. Tables seat 2–4: you join the first one with a free seat. Your chips go back to your wallet when you leave.`,
         live: true,
       };
     }

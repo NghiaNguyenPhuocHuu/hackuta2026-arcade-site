@@ -156,6 +156,20 @@ new commits (merging the old `blackjack` branch again would drop it silently).
   clean, `backend:check`: 202 live functions kept, 10 new (`arcade/olympus21`).
   Site: 159 tests, typecheck and build pass. **Not pushed.**
 
+## Room matchmaking for poker and Olympus 21 (2026-11-15, branch `olympus-21`, not pushed)
+
+- `shared/arcade/matchmaking.ts` (`planSeating`): start with 2, fill open rooms
+  to 4 (fullest first), refill a left seat from the queue, open more rooms
+  when all are full. Tested in `tests/unit/matchmaking.test.ts`.
+- Poker: `trySeat` follows the plan; newcomers take a left slot (old seat
+  record kept with a negative `seatIndex`, filtered out of `seatsForTable`) or
+  a new one, folded until the next hand. Standing up and timeouts call
+  `trySeat`. The 2.5 s fill delay is gone (constants kept, deprecated).
+- Olympus 21: same plan; newcomers `joinLive` mid-round; a table left with one
+  player stays open while someone is queued (`runLive` `queueWaiting`).
+- Checks: `backend:test` 77, `--all` 153, backend `tsc` clean, site 181 tests,
+  typecheck, build; `backend:check` keeps all 212 live functions.
+
 ## Next steps
 
 - `/launch` flow for `arcade-launch` codes (when organizers use backup sign-in).

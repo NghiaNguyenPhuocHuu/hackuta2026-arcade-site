@@ -76,6 +76,64 @@ describe("Olympus 21 live tables", () => {
     for (const seat of view!.seats) expect(seat).not.toHaveProperty("hand");
   });
 
+  it("fills a running table up to 4, then opens a second table for the next arrivals", async () => {
+    const t = createConvexTest();
+    await openArcade(t, [GAME]);
+    const players = [];
+    for (let i = 0; i < 6; i += 1) players.push(await seedPlayer(t, { arcadePoints: 200 }));
+    const [a, b, c, d, e, f] = players;
+    await a!.player.mutation(joinQueue, {});
+    await b!.player.mutation(joinQueue, {});
+    await t.mutation(trySeat, {});
+    const first = (await a!.player.query(getMyTable, {})).view?.tableId;
+    expect(first).toBeTruthy();
+    for (const p of [c, d]) {
+      await p!.player.mutation(joinQueue, {});
+      await t.mutation(trySeat, {});
+      expect((await p!.player.query(getMyTable, {})).view?.tableId).toBe(first);
+    }
+    expect((await a!.player.query(getMyTable, {})).view?.seats).toHaveLength(4);
+
+    await e!.player.mutation(joinQueue, {});
+    await t.mutation(trySeat, {});
+    expect((await e!.player.query(getMyTable, {})).queue).not.toBeNull();
+    await f!.player.mutation(joinQueue, {});
+    await t.mutation(trySeat, {});
+    const second = (await e!.player.query(getMyTable, {})).view?.tableId;
+    expect(second).toBeTruthy();
+    expect(second).not.toBe(first);
+    expect((await f!.player.query(getMyTable, {})).view?.tableId).toBe(second);
+    expect(await tableIds(t)).toHaveLength(2);
+  });
+
+  it("gives a seat someone leaves to the next hacker in the queue, even at a table of two", async () => {
+    const t = createConvexTest();
+    await openArcade(t, [GAME]);
+    const a = await seedPlayer(t, { arcadePoints: 100 });
+    const b = await seedPlayer(t, { arcadePoints: 100 });
+    const c = await seedPlayer(t, { arcadePoints: 100 });
+    await a.player.mutation(joinQueue, {});
+    await b.player.mutation(joinQueue, {});
+    await t.mutation(trySeat, {});
+    const tableId = (await a.player.query(getMyTable, {})).view?.tableId;
+
+    // c is waiting (their seating hasn't run yet) when a stands up: the table of two
+    // doesn't break, and c takes a's seat next to b.
+    await c.player.mutation(joinQueue, {});
+    await a.player.mutation(leave, {});
+    expect(await walletOf(t, a.checkedInId!)).toBe(100);
+    expect((await b.player.query(getMyTable, {})).view?.tableId).toBe(tableId);
+    await t.mutation(trySeat, {});
+    const vc = await c.player.query(getMyTable, {});
+    expect(vc.view?.tableId).toBe(tableId);
+    expect(vc.view?.seats.map((seat: { name: string }) => seat.name)).toHaveLength(2);
+
+    // With nobody waiting, a lone player's table breaks and pays them.
+    await c.player.mutation(leave, {});
+    expect(await walletOf(t, b.checkedInId!)).toBe(100);
+    expect((await b.player.query(getMyTable, {})).result).toMatchObject({ reason: "The table closed." });
+  });
+
   it("refunds the buy-in when leaving the queue", async () => {
     const t = createConvexTest();
     await openArcade(t, [GAME]);

@@ -6,8 +6,11 @@
  *
  * Same shape as Olympus Poker (`convex/arcade/poker.ts`):
  * - one event-wide queue; joining it takes the buy-in from the arcade wallet;
- * - humans only (no bots, like poker since `a4378b3`): a full group sits at
- *   once, 2–3 after a short wait; a lone player waits for company;
+ * - humans only (no bots, like poker since `a4378b3`);
+ * - rooms (shared/arcade/matchmaking.ts): a table starts with 2, newcomers
+ *   fill open tables up to 4 (joining mid-round, dealt in next round), a seat
+ *   someone leaves goes to the next in the queue, and full tables make the
+ *   next arrivals open a new one;
  * - the buy-in becomes table chips; every wager comes out of the chips;
  * - chips go back to the wallet when the player leaves, is unseated for
  *   timing out, or the table closes.
@@ -29,10 +32,6 @@ import {
 export const O21_BUY_IN = 50;
 export const O21_MAX_SEATS = 4;
 export const O21_MIN_PLAYERS = 2;
-/** This many waiting humans sit down at once. */
-export const O21_INSTANT_SEATS = 4;
-/** 2–3 waiting humans sit down together after the oldest has waited this long. */
-export const O21_QUEUE_FILL_MS = 2_500;
 /** Open tables are checked at least this often (closing switches, idle tables). */
 export const O21_HEARTBEAT_MS = 60_000;
 /** A table where no human is ready to play for this long closes and pays out. */
@@ -40,19 +39,14 @@ export const O21_IDLE_CLOSE_MS = 120_000;
 /** Chips are the only cap at a live table (the buy-in is the most you can lose). */
 export const O21_LOSS_CAP = Number.MAX_SAFE_INTEGER;
 
-export type QueueEntry = { joinedAt: number };
+/** Seats taken at a table (for the room plan). Someone leaving mid-round holds their seat until the result. */
+export function roomPlayers(table: Table): number {
+  return table.seats.filter((p) => p !== null).length;
+}
 
-/**
- * Who sits down now, from the queue oldest first (poker's rule), or null to
- * keep waiting.
- */
-export function chooseSeating<T extends QueueEntry>(queue: readonly T[], now: number): T[] | null {
-  if (queue.length < O21_MIN_PLAYERS) return null;
-  const take = [...queue].sort((a, b) => a.joinedAt - b.joinedAt).slice(0, O21_MAX_SEATS);
-  const waited = now - take[0]!.joinedAt;
-  if (take.length >= O21_INSTANT_SEATS) return take;
-  if (waited >= O21_QUEUE_FILL_MS) return take;
-  return null;
+/** A queued hacker sits down at a running table with the buy-in as chips (dealt in next round). */
+export function joinLive(table: Table, human: { id: string; name: string }, now: number): CommandResult {
+  return join(table, { id: human.id, name: human.name, balance: O21_BUY_IN }, now);
 }
 
 /** A new table with these humans, each with the buy-in as chips. */
@@ -128,6 +122,11 @@ export function runLive<R extends CommandResult | null>(
     /** The arcade is open and the game switched on. */
     open: boolean;
     idleSince?: number | null;
+    /**
+     * Someone is waiting in the queue: a table left with one player stays open
+     * for a moment so the next hacker can take the free seat.
+     */
+    queueWaiting?: boolean;
     command?: (table: Table) => R;
   },
 ): LiveRun<R> {
@@ -164,7 +163,7 @@ export function runLive<R extends CommandResult | null>(
   const idleTooLong = idleSince !== null && now - idleSince >= O21_IDLE_CLOSE_MS;
   // Like poker: no human left, or too few players for a round ("the table broke").
   const stayingPlayers = table.seats.filter((p) => p !== null && !p.gone && !p.kick).length;
-  const broke = stayingHumans(table).length === 0 || stayingPlayers < O21_MIN_PLAYERS;
+  const broke = stayingHumans(table).length === 0 || (stayingPlayers < O21_MIN_PLAYERS && !options.queueWaiting);
   if (!isClosed(table) && (broke || idleTooLong)) {
     closeTable(table, now);
     changed = true;

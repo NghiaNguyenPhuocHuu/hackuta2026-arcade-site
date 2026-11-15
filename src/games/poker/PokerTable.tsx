@@ -414,8 +414,8 @@ export function PokerApp() {
     view.table?.log ??
     (view.phase === "queued"
       ? waiting <= 1
-        ? "Seeking other heroes across the event. You sit down as soon as one arrives."
-        : `${waiting} heroes waiting. The Fates will seat you shortly.`
+        ? "No free seat yet. You take the next seat that opens, or start a table when another hero arrives."
+        : `${waiting} heroes waiting. The Fates seat you at the first free seat.`
       : view.phase === "result"
         ? `${view.result?.reason} Returned ${formatPts(view.result?.returned ?? 0)} pts.`
         : `Texas Hold'em. Buy-in ${POKER_BUY_IN}. Blinds ${POKER_SMALL_BLIND}/${POKER_BIG_BLIND}. ${POKER_ACTION_TIMEOUT_MS / 1000}s a turn.`);
@@ -488,7 +488,7 @@ export function PokerApp() {
                     </p>
                     <p className="poker-queue__copy">
                       {view.phase === "queued"
-                        ? "Waiting for another hacker. Tables start with at least two live players."
+                        ? "Waiting for a seat. Tables seat 2–4: you join the first one with a free seat, or start a new one with the next hacker who arrives."
                         : `Put in ${POKER_BUY_IN} arcade points. Join the queue — the Fates seat you with other hackers at the event.`}
                     </p>
                     {view.queue.length > 0 ? (

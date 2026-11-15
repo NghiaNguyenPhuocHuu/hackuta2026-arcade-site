@@ -3,9 +3,9 @@ import { DEFAULT_TIMINGS, autoMoveFor, draw, leave, placeWager, play, viewFor, t
 import {
   O21_BUY_IN,
   O21_IDLE_CLOSE_MS,
-  O21_QUEUE_FILL_MS,
-  chooseSeating,
+  joinLive,
   openLiveTable,
+  roomPlayers,
   runLive,
   saveLive,
   seatedPlayer,
@@ -16,26 +16,18 @@ import { seededRng } from "../../shared/olympus21/rules.js";
 const T0 = 1_800_000_000_000;
 const rng = seededRng(7);
 
-const q = (n: number, at = T0) => Array.from({ length: n }, (_, i) => ({ id: `h${i}`, joinedAt: at + i }));
-
-describe("chooseSeating (poker's rule, humans only)", () => {
-  it("waits with nobody queued, or too early", () => {
-    expect(chooseSeating([], T0)).toBeNull();
-    expect(chooseSeating(q(2), T0 + 100)).toBeNull();
+describe("joinLive / roomPlayers (filling a running table)", () => {
+  it("a newcomer sits down mid-round with the buy-in and is dealt in next round", () => {
+    const table = openLiveTable({ id: "t", humans: [{ id: "a", name: "Ana" }, { id: "b", name: "Ben" }], now: T0, rng });
+    expect(roomPlayers(table)).toBe(2);
+    expect(joinLive(table, { id: "c", name: "Cy" }, T0)).toEqual({ ok: true });
+    expect(roomPlayers(table)).toBe(3);
+    expect(seatedPlayer(table, "c")).toMatchObject({ balance: O21_BUY_IN, bot: false });
   });
 
-  it("never seats a lone hacker, however long they wait (no bots)", () => {
-    expect(chooseSeating(q(1), T0 + 60 * 60_000)).toBeNull();
-  });
-
-  it("seats a full group at once, the four oldest first", () => {
-    const queue = [...q(4, T0 + 10), { id: "oldest", joinedAt: T0 }];
-    expect(chooseSeating(queue, T0 + 20)!.map((h) => h.id)).toEqual(["oldest", "h0", "h1", "h2"]);
-  });
-
-  it("seats 2–3 humans together after the short wait", () => {
-    expect(chooseSeating(q(2), T0 + O21_QUEUE_FILL_MS)!.map((h) => h.id)).toEqual(["h0", "h1"]);
-    expect(chooseSeating(q(3), T0 + O21_QUEUE_FILL_MS)).toHaveLength(3);
+  it("refuses a fifth player", () => {
+    const table = openLiveTable({ id: "t", humans: ["a", "b", "c", "d"].map((id) => ({ id, name: id })), now: T0, rng });
+    expect(joinLive(table, { id: "e", name: "E" }, T0)).toEqual({ ok: false, code: "TABLE_FULL" });
   });
 });
 
@@ -46,8 +38,8 @@ function harness(humans: string[]) {
   let idleSince: number | null = null;
   const paid: CashOut[] = [];
   let closed = false;
-  const run = (command?: (table: Table) => { ok: boolean } | null, open = true) => {
-    const out = runLive(state, { now, rng, open, idleSince, command: command as never });
+  const run = (command?: (table: Table) => { ok: boolean } | null, open = true, queueWaiting = false) => {
+    const out = runLive(state, { now, rng, open, idleSince, queueWaiting, command: command as never });
     state = saveLive(out.table);
     idleSince = out.idleSince;
     paid.push(...out.cashOuts);
@@ -102,6 +94,19 @@ describe("runLive", () => {
       { playerId: "a", chips: O21_BUY_IN, reason: "left" },
       { playerId: "b", chips: O21_BUY_IN, reason: "closed" },
     ]);
+  });
+
+  it("keeps a table with one player open while someone is queued, so the next hacker takes the seat", () => {
+    const h = harness(["a", "b"]);
+    const out = h.run((table) => leave(table, "a", h.now), true, true);
+    expect(out.closed).toBe(false);
+    expect(out.cashOuts).toEqual([{ playerId: "a", chips: O21_BUY_IN, reason: "left" }]);
+    // The queued hacker sits down and the table plays on.
+    expect(h.run((table) => joinLive(table, { id: "c", name: "Cy" }, h.now)).closed).toBe(false);
+    expect(roomPlayers(h.table())).toBe(2);
+    // With nobody queued, a lone player's table breaks and pays them.
+    const h2 = harness(["a", "b"]);
+    expect(h2.run((table) => leave(table, "a", h2.now)).closed).toBe(true);
   });
 
   it("closing the game (arcade off) closes the table and pays everyone their chips", () => {

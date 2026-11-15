@@ -1,6 +1,11 @@
 /**
  * Event-wide Olympus Poker matchmaking.
  *
+ * Rooms (shared/arcade/matchmaking.ts, same as Olympus 21): a table starts as
+ * soon as 2 hackers are waiting; later arrivals fill open tables up to 4 (the
+ * fullest first), sitting out until the next hand; a seat someone leaves goes
+ * to the next hacker in the queue; once every table is full a new one opens.
+ *
  * Everyone shares one queue. A player is the signed-in, accepted, checked-in
  * hacker (from their Convex Auth session, never from anything the browser
  * sends). The buy-in comes out of their arcade wallet when they join the
@@ -17,15 +22,14 @@ import type { MutationCtx, QueryCtx } from "../lib/dataModel";
 import { gameGate, loadPlayer, playerDisplayName, playerProblem } from "./access";
 import { applyPlay, creditWallet } from "./points";
 import { arcadeBalance } from "./wallet";
+import { planSeating } from "../../shared/arcade/matchmaking";
 import {
   applyAction,
   chooseBotAction,
   POKER_ACTION_TIMEOUT_MS,
   POKER_BUY_IN,
-  POKER_INSTANT_SEATS,
   POKER_MAX_PLAYERS,
   POKER_MIN_PLAYERS,
-  POKER_QUEUE_FILL_MS,
   POKER_SHOWDOWN_PAUSE_MS,
   publicTable,
   rotateDealer,
@@ -146,8 +150,10 @@ async function seatsForTable(ctx: QueryCtx | MutationCtx, tableId: Id<"pokerTabl
     .query("pokerSeats")
     .withIndex("by_table", (q) => q.eq("tableId", tableId))
     .collect()) as SeatDoc[];
-  rows.sort((a, b) => a.seatIndex - b.seatIndex);
-  return rows;
+  // Seat records whose slot was handed to a newcomer keep their history with a negative index.
+  const live = rows.filter((row) => row.seatIndex >= 0);
+  live.sort((a, b) => a.seatIndex - b.seatIndex);
+  return live;
 }
 
 async function loadTable(
@@ -497,7 +503,6 @@ export const joinQueue = mutation({
     const paid = await applyPlay(ctx, { checkedIn: ensured.checkedIn, game: GAME, playId: `buyin-${queueId}`, stake: POKER_BUY_IN, payout: 0, now });
     if (!paid.ok) throw new Error(`poker: buy-in refused (${paid.code})`);
     await ctx.scheduler.runAfter(0, api.arcade.poker.trySeat, {});
-    await ctx.scheduler.runAfter(POKER_QUEUE_FILL_MS, api.arcade.poker.trySeat, {});
     return { status: "ok" as const, phase: "queued" as const };
   },
 });
@@ -556,11 +561,43 @@ export const leaveTable = mutation({
       return { status: "ok" as const };
     }
     await persistAndAdvance(ctx, after.table, after.seats, after.state);
+    // The free seat goes to the next hacker in the queue.
+    await ctx.scheduler.runAfter(0, api.arcade.poker.trySeat, {});
     return { status: "ok" as const };
   },
 });
 
-/** Public so tests and a delayed client can nudge seating; only seats when the house rules say so. */
+/**
+ * Puts a queued hacker into a running table: the slot of someone who left
+ * (their record is kept, moved out of the table's order) or a new slot. They
+ * sit folded with no cards until the next hand deals them in. A left slot
+ * keeps its `committed` chips so this hand's pots still add up.
+ */
+async function seatInTable(ctx: MutationCtx, tableId: Id<"pokerTables">, human: { playerId: Id<"pokerPlayers">; name: string }) {
+  const seats = await seatsForTable(ctx, tableId);
+  if (seats.filter((seat) => !seat.sittingOut).length >= POKER_MAX_PLAYERS) return false;
+  const vacant = seats.find((seat) => seat.sittingOut);
+  if (vacant) await ctx.db.patch(vacant._id, { seatIndex: -1 - vacant.seatIndex });
+  await ctx.db.insert("pokerSeats", {
+    tableId,
+    playerId: human.playerId,
+    seatIndex: vacant ? vacant.seatIndex : seats.length,
+    name: human.name,
+    chips: POKER_BUY_IN,
+    hole: [],
+    folded: true,
+    allIn: false,
+    streetBet: vacant ? vacant.streetBet : 0,
+    committed: vacant ? vacant.committed : 0,
+    actedThisStreet: true,
+    isBot: false,
+    sittingOut: false,
+  });
+  await ctx.db.patch(tableId, { log: `${human.name} takes a seat for the next hand.`, updatedAt: Date.now() });
+  return true;
+}
+
+/** Seats the queue by the room rules (shared/arcade/matchmaking.ts). Public so tests and a delayed client can nudge it. */
 export const trySeat = mutation({
   args: {},
   handler: async (ctx) => {
@@ -569,24 +606,26 @@ export const trySeat = mutation({
     if (code) return;
     const waiting = await waitingQueue(ctx);
     if (waiting.length === 0) return;
-    const take = waiting.slice(0, POKER_MAX_PLAYERS);
-    const oldest = take[0]!;
-    const waited = now - oldest.joinedAt;
-    let humans: typeof take;
-    if (take.length >= POKER_INSTANT_SEATS) {
-      humans = take.slice(0, POKER_MAX_PLAYERS);
-    } else if (take.length >= POKER_MIN_PLAYERS && waited >= POKER_QUEUE_FILL_MS) {
-      humans = take.slice(0, POKER_MAX_PLAYERS);
-    } else {
-      return;
+    const tables = await ctx.db
+      .query("pokerTables")
+      .withIndex("by_status", (q) => q.eq("status", "playing"))
+      .collect();
+    const rooms = [];
+    for (const table of tables) {
+      const seats = await seatsForTable(ctx, table._id);
+      rooms.push({ id: table._id, players: seats.filter((seat) => !seat.sittingOut).length, createdAt: table._creationTime });
     }
-    for (const human of humans) {
-      await ctx.db.delete(human.queueId);
+    const plan = planSeating(waiting, rooms, { min: POKER_MIN_PLAYERS, max: POKER_MAX_PLAYERS });
+    for (const { room, entry } of plan.joins) {
+      if (await seatInTable(ctx, room, { playerId: entry.playerId, name: entry.name })) await ctx.db.delete(entry.queueId);
     }
-    await openTable(
-      ctx,
-      humans.map((row) => ({ playerId: row.playerId, name: row.name })),
-    );
+    for (const group of plan.newRooms) {
+      for (const human of group) await ctx.db.delete(human.queueId);
+      await openTable(
+        ctx,
+        group.map((row) => ({ playerId: row.playerId, name: row.name })),
+      );
+    }
   },
 });
 
@@ -664,6 +703,7 @@ export const kickIfIdle = internalMutation({
       return;
     }
     await persistAndAdvance(ctx, after.table, after.seats, after.state);
+    await ctx.scheduler.runAfter(0, api.arcade.poker.trySeat, {});
   },
 });
 
