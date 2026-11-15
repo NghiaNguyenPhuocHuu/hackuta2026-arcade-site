@@ -360,3 +360,117 @@
     height: 78px;
   }
 }
+
+/* Winner popup at showdown, over the felt. */
+.poker-winner {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  justify-items: center;
+  align-items: start;
+  padding: 40px 12px 12px;
+  background: rgb(7 21 38 / 0.55);
+  animation: poker-winner-fade 0.25s ease-out both;
+}
+
+.poker-winner__card {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  max-width: min(100%, 360px);
+  padding: 18px 20px 14px;
+  border: 3px solid var(--mg-ink);
+  outline: 3px solid var(--mg-gold);
+  background: var(--mg-dialog);
+  box-shadow: 6px 6px 0 #000;
+  color: var(--mg-marble);
+  font-family: var(--mg-body);
+  text-align: center;
+  cursor: pointer;
+  animation: poker-winner-pop 0.45s cubic-bezier(0.22, 1.4, 0.36, 1) both;
+}
+
+.poker-winner__card--you {
+  outline-color: var(--mg-win);
+  background: #1d4d3a;
+}
+
+.poker-winner__crown {
+  font-size: 34px;
+  line-height: 1;
+  color: var(--mg-gold);
+  text-shadow: 3px 3px 0 #000;
+  animation: poker-winner-bob 1.2s ease-in-out infinite;
+}
+
+.poker-winner__title {
+  font-family: var(--mg-display);
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--mg-gold);
+  text-shadow: 2px 2px 0 #000;
+}
+
+.poker-winner__card--you .poker-winner__title {
+  color: var(--mg-win);
+}
+
+.poker-winner__row {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.poker-winner__name {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.poker-winner__amount {
+  font-family: var(--mg-display);
+  font-size: 14px;
+  color: var(--mg-gold-light);
+}
+
+.poker-winner__hand {
+  font-size: 18px;
+  color: var(--mg-marble);
+}
+
+.poker-winner__cards {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.poker-winner__hint {
+  margin-top: 4px;
+  font-family: var(--mg-display);
+  font-size: 9px;
+  color: var(--mg-mist);
+}
+
+.poker-winner__card:focus-visible {
+  outline-offset: 3px;
+}
+
+@keyframes poker-winner-fade {
+  from { opacity: 0; }
+}
+
+@keyframes poker-winner-pop {
+  from { opacity: 0; transform: scale(0.7) translateY(12px); }
+}
+
+@keyframes poker-winner-bob {
+  50% { transform: translateY(-4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .poker-winner,
+  .poker-winner__card,
+  .poker-winner__crown {
+    animation: none;
+  }
+}

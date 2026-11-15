@@ -114,6 +114,63 @@ function SeatView({
   );
 }
 
+/**
+ * Who won the hand, shown on the felt at showdown: name ("You" for the
+ * viewer), the amount, the winning hand and its two cards. A split pot lists
+ * every share; a hand won because everyone else folded says so. It closes on
+ * a tap, and by itself when the next hand is dealt.
+ */
+function WinnerPopup({ table, youId }: { table: PublicTable; youId: string }) {
+  const [dismissedHand, setDismissedHand] = useState<number | null>(null);
+  if (table.street !== "showdown" || table.winners.length === 0 || dismissedHand === table.handNumber) return null;
+  const seatOf = (id: string) => table.seats.find((seat) => seat.id === id);
+  // One player can be paid more than once in a hand (main pot plus side pot or an
+  // odd leftover chip): add their shares up, so a split means different players.
+  const winners: typeof table.winners = [];
+  for (const row of table.winners) {
+    const same = winners.find((w) => w.playerId === row.playerId);
+    if (same) same.amount += row.amount;
+    else winners.push({ ...row, hand: row.hand ?? undefined });
+  }
+  for (const row of table.winners) {
+    const merged = winners.find((w) => w.playerId === row.playerId)!;
+    if (!merged.hand && row.hand) merged.hand = row.hand;
+  }
+  const youWon = winners.some((row) => row.playerId === youId);
+  const split = winners.length > 1;
+  const title = split ? "SPLIT POT" : youWon ? "YOU WIN!" : `${(seatOf(winners[0]!.playerId)?.name ?? "A player").toUpperCase()} WINS`;
+  const announce = winners
+    .map((row) => `${row.playerId === youId ? "You" : seatOf(row.playerId)?.name ?? "A player"} won ${formatPts(row.amount)} points${row.hand ? ` with ${row.hand.label}` : ""}.`)
+    .join(" ");
+  return (
+    <div className="poker-winner" role="status" aria-live="polite" aria-label={announce}>
+      <button type="button" className={`poker-winner__card${youWon ? " poker-winner__card--you" : ""}`} onClick={() => setDismissedHand(table.handNumber)}>
+        <span className="poker-winner__crown" aria-hidden="true">♛</span>
+        <span className="poker-winner__title">{title}</span>
+        {winners.map((row) => {
+          const seat = seatOf(row.playerId);
+          const name = row.playerId === youId ? "You" : seat?.name ?? "A player";
+          return (
+            <span key={row.playerId} className="poker-winner__row">
+              {split ? <span className="poker-winner__name">{name}</span> : null}
+              <span className="poker-winner__amount">+{formatPts(row.amount)} pts</span>
+              <span className="poker-winner__hand">{row.hand ? row.hand.label : "Everyone else folded"}</span>
+              {row.hand && seat?.hole?.length ? (
+                <span className="poker-winner__cards" aria-hidden="true">
+                  {seat.hole.map((card, index) => (
+                    <PlayingCard key={`${card.rank}${card.suit}${index}`} card={card} />
+                  ))}
+                </span>
+              ) : null}
+            </span>
+          );
+        })}
+        <span className="poker-winner__hint">TAP TO CLOSE · NEXT HAND SOON</span>
+      </button>
+    </div>
+  );
+}
+
 function TableFelt({
   table,
   youId,
@@ -170,6 +227,7 @@ function TableFelt({
           secondsLeft={you.isToAct ? secondsLeft : null}
         />
       ) : null}
+      <WinnerPopup table={table} youId={youId} />
     </div>
   );
 }
