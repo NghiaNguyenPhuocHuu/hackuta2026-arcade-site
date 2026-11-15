@@ -1726,3 +1726,202 @@
     font-size: 1.05rem;
   }
 }
+
+/* ---- The broke cat: laughs when a solo game empties the arcade wallet (BrokeCatPopup.tsx) ---- */
+.broke-cat {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(16 47 70 / 0.78);
+  animation: broke-cat-in 0.2s steps(3, end);
+}
+
+.broke-cat__card {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: min(420px, 100%);
+  padding: 22px 20px 20px;
+  background: var(--color-night);
+  border: 4px solid var(--color-light);
+  box-shadow: 6px 6px 0 var(--color-ink);
+  color: var(--color-light);
+  text-align: center;
+  animation: broke-cat-shake 0.5s steps(4, end) 2;
+}
+
+.broke-cat__ha {
+  margin: 0;
+  font: 28px/1 var(--font-display);
+  letter-spacing: 0.08em;
+  color: var(--color-sand);
+}
+
+.broke-cat__ha span {
+  display: inline-block;
+  white-space: pre;
+  animation: broke-cat-bounce 0.36s steps(2, end) infinite alternate;
+}
+
+.broke-cat__cat,
+.broke-cat__img {
+  width: 176px;
+  height: auto;
+  image-rendering: pixelated;
+  animation: broke-cat-wobble 0.32s steps(2, end) infinite alternate;
+}
+
+.broke-cat__cat {
+  aspect-ratio: 16 / 14;
+  padding: 10px;
+  background: var(--color-ocean);
+  border: 3px solid var(--color-light);
+  box-sizing: content-box;
+}
+
+/* Two frames: open laugh, then the wheeze with tears. */
+.broke-cat__frame--b {
+  animation: broke-cat-frame 0.32s steps(1, end) infinite;
+}
+
+.broke-cat__frame--a {
+  animation: broke-cat-frame 0.32s steps(1, end) infinite reverse;
+}
+
+.broke-cat__px--K {
+  fill: var(--color-ink);
+}
+
+.broke-cat__px--S {
+  fill: var(--color-sand);
+}
+
+.broke-cat__px--L {
+  fill: var(--color-light);
+}
+
+.broke-cat__px--P {
+  fill: var(--color-clay);
+}
+
+.broke-cat__px--N {
+  fill: var(--color-night);
+}
+
+.broke-cat__px--T {
+  fill: var(--color-mist);
+}
+
+.broke-cat__title {
+  margin: 0;
+  font: 26px/1.1 var(--font-display);
+  color: var(--color-light);
+}
+
+.broke-cat__line {
+  margin: 0;
+  font: 17px/1.35 var(--font-sans);
+  color: var(--color-clay);
+}
+
+.broke-cat__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.broke-cat .broke-cat__deposit {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+  font: 600 15px/1 var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-sand);
+  border: 2px solid var(--color-sand);
+  text-decoration: none;
+}
+
+.broke-cat .broke-cat__deposit:hover {
+  background: var(--color-light);
+}
+
+.broke-cat__close {
+  padding: 10px 16px;
+  font: 600 15px/1 var(--font-sans);
+  color: var(--color-light);
+  background: transparent;
+  border: 2px solid var(--color-mist);
+  cursor: pointer;
+}
+
+.broke-cat__close:hover {
+  border-color: var(--color-light);
+}
+
+.broke-cat__close:focus-visible,
+.broke-cat__deposit:focus-visible {
+  outline: 3px solid var(--color-sand);
+  outline-offset: 2px;
+}
+
+@keyframes broke-cat-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes broke-cat-shake {
+  25% {
+    transform: translate(-4px, 2px) rotate(-1deg);
+  }
+  50% {
+    transform: translate(4px, -2px) rotate(1deg);
+  }
+  75% {
+    transform: translate(-2px, -2px);
+  }
+}
+
+@keyframes broke-cat-bounce {
+  to {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes broke-cat-wobble {
+  from {
+    transform: rotate(-4deg);
+  }
+  to {
+    transform: rotate(4deg) translateY(-3px);
+  }
+}
+
+@keyframes broke-cat-frame {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .broke-cat,
+  .broke-cat__card,
+  .broke-cat__ha span,
+  .broke-cat__cat,
+  .broke-cat__img,
+  .broke-cat__frame--a {
+    animation: none;
+  }
+
+  .broke-cat__frame--b {
+    display: none;
+  }
+}

@@ -3,7 +3,11 @@
  * the full screen switch can be inspected without signing in. Loaded only by
  * preview-fullscreen.html; not part of the site build.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { MemoryRouter } from "react-router-dom";
+import { BrokeCatPopup } from "../components/BrokeCatPopup";
+import "../styles/theme.css";
+import "../styles/arcade.css";
 import { createRoot } from "react-dom/client";
 import { ROULETTE_LIMITS } from "../../shared/roulette/rules";
 import { LAPTOP_MEDIA_QUERY } from "../games/fullscreen";
@@ -124,11 +128,26 @@ function O21Preview() {
   return <div ref={ref} />;
 }
 
+/** ?game=broke: the balance drops from 10 to 0 on a slots page, so the cat laughs. */
+function BrokePreview() {
+  const [points, setPoints] = useState(10);
+  useEffect(() => {
+    const id = setTimeout(() => setPoints(0), 300);
+    return () => clearTimeout(id);
+  }, []);
+  return (
+    <MemoryRouter initialEntries={["/play/olympus-slots"]}>
+      <BrokeCatPopup arcadePoints={points} />
+    </MemoryRouter>
+  );
+}
+
 const PANES: Record<string, () => React.ReactElement> = {
   slots: () => <SlotsPreview />,
   wheel: () => <RouletteGame adapter={rouletteAdapter()} />,
   poker: () => <PokerApp />,
   o21: () => <O21Preview />,
+  broke: () => <BrokePreview />,
 };
 
 function App() {

@@ -241,3 +241,16 @@ the next `npm run convex:push-dev`; the site uses the registry names already.
   turns with play/draw, settle, zero-sum chips, out-of-turn refused, PLAY AGAIN,
   cash-out): `backend:test` 73 pass.
 - Still to do by hand: two accepted, checked-in accounts in two browsers.
+
+## Olympus 21 compact layout + the broke cat (2026-11-15, local)
+
+- Olympus 21 table layout fits one screen: hand, bets and last rounds in a side
+  column; ~540–655px tall at the arcade's width (was 1,170–1,300). Phones unchanged.
+  Preview real engine phases: `/preview-fullscreen.html?game=o21&state=wagering|turns|settled`.
+- **Broke cat** (`src/arcade/brokeCat.ts`, `src/components/BrokeCatPopup.tsx`): when the
+  arcade wallet drops to 0 in Slots or Wheel (not table games: a buy-in can empty the
+  wallet on purpose), an original pixel cat laughs with a synthesized laugh track
+  (game SOUND switch applies), once per drop, after the spin's reveal. "Deposit more
+  points" goes to the Wallet; Esc / "I'm not mad" closes. Optional own meme files:
+  set `BROKE_MEME` paths (files in `public/`, ones you have the rights to). Preview:
+  `?game=broke`.

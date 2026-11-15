@@ -4,6 +4,8 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { ArcadeBrand } from "../components/ArcadeBrand";
 import { ExternalIcon, MusicOffIcon, MusicOnIcon, NavTempleIcon, NavWalletIcon } from "../components/brand/ArcadeIcons";
 import { arcadeMusic, musicEnabled, setMusicEnabled, subscribeMusic } from "../arcade/music";
+import { laughTrack } from "../arcade/brokeCat";
+import { BrokeCatPopup } from "../components/BrokeCatPopup";
 import { NavSignOutIcon } from "../components/brand/NavIcons";
 import { initials, type ArcadeSession } from "../arcade/useArcadeSession";
 import { PROFILE_URL } from "../constants/site";
@@ -32,6 +34,8 @@ export function ArcadeLayout({ session }: { session: ArcadeSession }) {
     const music = arcadeMusic();
     const start = () => {
       if (musicEnabled()) music.start();
+      // The broke cat may laugh later without a tap of its own: open its audio now.
+      laughTrack().unlock();
     };
     const visibility = () => music.setHidden(document.hidden);
     window.addEventListener("pointerdown", start);
@@ -62,6 +66,7 @@ export function ArcadeLayout({ session }: { session: ArcadeSession }) {
 
   return (
     <div className={`participant-dashboard${night ? " arcade-theme--night" : ""}`}>
+      <BrokeCatPopup arcadePoints={player ? player.arcadePoints : null} />
       <aside className="participant-dashboard__sidebar" aria-label="Arcade navigation">
         <div className="participant-dashboard__sidebar-head">
           <ArcadeBrand night={night} />
