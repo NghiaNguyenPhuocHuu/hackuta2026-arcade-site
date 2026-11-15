@@ -63,28 +63,56 @@ Copied from `hackuta-2026-profile` (commit `d838016`), not recreated:
    profile. Undecided whether to drop it (arcade only) or keep both for a while.
 6. The sidebar sign-out button has no handler yet (wired with auth in step 2).
 
-## Next step: 1, the backend
+## Step 1 (backend) is done: 2026-11-14, not pushed
 
-From `docs/ARCADE_PLAN.md`. All files go in `backend/overlay/` (laid over the
-pinned profile backend by `scripts/assemble-backend.mjs`); tests in
-`backend/overlay/tests/integration/`, run with `npm run backend:test`.
+All in `backend/overlay/convex/arcade/` (see `backend/README.md` for the
+file list). `npm run backend:test` runs 32 tests; `node scripts/test-backend.mjs --all`
+(the profile's whole suite on the build) passes 108.
 
-- Tables `arcadeSettings` (status `off|scheduled|on`, `opensAt`, `closesAt`,
-  `updatedBy`, `updatedAt`) and `arcadeGames` (`key`, `name`, `enabled`,
-  `order`). Additive schema edits only (`backend/overlay/convex/schema.ts`).
-- `requireGameOpen(ctx, gameKey)` used by every game mutation (site open by
-  server clock, game enabled, signed-in accepted checked-in hacker). Move the
-  existing slot window check in `slotSpin.ts` onto it and fold `slotWindows`
-  into the arcade schedule.
-- Launch codes: `createLaunchCode` mutation (32 random bytes, store SHA-256
-  hash, 60 s expiry, single use, rate-limited) and a `ConvexCredentials`
-  provider `arcade-launch` registered in profile's `convex/auth.ts`. That makes
-  `convex/auth.ts` a new edited base file: copy it into the overlay and add its
-  hash to `backend/BASE.json` `modified`.
-- Admin functions + `*Internal` CLI versions, audit to `staffConfigLogs` with
-  new `arcade_*` actions (see how `slotWindows.ts` and `fields.ts` do it).
-- A query for the site (`getArcadeSession`) and one for profile's button
-  (`getLauncherState`).
+- **One shared points path.** Games never write `checkedIn.points` directly:
+  `beginPlay` → `cooldownLeft` → result → `applyPlay`, inside the game's
+  mutation (one transaction). `arcadePlays` holds one row per play for every
+  game and `computeLedgerPoints` counts it.
+- **The player always comes from the session**, never from an id the browser sends.
+- **Olympus Slots** now opens and closes with the arcade switch and its own
+  game switch. `slotWindows` was removed (never deployed). New error codes
+  `ARCADE_CLOSED`, `GAME_DISABLED`, `INVALID_PLAY_ID` replace
+  `WINDOW_CLOSED` / `INVALID_SPIN_ID`; the site's adapter maps them.
+- **`convex/auth.ts`** is now an edited base file (the `arcade-launch`
+  provider); its hash is in `BASE.json`.
+- Site: `src/convex/arcadeApi.ts` has the references; `GameKey` comes from
+  `shared/arcade/rules.ts`, and a test keeps the registry and the server list equal.
+
+Edge cases covered by tests: signed out / not a participant / waitlisted /
+not checked in / acceptance revoked after check-in; schedule before, during
+and after (by the server clock); an "on" switch past its end time; game off
+with the arcade on; admin switching off mid-session; repeated play ids
+(no second charge, still answered after closing; the same id in another game
+is a separate play); stakes of 0, negative, fractional or above the balance;
+betting down to exactly 0; cooldowns per game; one balance across games and
+outside changes (shop, volunteers) showing in the session; ledger parity;
+non-admins and bad admin input changing nothing; launch codes single use,
+60 s expiry, hash-only storage, malformed or unknown codes, launch codes
+switched off after a code was handed out, rate limit and clean-up.
+
+Not testable in convex-test: the `arcade-launch` provider itself (Convex Auth's
+sign-in action). It only calls `consumeLaunchCode`, which is tested; try it end to
+end in step 2.
+
+## Next step: 2, the site shell
+
+- Wrap the app in `ConvexAuthProvider` (from `@convex-dev/auth/react`, add the
+  dependency) instead of `ConvexProvider`.
+- `/launch` page: read `#code=`, clear it from the address bar
+  (`history.replaceState`), `signIn("arcade-launch", { code })`, go to `/`.
+- `useArcadeSession`: `useQuery(getArcadeSessionRef, { nowBucket })` instead of
+  the mock, bumping `nowBucket` at `arcade.nextChangeAt`; map `player.problem`
+  to the status screens. Keep the mock behind `?preview=` (or a dev flag) so
+  the site still runs without a backend.
+- Backup sign-in form on the signed-out screen when `signIn.backupSignIn`.
+- Sign-out button in the sidebar.
+- Then step 3 (Olympus Slots on its Convex adapter) and the roulette backend
+  on the same `beginPlay` / `applyPlay` path.
 
 ## Environment notes
 

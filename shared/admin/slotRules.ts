@@ -5,7 +5,6 @@
  * tables must stay identical (the prototype repo has a parity test). The server
  * is the only place a real spin is rolled.
  */
-import { ConvexError } from "convex/values";
 
 export type SlotOutcomeId = "big" | "win" | "push" | "lose";
 export type SlotSymbol = "hera" | "apollo" | "athena" | "poseidon" | "hermes" | "aphrodite" | "odysseus" | "zeus";
@@ -38,12 +37,6 @@ export const SLOT_JACKPOT_SYMBOL: SlotSymbol = "zeus";
 
 /** Longest spin idempotency key a client may send. */
 export const SLOT_SPIN_ID_MAX_LENGTH = 64;
-/** Longest organizer window. */
-export const SLOT_WINDOW_MAX_MS = 6 * 60 * 60 * 1000;
-/** How long after a window ends the game still reports "closed" instead of "none". */
-export const SLOT_CLOSED_GRACE_MS = 12 * 60 * 60 * 1000;
-/** Longest organizer window label. */
-export const SLOT_WINDOW_LABEL_MAX_LENGTH = 80;
 
 const REGULAR_SYMBOLS: readonly SlotSymbol[] = Object.freeze(
   SLOT_SYMBOLS.filter((symbol) => symbol !== SLOT_JACKPOT_SYMBOL),
@@ -133,40 +126,4 @@ export function payoutFor(wager: number, outcome: SlotOutcome): number {
 /** Long-run return to player implied by the odds table (0.9 = 90%). */
 export function expectedRtp(): number {
   return SLOT_OUTCOMES.reduce((sum, outcome) => sum + (outcome.weight / SLOT_WEIGHT_TOTAL) * outcome.multiplier, 0);
-}
-
-// ---- organizer window errors (thrown by admin window functions) ----
-
-export type SlotWindowErrorCode =
-  | "SLOT_WINDOW_INVALID"
-  | "SLOT_WINDOW_TOO_LONG"
-  | "SLOT_WINDOW_OVERLAP"
-  | "SLOT_WINDOW_NOT_FOUND"
-  | "SLOT_WINDOW_NOT_EDITABLE";
-
-export const SLOT_WINDOW_ERROR_MESSAGES: Readonly<Record<SlotWindowErrorCode, string>> = {
-  SLOT_WINDOW_INVALID: "The window must close after it opens, and end in the future.",
-  SLOT_WINDOW_TOO_LONG: "A minigame window can be at most 6 hours long.",
-  SLOT_WINDOW_OVERLAP: "This window overlaps another scheduled minigame window.",
-  SLOT_WINDOW_NOT_FOUND: "That minigame window no longer exists.",
-  SLOT_WINDOW_NOT_EDITABLE: "Only windows that have not ended or been cancelled can change.",
-};
-
-export function slotWindowError(code: SlotWindowErrorCode) {
-  return new ConvexError({ code, message: SLOT_WINDOW_ERROR_MESSAGES[code] });
-}
-
-/** Trims a label; empty becomes undefined. Throws when too long. */
-export function normalizeSlotWindowLabel(label: string | undefined): string | undefined {
-  const trimmed = (label ?? "").trim();
-  if (!trimmed) return undefined;
-  if (trimmed.length > SLOT_WINDOW_LABEL_MAX_LENGTH) throw slotWindowError("SLOT_WINDOW_INVALID");
-  return trimmed;
-}
-
-/** Validates a window's times against `now`. */
-export function assertSlotWindowTimes(opensAt: number, closesAt: number, now: number) {
-  if (!Number.isSafeInteger(opensAt) || !Number.isSafeInteger(closesAt)) throw slotWindowError("SLOT_WINDOW_INVALID");
-  if (closesAt <= opensAt || closesAt <= now) throw slotWindowError("SLOT_WINDOW_INVALID");
-  if (closesAt - opensAt > SLOT_WINDOW_MAX_MS) throw slotWindowError("SLOT_WINDOW_TOO_LONG");
 }

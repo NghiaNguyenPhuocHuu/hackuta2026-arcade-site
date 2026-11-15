@@ -4,8 +4,8 @@ import { PageHeader, PointsPill } from "../components/PageHeader";
 import { BackIcon } from "../components/brand/ArcadeIcons";
 import { formatClock, type ArcadeSession } from "../arcade/useArcadeSession";
 import { findGame, type GameEntry } from "../games/registry";
-import { createMockAdapter } from "../games/olympus-slots/adapters/mockAdapter";
-import { getMockWallet, setMockWallet } from "../arcade/mockWallet";
+import { mockWalletPort } from "../arcade/mockWallet";
+import { useRevealWait, useSecondsLeft } from "../arcade/pointsReveal";
 
 export default function PlayPage() {
   const session = useOutletContext<ArcadeSession>();
@@ -57,9 +57,28 @@ export default function PlayPage() {
           </Link>
         </div>
       ) : (
-        <GameStage game={game} player={session.player} />
+        <RevealGate game={game} player={session.player} />
       )}
     </section>
+  );
+}
+
+/**
+ * A spin from another game (or this one, left mid-spin) is still being
+ * revealed: wait for it before mounting, so this game can't show its result
+ * early. Only a few seconds; the game opens by itself.
+ */
+function RevealGate({ game, player }: { game: GameEntry; player: ArcadeSession["player"] }) {
+  const waiting = useRevealWait();
+  const seconds = useSecondsLeft(waiting ? waiting.until : null);
+  if (!waiting) return <GameStage game={game} player={player} />;
+  const from = findGame(waiting.game);
+  return (
+    <div className="arcade-stage">
+      <p className="arcade-stage__loading" role="status">
+        The Fates are still deciding your {from && from.key !== game.key ? `${from.shortName.toLowerCase()} ` : ""}spin… {game.name} opens in {seconds}s.
+      </p>
+    </div>
   );
 }
 
@@ -73,26 +92,17 @@ function GameStage({ game, player }: { game: GameEntry; player: ArcadeSession["p
     if (!game.load) return;
     let unmount: (() => void) | undefined;
     let cancelled = false;
-    let stopSync: (() => void) | undefined;
-    let disposeAdapter: (() => void) | undefined;
     setReady(false);
     setError(null);
     game
       .load()
-      .then((mount) => {
+      .then((module) => {
         if (cancelled || !ref.current) return;
-        if (game.key === "olympus-poker") {
-          unmount = mount(ref.current, {
-            player: player ? { displayName: player.displayName } : undefined,
-          });
-        } else {
-          // Start from the visit's wallet and write every change back, so the balance
-          // and history survive leaving the game and the lobby's points pill follows.
-          const adapter = createMockAdapter(getMockWallet());
-          stopSync = adapter.subscribe(({ balance, recentSpins }) => setMockWallet({ balance, recentSpins }));
-          disposeAdapter = () => adapter.dispose();
-          unmount = mount(ref.current, { adapter });
-        }
+        // The visit's shared mock wallet: balance and history survive leaving the
+        // game, and the lobby's points pill follows.
+        unmount = module.mountMock(ref.current, mockWalletPort(game.key), {
+          player: player ? { displayName: player.displayName } : undefined,
+        });
         setReady(true);
       })
       .catch(() => {
@@ -101,8 +111,6 @@ function GameStage({ game, player }: { game: GameEntry; player: ArcadeSession["p
     return () => {
       cancelled = true;
       unmount?.();
-      stopSync?.();
-      disposeAdapter?.();
     };
   }, [game, player?.displayName]);
 

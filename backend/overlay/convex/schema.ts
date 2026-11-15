@@ -352,10 +352,10 @@ export default defineSchema({
     targetCheckedInId: v.optional(v.id("checkedIn")),
     targetShopItemId: v.optional(v.id("shopItems")),
     targetFlashSaleId: v.optional(v.id("shopFlashSales")),
-    /** Set on `slot_window_*` rows. */
-    targetSlotWindowId: v.optional(v.id("slotWindows")),
     /** Set on `o21_window_*` rows. */
     targetO21WindowId: v.optional(v.id("o21Windows")),
+    /** Set on `arcade_game_updated` rows. */
+    targetArcadeGameKey: v.optional(v.string()),
     details: v.optional(v.string()),
     createdAt: v.number(),
   })
@@ -485,39 +485,81 @@ export default defineSchema({
     .index("by_sale", ["flashSaleId"]),
 
   /**
-   * Points minigame (Olympus Slots) play windows. Organizer-scheduled; only
-   * cancellation is stored, status comes from the window and the server clock.
+   * The arcade site switch (one row, `key: "arcade"`). Status for players comes
+   * from `mode`, the times and the server clock (shared/arcade/rules.ts).
+   * No row yet reads as off, launch codes on, backup sign-in off.
    */
-  slotWindows: defineTable({
-    opensAt: v.number(),
-    closesAt: v.number(),
-    label: v.optional(v.string()),
-    /** Unset when created from the CLI (internal mutation). */
-    createdBy: v.optional(v.id("admins")),
-    cancelledAt: v.optional(v.number()),
-    cancelledBy: v.optional(v.id("admins")),
-    createdAt: v.number(),
+  arcadeSettings: defineTable({
+    key: v.literal("arcade"),
+    mode: v.union(v.literal("off"), v.literal("scheduled"), v.literal("on")),
+    opensAt: v.optional(v.number()),
+    closesAt: v.optional(v.number()),
+    /** Profile → arcade one-click sign-in. Off refuses every launch code. */
+    launchEnabled: v.boolean(),
+    /** Break-glass: the signed-out screen offers email + password sign-in. */
+    backupSignIn: v.boolean(),
+    updatedBy: v.optional(v.id("admins")),
     updatedAt: v.number(),
-  })
-    .index("by_opensAt", ["opensAt"])
-    .index("by_closesAt", ["closesAt"]),
+  }).index("by_key", ["key"]),
+
+  /** Per-game switch. A game with no row is off. */
+  arcadeGames: defineTable({
+    key: v.string(),
+    name: v.string(),
+    enabled: v.boolean(),
+    order: v.number(),
+    updatedBy: v.optional(v.id("admins")),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
 
   /**
-   * One row per minigame spin. `pointsDelta` (payout − wager) counts toward the
-   * checked-in balance in `computeLedgerPoints`. `spinId` is the client's
-   * idempotency key, unique per checked-in attendee.
+   * Every change to points made by an arcade game, one row per play. The only
+   * place games write points (convex/arcade/points.ts); `pointsDelta`
+   * (payout − stake) counts toward the balance in `computeLedgerPoints`.
+   * `playId` is the client's idempotency key, unique per attendee and game.
+   */
+  arcadePlays: defineTable({
+    checkedInId: v.id("checkedIn"),
+    game: v.string(),
+    playId: v.string(),
+    stake: v.number(),
+    payout: v.number(),
+    pointsDelta: v.number(),
+    previousPoints: v.number(),
+    newPoints: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_checkedIn_createdAt", ["checkedInId", "createdAt"])
+    .index("by_checkedIn_game_playId", ["checkedInId", "game", "playId"])
+    .index("by_checkedIn_game_createdAt", ["checkedInId", "game", "createdAt"])
+    .index("by_game_createdAt", ["game", "createdAt"]),
+
+  /**
+   * One-time codes for the profile → arcade hand-off. Only the SHA-256 hash of
+   * the code is stored. Single use, short expiry.
+   */
+  arcadeLaunchCodes: defineTable({
+    codeHash: v.string(),
+    userId: v.id("users"),
+    expiresAt: v.number(),
+    usedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_codeHash", ["codeHash"])
+    .index("by_user_createdAt", ["userId", "createdAt"]),
+
+  /**
+   * Olympus Slots details for each spin (reels, outcome). The points side of
+   * the spin is its `arcadePlays` row (`playId`).
    */
   slotSpins: defineTable({
     checkedInId: v.id("checkedIn"),
-    windowId: v.id("slotWindows"),
+    playId: v.id("arcadePlays"),
     spinId: v.string(),
     wager: v.number(),
     payout: v.number(),
-    pointsDelta: v.number(),
     outcome: v.string(),
     symbols: v.array(v.string()),
-    previousPoints: v.number(),
-    newPoints: v.number(),
     createdAt: v.number(),
   })
     .index("by_checkedIn_createdAt", ["checkedInId", "createdAt"])

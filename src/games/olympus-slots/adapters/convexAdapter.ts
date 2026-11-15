@@ -39,7 +39,8 @@ export type ConvexGameState = GameState & {
 
 /** Backend spin error code → SPA failure status. */
 const ERROR_STATUS: Readonly<Record<string, SpinFailureStatus>> = Object.freeze({
-  WINDOW_CLOSED: "closed",
+  ARCADE_CLOSED: "closed",
+  GAME_DISABLED: "closed",
   INVALID_WAGER: "invalid_wager",
   INSUFFICIENT_POINTS: "insufficient_points",
   COOLDOWN: "rate_limited",

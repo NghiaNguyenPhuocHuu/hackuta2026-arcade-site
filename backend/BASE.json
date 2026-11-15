@@ -5,6 +5,7 @@
   "modified": {
     "convex/schema.ts": "ec9ef3fc8eae449fc54065ce2510c0c992b312de5bc88a42e8514755eac09ca8",
     "convex/admin/pointsLedger.ts": "c0f1996c9c498e600bd0ec654c06470583664fee78b77ca86e9375fc5855130f",
-    "convex/admin/fields.ts": "7aa0d17a5c1ef2bff0d115946dcf948d1424d570f89e4cfa3726e204d91ee27b"
+    "convex/admin/fields.ts": "7aa0d17a5c1ef2bff0d115946dcf948d1424d570f89e4cfa3726e204d91ee27b",
+    "convex/auth.ts": "6695507ee842ac9ed2b8f8fc94650a2720cffeeb8afb3f83c2de9b04b6849897"
   }
 }

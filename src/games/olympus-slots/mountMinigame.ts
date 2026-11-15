@@ -50,6 +50,10 @@ const SPIN_ANIMATION_MS = 1400;
 const REEL_TICK_MS = 85;
 const REEL_LAND_STAGGER_MS = 320;
 const CELEBRATION_MS = 2600;
+/** Until the server answers, hold the arcade's points at most this long. */
+const ANSWER_WAIT_MS = 15_000;
+/** From the answer to the last reel landing (rest of the spin + staggered stops), plus slack. */
+const REVEAL_MAX_MS = SPIN_ANIMATION_MS + SLOT_REEL_COUNT * REEL_LAND_STAGGER_MS + 500;
 const IDLE_SYMBOLS = ["athena", "hermes", "apollo", "hera"];
 
 const mountedElements = new WeakSet<HTMLElement>();
@@ -295,8 +299,8 @@ export function mountMinigame(el: HTMLElement, options: MountMinigameOptions): (
   if (mountedElements.has(el)) throw new Error("mountMinigame: this element already has a mounted minigame");
   mountedElements.add(el);
 
-  if (!options.adapter) throw new Error("mountMinigame: an adapter is required");
-  const adapter = options.adapter;
+  const { adapter } = options;
+  const points = options.points ?? { hold() {}, release() {} };
   const timeouts = new Set<ReturnType<typeof setTimeout>>();
   const intervals = new Set<ReturnType<typeof setInterval>>();
   const cleanups: Array<() => void> = [];
@@ -695,7 +699,10 @@ export function mountMinigame(el: HTMLElement, options: MountMinigameOptions): (
     failure = null;
     stopCelebration();
     clearReelHighlights();
-    setText(els.balance, formatPoints(state.balance - wager));
+    // What every screen shows until the reels land: the stake taken, nothing more.
+    const heldBalance = state.balance - wager;
+    setText(els.balance, formatPoints(heldBalance));
+    points.hold(heldBalance, ANSWER_WAIT_MS);
     renderControls();
     renderMessage();
 
@@ -711,6 +718,9 @@ export function mountMinigame(el: HTMLElement, options: MountMinigameOptions): (
       console.error("[minigame] spin failed", error);
       result = { status: "error" };
     }
+    // Answer in: hold only as long as the reels can take (also if the player leaves now).
+    if (result.status === "ok") points.hold(heldBalance, animated ? REVEAL_MAX_MS : 0);
+    else points.release();
     if (disposed) return;
 
     if (animated) await wait(Math.max(0, SPIN_ANIMATION_MS - (Date.now() - startedAt)));
@@ -720,6 +730,7 @@ export function mountMinigame(el: HTMLElement, options: MountMinigameOptions): (
       await landReels(result.symbols, animated, landed);
       if (disposed) return;
       if (ticker !== null) stopInterval(ticker);
+      points.release();
       shownSymbols = [...result.symbols];
       const glow = winningReels(result.outcome.id, result.symbols);
       reelEls.forEach((reelEl, index) => reelEl.classList.toggle("minigame__reel--win", glow[index] === true));

@@ -1,25 +1,20 @@
 /**
- * Points minigame (Olympus Slots) — hacker-facing game state and spins.
+ * Olympus Slots: hacker-facing game state and spins.
  *
- * Lives in admin (like `participantShop.ts`) so the whole points system is
- * tested in one place; synced to profile with the rest of the backend.
+ * Who may play, whether it is open, and every change to points go through the
+ * shared arcade code (convex/arcade/access.ts and points.ts), like every other
+ * game. This file only adds the slot rules and the reels (`slotSpins`).
  *
- * Every call needs a signed-in applicant account (Convex Auth). A spin is only
- * allowed for an accepted, checked-in participant while a window is live; the
- * server rolls the outcome and writes the balance change in one transaction.
  * Expected refusals come back as `{ status: "error", code }` instead of
- * throwing, so the minigame can show them in-game.
+ * throwing, so the game can show them in-game.
  */
 import type { DocumentByName } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
-import { getAuthUser } from "../lib/applications";
-import type { DataModel, MutationCtx, QueryCtx } from "../lib/dataModel";
-import { assertPointBalance } from "../../shared/admin/volunteerRules";
+import type { DataModel, MutationCtx } from "../lib/dataModel";
 import {
   SLOT_DEFAULT_WAGER,
   SLOT_SPIN_COOLDOWN_MS,
-  SLOT_SPIN_ID_MAX_LENGTH,
   SLOT_WAGERS,
   isAllowedWager,
   payoutFor,
@@ -27,25 +22,18 @@ import {
   symbolsFor,
   type RandomFn,
 } from "../../shared/admin/slotRules";
-import { checkedInForParticipant } from "./checkedInLookup";
-import { isParticipantEligible, pointBalancePatch } from "./pointsLedger";
-import { findGameWindow } from "./slotWindows";
+import type { ArcadePlayErrorCode, ArcadeState } from "../../shared/arcade/rules";
+import { gameRow, loadArcade, loadPlayer, playerProblem, type CheckedInDoc } from "../arcade/access";
+import { applyPlay, beginPlay, cooldownLeft, type PlayDoc } from "../arcade/points";
+
+const GAME = "olympus-slots" as const;
 
 /** Spins listed in the game state. */
 export const SLOT_RECENT_SPINS = 5;
 
 type SpinDoc = DocumentByName<DataModel, "slotSpins">;
 
-export type SlotSpinErrorCode =
-  | "NOT_SIGNED_IN"
-  | "NOT_PARTICIPANT"
-  | "NOT_ELIGIBLE"
-  | "NOT_CHECKED_IN"
-  | "INVALID_SPIN_ID"
-  | "WINDOW_CLOSED"
-  | "INVALID_WAGER"
-  | "INSUFFICIENT_POINTS"
-  | "COOLDOWN";
+export type SlotSpinErrorCode = ArcadePlayErrorCode | "INVALID_WAGER";
 
 /** Uniform [0, 1) from Web Crypto when the runtime has it, else Math.random. */
 const serverRandom: RandomFn = () => {
@@ -62,58 +50,53 @@ function spinError(code: SlotSpinErrorCode, extra: { retryAfterMs?: number } = {
   return { status: "error" as const, code, ...extra };
 }
 
-function spinResult(row: SpinDoc) {
+function spinResult(play: PlayDoc, spin: SpinDoc) {
   return {
     status: "ok" as const,
-    spinId: row.spinId,
-    outcome: row.outcome,
-    symbols: row.symbols,
-    wager: row.wager,
-    payout: row.payout,
-    net: row.pointsDelta,
-    previousPoints: row.previousPoints,
-    newPoints: row.newPoints,
+    spinId: spin.spinId,
+    outcome: spin.outcome,
+    symbols: spin.symbols,
+    wager: play.stake,
+    payout: play.payout,
+    net: play.pointsDelta,
+    previousPoints: play.previousPoints,
+    newPoints: play.newPoints,
   };
 }
 
-function recentRow(row: SpinDoc) {
-  return {
-    spinId: row.spinId,
-    wager: row.wager,
-    payout: row.payout,
-    net: row.pointsDelta,
-    outcome: row.outcome,
-    symbols: row.symbols,
-    createdAt: row.createdAt,
-  };
-}
-
-/** The signed-in user's participant, eligibility, and check-in row. Null user when signed out. */
-async function myPlayer(ctx: QueryCtx | MutationCtx) {
-  const user = await getAuthUser(ctx);
-  if (!user) return { user: null, participant: null, eligible: false, checkedIn: null };
-  const participant = await ctx.db
-    .query("participants")
-    .withIndex("by_auth_user", (q) => q.eq("authUserId", user._id))
-    .unique();
-  if (!participant) return { user, participant: null, eligible: false, checkedIn: null };
-  const eligible = await isParticipantEligible(ctx, participant);
-  const checkedIn = await checkedInForParticipant(ctx, participant._id);
-  return { user, participant, eligible, checkedIn };
+async function spinFor(ctx: MutationCtx, checkedIn: CheckedInDoc, spinId: string) {
+  return ctx.db
+    .query("slotSpins")
+    .withIndex("by_checkedIn_spinId", (q) => q.eq("checkedInId", checkedIn._id).eq("spinId", spinId))
+    .first();
 }
 
 /**
- * Window status, the caller's balance, and their last spins. Null when signed
- * out. `nowBucket` only changes the cache key so clients re-run the query as
- * windows open and close; the server clock decides the status.
+ * The arcade switch and this game's switch, in the shape the game already
+ * understands: live (play now), teaser (opens later), closed.
+ */
+function slotStatus(state: ArcadeState, enabled: boolean, now: number) {
+  if (!enabled || state.status === "off") return { status: "closed" as const, window: null };
+  const window =
+    state.closesAt !== null ? { windowId: "arcade", opensAt: state.opensAt ?? now, closesAt: state.closesAt } : null;
+  return { status: state.status === "on" ? ("live" as const) : ("teaser" as const), window };
+}
+
+/**
+ * Status, the caller's balance, and their last spins. Null when signed out.
+ * `nowBucket` only changes the cache key so clients re-run the query when the
+ * schedule opens or closes; the server clock decides the status.
  */
 export const getMyGameState = query({
   args: { nowBucket: v.optional(v.number()) },
   handler: async (ctx) => {
-    const { user, participant, eligible, checkedIn } = await myPlayer(ctx);
-    if (!user) return null;
+    const player = await loadPlayer(ctx);
+    if (!player.user) return null;
     const now = Date.now();
-    const { status, window } = await findGameWindow(ctx, now);
+    const { state } = await loadArcade(ctx, now);
+    const game = await gameRow(ctx, GAME);
+    const { status, window } = slotStatus(state, game?.enabled ?? false, now);
+    const checkedIn = player.checkedIn;
     const spins = checkedIn
       ? await ctx.db
         .query("slotSpins")
@@ -123,85 +106,67 @@ export const getMyGameState = query({
       : [];
     return {
       status,
-      window: window
-        ? { windowId: window._id, opensAt: window.opensAt, closesAt: window.closesAt }
-        : null,
+      window,
       serverNow: now,
       player: {
-        participant: participant !== null,
-        eligible,
+        participant: player.participant !== null,
+        eligible: player.eligible,
         checkedIn: checkedIn !== null,
         balance: checkedIn ? checkedIn.points : null,
+        canPlay: playerProblem(player) === null,
       },
       wagers: [...SLOT_WAGERS],
       defaultWager: SLOT_DEFAULT_WAGER,
       cooldownMs: SLOT_SPIN_COOLDOWN_MS,
-      recentSpins: spins.map(recentRow),
+      recentSpins: spins.map((row) => ({
+        spinId: row.spinId,
+        wager: row.wager,
+        payout: row.payout,
+        net: row.payout - row.wager,
+        outcome: row.outcome,
+        symbols: row.symbols,
+        createdAt: row.createdAt,
+      })),
     };
   },
 });
 
 /**
  * One spin. `spinId` is the client's idempotency key: repeating it returns the
- * stored result without charging again. The wager is taken and the payout
- * added in this transaction; `pointsDelta` (payout − wager) feeds
- * `computeLedgerPoints`.
+ * stored result without charging again (even if the arcade has closed since).
  */
 export const spin = mutation({
   args: { spinId: v.string(), wager: v.number() },
   handler: async (ctx, { spinId, wager }) => {
-    const { user, participant, eligible, checkedIn } = await myPlayer(ctx);
-    if (!user) return spinError("NOT_SIGNED_IN");
-    if (!participant) return spinError("NOT_PARTICIPANT");
-    if (!eligible) return spinError("NOT_ELIGIBLE");
-    if (!checkedIn) return spinError("NOT_CHECKED_IN");
-
-    const key = spinId.trim();
-    if (!key || key.length > SLOT_SPIN_ID_MAX_LENGTH) return spinError("INVALID_SPIN_ID");
-    const existing = await ctx.db
-      .query("slotSpins")
-      .withIndex("by_checkedIn_spinId", (q) => q.eq("checkedInId", checkedIn._id).eq("spinId", key))
-      .first();
-    if (existing) return spinResult(existing);
-
     const now = Date.now();
-    const { status, window } = await findGameWindow(ctx, now);
-    if (status !== "live" || !window) return spinError("WINDOW_CLOSED");
-    if (!isAllowedWager(wager)) return spinError("INVALID_WAGER");
-
-    const previousPoints = assertPointBalance(checkedIn.points ?? 0);
-    if (previousPoints < wager) return spinError("INSUFFICIENT_POINTS");
-
-    const last = await ctx.db
-      .query("slotSpins")
-      .withIndex("by_checkedIn_createdAt", (q) => q.eq("checkedInId", checkedIn._id))
-      .order("desc")
-      .first();
-    if (last && now - last.createdAt < SLOT_SPIN_COOLDOWN_MS) {
-      return spinError("COOLDOWN", { retryAfterMs: SLOT_SPIN_COOLDOWN_MS - (now - last.createdAt) });
+    const begun = await beginPlay(ctx, GAME, spinId, now);
+    if (begun.kind === "error") return spinError(begun.code);
+    if (begun.kind === "replay") {
+      const stored = await spinFor(ctx, begun.checkedIn, begun.play.playId);
+      if (!stored) throw new Error("slots: play without its spin row");
+      return spinResult(begun.play, stored);
     }
+
+    if (!isAllowedWager(wager)) return spinError("INVALID_WAGER");
+    const wait = await cooldownLeft(ctx, begun.checkedIn, GAME, SLOT_SPIN_COOLDOWN_MS, now);
+    if (wait > 0) return spinError("COOLDOWN", { retryAfterMs: wait });
 
     const outcome = rollOutcome(serverRandom);
     const symbols = symbolsFor(outcome.id, serverRandom);
     const payout = payoutFor(wager, outcome);
-    const pointsDelta = payout - wager;
-    const newPoints = assertPointBalance(previousPoints + pointsDelta);
+    const applied = await applyPlay(ctx, { checkedIn: begun.checkedIn, game: GAME, playId: begun.playId, stake: wager, payout, now });
+    if (!applied.ok) return spinError(applied.code);
 
     const spinRowId = await ctx.db.insert("slotSpins", {
-      checkedInId: checkedIn._id,
-      windowId: window._id,
-      spinId: key,
+      checkedInId: begun.checkedIn._id,
+      playId: applied.play._id,
+      spinId: begun.playId,
       wager,
       payout,
-      pointsDelta,
       outcome: outcome.id,
       symbols,
-      previousPoints,
-      newPoints,
       createdAt: now,
     });
-    await ctx.db.patch(checkedIn._id, pointBalancePatch(previousPoints, newPoints, now));
-    const row = await ctx.db.get(spinRowId);
-    return spinResult(row!);
+    return spinResult(applied.play, (await ctx.db.get(spinRowId))!);
   },
 });

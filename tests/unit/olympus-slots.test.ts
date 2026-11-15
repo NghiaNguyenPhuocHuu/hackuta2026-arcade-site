@@ -14,7 +14,7 @@ function serverState(overrides: Partial<MinigameServerState> = {}): MinigameServ
     status: "live",
     window: { windowId: "win1", opensAt: NOW - 60_000, closesAt: NOW + 60_000 },
     serverNow: NOW,
-    player: { participant: true, eligible: true, checkedIn: true, balance: 120 },
+    player: { participant: true, eligible: true, checkedIn: true, balance: 120, canPlay: true },
     wagers: [5, 10, 25, 50],
     defaultWager: 10,
     cooldownMs: 2000,
@@ -91,7 +91,7 @@ describe("mapGameState", () => {
 
   it("keeps a missing balance at 0 and an unknown outcome readable", () => {
     const state = mapGameState(serverState({
-      player: { participant: true, eligible: false, checkedIn: false, balance: null },
+      player: { participant: true, eligible: false, checkedIn: false, balance: null, canPlay: false },
       wagers: [],
       recentSpins: [{ spinId: "s", wager: 5, payout: 0, net: -5, outcome: "mystery", symbols: [], createdAt: NOW }],
     }), NOW);
@@ -107,8 +107,8 @@ describe("mapSpinResult", () => {
     expect(mapSpinResult({ status: "ok", spinId: "a", outcome: "big", symbols: ["zeus", "zeus", "zeus", "zeus"], wager: 10, payout: 50, net: 40, previousPoints: 100, newPoints: 140 }))
       .toEqual({ status: "ok", symbols: ["zeus", "zeus", "zeus", "zeus"], outcome: { id: "big", label: "Big win", multiplier: 5 }, wager: 10, payout: 50, pointsBefore: 100, pointsAfter: 140 });
     const codes = {
-      WINDOW_CLOSED: "closed", INVALID_WAGER: "invalid_wager", INSUFFICIENT_POINTS: "insufficient_points", COOLDOWN: "rate_limited",
-      NOT_SIGNED_IN: "signed_out", NOT_PARTICIPANT: "not_eligible", NOT_ELIGIBLE: "not_eligible", NOT_CHECKED_IN: "not_eligible", INVALID_SPIN_ID: "error",
+      ARCADE_CLOSED: "closed", GAME_DISABLED: "closed", INVALID_WAGER: "invalid_wager", INSUFFICIENT_POINTS: "insufficient_points", COOLDOWN: "rate_limited",
+      NOT_SIGNED_IN: "signed_out", NOT_PARTICIPANT: "not_eligible", NOT_ELIGIBLE: "not_eligible", NOT_CHECKED_IN: "not_eligible", INVALID_PLAY_ID: "error",
     } as const;
     for (const [code, status] of Object.entries(codes)) {
       expect(mapSpinResult({ status: "error", code: code as keyof typeof codes })).toEqual({ status, code });
