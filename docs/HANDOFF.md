@@ -12,23 +12,20 @@ decisions, step plan). Update this file at the end of each working session.
 | Repo | `~/Codespace/hackuta2026-arcade-site`, GitHub `NghiaNguyenPhuocHuu/hackuta2026-arcade-site`, branch `main` |
 | Commits | `79be161` repo setup (pushed) · `ae16fb4` HackUTA-themed UI (**local, not pushed yet**) |
 | Checks | `npm run typecheck`, `npm test` (13), `npm run build`, `npm run backend:test` (15) all pass |
-| Plan status | Step 0 done. Step 2's UI is done on mock data. **Step 1 (backend) is next.** |
+| Plan status | Live sandbox: site + games + wallet on **brazen-peccary-506** (no mock mode). |
 
 ### What's built
 
 - **Site shell** in the participant portal's look: sidebar (brand + "Arcade"
-  tag, Lobby / Olympus Slots / PvP Blackjack "Soon" / Back to profile, account
-  footer), which becomes the portal's top tab bar at ≤900px.
+  tag, Lobby, games, Wallet, Back to profile, account footer), which becomes
+  the portal's top tab bar at ≤900px.
 - **Lobby** (`/`): frieze header + points pill, open/scheduled status banner
   with live countdown, game cards, "House rules" panel.
-- **Play** (`/play/:gameKey`): header with back link; lazy-loads the game.
-  Olympus Slots runs on its **mock adapter** (fake 200 points).
-- **Full-page screens** for `off`, `signed-out`, `loading`: profile's sign-in
-  card over the temple art, "Go to my profile" button.
-- All server data comes from `src/arcade/useArcadeSession.ts`, which is a
-  **mock**. Preview screens with `?preview=off|scheduled|signed-out|loading`.
-  Step 1 replaces the mock with a Convex query; keep the `ArcadeSession` shape
-  or update the pages with it.
+- **Play** (`/play/:gameKey`): lazy-loads the game; every shipped game talks
+  to Convex (slots, wheel, poker).
+- **Full-page screens** for `off`, `signed-out`, `loading`, and can't-play-yet:
+  profile's sign-in card over the temple art.
+- **`useArcadeSession`** reads `arcade/session:getArcadeSession` live.
 
 ### Where the theme came from
 
@@ -62,31 +59,17 @@ Copied from `hackuta-2026-profile` (commit `d838016`), not recreated:
 - **Note for kolorless:** the poker functions no longer take `playerToken`;
   the site's poker client is updated. Legacy token players keep their chips.
 
-## Arcade wallet: deposit and withdraw (2026-11-14, on `main`, not deployed)
+## Arcade wallet: deposit and withdraw
 
-- **Backend** (`backend/overlay/convex/arcade/`): `wallet.ts` (`arcadeWallets`),
-  `transfers.ts` (`deposit`, `withdraw`, `getMyTransfers`, logged in
-  `arcadeTransfers`), admin `listArcadeTransfers` with a per-wallet check.
-  `applyPlay` uses the wallet only; `computeLedgerPoints` counts transfers.
-  `npm run backend:test`: 49 pass.
-- **Site:** the `/wallet` page (balances, deposit, withdraw, transfer log),
-  `ConfirmTransferDialog` (native modal), the "Deposit points to play" prompt,
-  the mock wallet with both balances (profile 200, arcade 0). `npm test`: 50 pass.
-- **Not done:** wiring the site to Convex (step 2); deploying (the sandbox's
-  function-loss issue still stands). Poker keeps its own chips.
-- Known: kolorless's `convex/arcade/poker*.ts` fail the offline Convex
-  typecheck (they import `_generated/dataModel`, which the stubs don't
-  provide); the tests still pass. Dev server port is now **5573**.
+- **Backend** (`backend/overlay/convex/arcade/`): `wallet.ts`, `transfers.ts`
+  (`deposit`, `withdraw`, `getMyTransfers`), games via `applyPlay` on the arcade
+  wallet.
+- **Site:** `/wallet` uses live balances and transfer history from Convex.
 
 ## Open items (need the user)
 
-1. **Convex access is blocked.** `npm run backend:check` fails with "You don't
-   have access to the selected project". The user's Convex CLI account is not a
-   member of the team that owns `dev:brazen-peccary-506` (a personal dev
-   deployment of someone on that team). Fix: get invited, or
-   `npx convex logout && npx convex login` with the right account. Only blocks
-   step 5 (pushing to the sandbox); steps 1–4 can proceed. **Never** follow the
-   CLI's hint to run `npx convex dev` to pick another project.
+1. **Convex CLI access** for contributors who are not on the peccary team.
+   Push with `npm run convex:push-dev` only after `npm run backend:check` passes.
 2. **CS Gelios font license.** `public/fonts/CSGelios-LICENSE.txt` says the
    bundled file is a personal-use demo and a commercial/web license is needed
    before the public site deploys. Same file profile ships. Confirm HackUTA has
@@ -135,20 +118,11 @@ Not testable in convex-test: the `arcade-launch` provider itself (Convex Auth's
 sign-in action). It only calls `consumeLaunchCode`, which is tested; try it end to
 end in step 2.
 
-## Next step: 2, the site shell
+## Next steps
 
-- Wrap the app in `ConvexAuthProvider` (from `@convex-dev/auth/react`, add the
-  dependency) instead of `ConvexProvider`.
-- `/launch` page: read `#code=`, clear it from the address bar
-  (`history.replaceState`), `signIn("arcade-launch", { code })`, go to `/`.
-- `useArcadeSession`: `useQuery(getArcadeSessionRef, { nowBucket })` instead of
-  the mock, bumping `nowBucket` at `arcade.nextChangeAt`; map `player.problem`
-  to the status screens. Keep the mock behind `?preview=` (or a dev flag) so
-  the site still runs without a backend.
-- Backup sign-in form on the signed-out screen when `signIn.backupSignIn`.
-- Sign-out button in the sidebar.
-- Then step 3 (Olympus Slots on its Convex adapter) and the roulette backend
-  on the same `beginPlay` / `applyPlay` path.
+- `/launch` flow for `arcade-launch` codes (when organizers use backup sign-in).
+- Sidebar sign-out wired to Convex Auth.
+- PvP Blackjack when rules and backend exist (registry entry is still `load: null`).
 
 ## Environment notes
 
