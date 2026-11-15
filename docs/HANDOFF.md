@@ -118,11 +118,33 @@ Not testable in convex-test: the `arcade-launch` provider itself (Convex Auth's
 sign-in action). It only calls `consumeLaunchCode`, which is tested; try it end to
 end in step 2.
 
+## Olympus 21 on the live server (2026-11-14, branch `olympus-21`, not pushed)
+
+Rebuilt on a fresh branch from `main` after the revert of PR #2, so it lands as
+new commits (merging the old `blackjack` branch again would drop it silently).
+
+- **Backend:** `convex/arcade/olympus21.ts`, same system as poker: queue
+  (`o21Queue`), 50-point buy-in from the arcade wallet, seating by poker's rule
+  (humans only, no bots), table chips, cash-outs to the wallet. New tables `o21Queue`, `o21LiveTables`,
+  `o21Seats` (additive). Legacy `admin/o21*.ts` and the `o21Tables` /
+  `o21Hands` / `o21Actions` tables are untouched (never deleted).
+- **Pure rules:** `shared/olympus21/live.ts` (seating, `runLive`: timers,
+  closing, idle and broken tables, cash-outs with the exact chips at the
+  moment the engine unseats someone). Tested in `tests/olympus21/o21Live.test.ts`.
+- **Site:** the game mounts live only; the mock adapter, the bots/name lobby,
+  the LAN sandbox paths and phone QR pairing are removed. The lobby shows the
+  buy-in, the queue (with a leave-the-queue refund), "leaving" and the last result.
+- **Not run:** `backend:test` / `backend:check` (the profile repo isn't on
+  this machine). Site: tests, typecheck and build pass.
+
 ## Next steps
 
 - `/launch` flow for `arcade-launch` codes (when organizers use backup sign-in).
 - Sidebar sign-out wired to Convex Auth.
-- PvP Blackjack when rules and backend exist (registry entry is still `load: null`).
+- Olympus 21: clone `../hackuta-2026-profile`, run `npm run backend:test`
+  (new `backend/overlay/tests/integration/olympus21.test.ts`) and
+  `npm run backend:check`, then `npm run convex:push-dev`, switch
+  `pvp-blackjack` on, and try two accounts in two browsers.
 
 ## Environment notes
 

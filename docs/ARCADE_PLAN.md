@@ -1,7 +1,7 @@
 # HackUTA Arcade: plan
 
 The arcade is a standalone website that hosts the HackUTA points games
-(Olympus Slots first, PvP Blackjack next). Hackers reach it from a small
+(Olympus Slots, Wheel of the Fates, Olympus Poker, Olympus 21). Hackers reach it from a small
 **Arcade** button on their profile, which opens it in a new tab, already
 signed in. Admins turn the whole site, or one game, on and off.
 
@@ -19,6 +19,7 @@ which stays as the Olympus Slots prototype and is not developed further.
 | Security | Every rule is enforced in Convex functions. Showing or hiding the button or the site is cosmetic. |
 | Live backend (2026-11-14) | No mock mode anymore. The site signs in with the profile's **email + password** provider (sign-in only; user decision), reads the live session, and every game runs on the server: Slots (`admin/slotSpin`), Wheel of the Fates (`arcade/roulette`, new) and Olympus Poker (`arcade/poker`, moved to real accounts: the signed-in hacker, buy-in from the arcade wallet, chips back on leaving; user decision). Pushed to `brazen-peccary-506`. |
 | Arcade wallet | (user decision, 2026-11-14) Games never touch the profile balance. Hackers **deposit** profile points into an arcade wallet (`arcadeWallets`, 1 point = 1 arcade point, any amount 1–500 at a time, only while the arcade is open) and **withdraw** them back (any time, even when closed). Every move is one transaction and one row in the `arcadeTransfers` log (both balances before and after); the site asks for confirmation in a modal first. `computeLedgerPoints` counts deposits and withdrawals, not spins. Poker keeps its own table chips. |
+| Olympus 21 (2026-11-14, user decision) | **Same system as poker.** One event-wide queue; joining takes a 50-point buy-in from the arcade wallet (`applyPlay`), like poker. Humans only (poker dropped bots in `a4378b3`): a full group (4) sits at once, 2–3 after 2.5 s; a lone hacker waits for company. The buy-in becomes table chips and every wager comes out of the chips, so the wallet only moves on buy-in and cash-out (`creditWallet`: leaving, 3 timeouts, the table breaking or closing, or the game switched off). Replaces the earlier two-phase idea. The in-browser mock and its bot picker are gone. |
 
 ## System
 
@@ -27,7 +28,7 @@ which stays as the Olympus Slots prototype and is not developed further.
  ┌──────────────────────────┐               ┌───────────────────────────────────┐
  │ Dashboard                │  new tab      │ Hub: list of open games           │
  │  [Arcade] button ────────┼──────────────►│  ├─ Olympus Slots                 │
- │  (shown only when open)  │  + launch     │  ├─ PvP Blackjack (next)          │
+ │  (shown only when open)  │  + launch     │  ├─ Olympus 21                    │
  └────────────┬─────────────┘    code       │  └─ ...                           │
               │                             │ "Closed" screen when switched off │
               ▼                             └──────────────┬────────────────────┘
@@ -115,7 +116,7 @@ prototype's Gamble tab used. If the query errors, the button stays hidden.
 | 5 | **Push to the sandbox** (`brazen-peccary-506`) | Works against the sandbox | Blocked: Convex access |
 | 6 | **Real repos:** profile gets only the button and the launch-code call; admin gets the Arcade tab | PRs merged: admin first, then profile | |
 | 7 | **Deploy** the arcade as a static site; add its address to the allowed origins | Live, switched off until an admin turns it on | |
-| 8 | **PvP Blackjack** as the second game | | |
+| 8 | **Olympus 21** (was PvP Blackjack) | Real PvP on peccary | Site + backend written (2026-11-14, branch `olympus-21`): `arcade/olympus21` with poker's matchmaking. `backend:test` not run yet (needs the profile repo); not pushed. |
 
 ## Open items
 
