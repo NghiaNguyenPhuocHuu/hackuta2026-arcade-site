@@ -33,7 +33,9 @@ function Gate({ session }: { session: ArcadeSession }) {
   const { pathname } = useLocation()
   if (session.status === 'loading' || session.status === 'signed-out') return <StatusScreen kind={session.status} />
   if (session.player?.problem) return <StatusScreen kind="not-ready" problem={session.player.problem} />
-  if (session.status === 'off' && pathname !== '/wallet') {
+  // Keep /play routes mounted when the schedule ends so an in-progress hand or spin can finish.
+  const onPlay = pathname.startsWith('/play/')
+  if (session.status === 'off' && pathname !== '/wallet' && !onPlay) {
     return <StatusScreen kind="off" arcadePoints={session.player?.arcadePoints ?? 0} />
   }
   return <ArcadeLayout session={session} />

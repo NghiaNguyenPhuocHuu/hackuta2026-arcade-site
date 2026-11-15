@@ -89,6 +89,12 @@ describe("arcade and game switches", () => {
     vi.setSystemTime(NOW + 90 * MINUTE);
     expect(await player.query(getState, { nowBucket: 2 })).toMatchObject({ status: "closed", window: null });
     expect(await player.mutation(spin, { spinId: "late", wager: 10 })).toMatchObject({ code: "ARCADE_CLOSED" });
+    vi.setSystemTime(NOW + 89 * MINUTE);
+    const inFlight = await player.mutation(spin, { spinId: "inflight", wager: 10 });
+    expect(inFlight).toMatchObject({ status: "ok" });
+    vi.setSystemTime(NOW + 90 * MINUTE);
+    expect(await player.mutation(spin, { spinId: "inflight", wager: 10 })).toEqual(inFlight);
+    expect(await player.mutation(spin, { spinId: "brand-new", wager: 10 })).toMatchObject({ code: "ARCADE_CLOSED" });
   });
 
   it("refuses spins while the game is switched off, even with the arcade on", async () => {

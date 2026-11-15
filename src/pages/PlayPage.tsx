@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useOutletContext, useParams } from "react-router-dom";
+import { ArcadeStatusBanner } from "../components/ArcadeStatusBanner";
 import { DepositPrompt, PageHeader, PointsPill } from "../components/PageHeader";
 import { BackIcon } from "../components/brand/ArcadeIcons";
 import { formatClock, type ArcadeSession } from "../arcade/useArcadeSession";
@@ -28,16 +29,19 @@ export default function PlayPage() {
   }
 
   const serverEnabled = session.games.find((g) => g.key === game.key)?.enabled ?? false;
+  const notYetOpen = session.status === "scheduled";
+  const arcadeClosed = session.status === "off";
   const reason = !game.load
     ? { title: `${game.name} is on its way`, copy: "This trial is still being forged. Return during the event." }
     : !serverEnabled
       ? { title: `${game.name} is paused`, copy: "Organizers have paused this trial for now. Choose another from the lobby." }
-      : session.status !== "on"
+      : notYetOpen
         ? {
             title: "The gates are still sealed",
             copy: session.opensAt ? `Games open at ${formatClock(session.opensAt)}.` : "Games open when organizers start the arcade.",
           }
         : null;
+  const canMount = !reason;
 
   return (
     <section key={game.key} className="arcade-play" aria-labelledby="arcade-play-title">
@@ -48,9 +52,12 @@ export default function PlayPage() {
         description={game.tagline}
         actions={session.player ? <PointsPill points={session.player.arcadePoints} /> : null}
       />
+      {arcadeClosed || notYetOpen ? (
+        <ArcadeStatusBanner session={session} context={arcadeClosed ? "play" : "lobby"} />
+      ) : null}
       {/* Every game, poker's buy-in included, bets from the arcade wallet. */}
-      {!reason && session.player?.arcadePoints === 0 ? <DepositPrompt /> : null}
-      {reason ? (
+      {canMount && session.player?.arcadePoints === 0 ? <DepositPrompt /> : null}
+      {!canMount ? (
         <div className="participant-dashboard__notice arcade-play__notice" role="status">
           <h2 className="participant-dashboard__panel-title">{reason.title}</h2>
           <p className="participant-dashboard__notice-copy">{reason.copy}</p>

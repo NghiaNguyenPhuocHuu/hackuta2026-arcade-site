@@ -66,6 +66,23 @@ Copied from `hackuta-2026-profile` (commit `d838016`), not recreated:
   wallet.
 - **Site:** `/wallet` uses live balances and transfer history from Convex.
 
+## Graceful close + points audit (2026-11-14 evening, local)
+
+Verified server rules and tightened close UX (not pushed yet):
+
+- **Points:** All game stakes go through `beginPlay` → `applyPlay` on the arcade wallet only;
+  profile balance moves only via `transfers` (deposit gated when closed; withdraw always).
+  Idempotent `playId` / `transferId` prevents double-charge on retries. Poker `creditWallet`
+  is internal-only (cash-out / queue refund).
+- **When gates close:** New wagers and deposits return `ARCADE_CLOSED`; replay of an in-flight
+  spin still settles (`beginPlay` checks replay before `gameGate`). Poker `act` has no arcade
+  gate so hands finish; `trySeat` now no-ops when closed (no new tables).
+- **UI:** `/play/*` stays mounted when `off` with `ArcadeStatusBanner` (“finish your trial”);
+  lobby/wallet/off screen unchanged except wallet always reachable. Gate no longer kicks active play.
+- **Tests:** `npm test` (45), `npm run backend:test` (65), `npm run backend:check` pass.
+
+Next: commit + `npm run convex:push-dev` so peccary gets `trySeat` gate and any other overlay edits.
+
 ## Open items (need the user)
 
 1. **Convex CLI access** for contributors who are not on the peccary team.
