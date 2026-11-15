@@ -1,8 +1,9 @@
-import { useEffect, useRef, type ComponentType } from "react";
+import { useEffect, useRef, useSyncExternalStore, type ComponentType } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { ArcadeBrand } from "../components/ArcadeBrand";
-import { ExternalIcon, NavTempleIcon, NavWalletIcon } from "../components/brand/ArcadeIcons";
+import { ExternalIcon, MusicOffIcon, MusicOnIcon, NavTempleIcon, NavWalletIcon } from "../components/brand/ArcadeIcons";
+import { arcadeMusic, musicEnabled, setMusicEnabled, subscribeMusic } from "../arcade/music";
 import { NavSignOutIcon } from "../components/brand/NavIcons";
 import { initials, type ArcadeSession } from "../arcade/useArcadeSession";
 import { PROFILE_URL } from "../constants/site";
@@ -20,6 +21,29 @@ export function ArcadeLayout({ session }: { session: ArcadeSession }) {
   const night = true;
   const { pathname } = useLocation();
   const mainRef = useRef<HTMLElement>(null);
+
+  // Background music: the relaxed "agora" tune around the lobby and Wallet, the
+  // bouncier "festival" one in the games. Browsers allow sound only after a tap
+  // or key press, so it starts on the first one (if the hacker left it on).
+  const musicOn = useSyncExternalStore(subscribeMusic, musicEnabled, () => true);
+  const track = pathname.startsWith("/play/") ? "festival" : "agora";
+  useEffect(() => arcadeMusic().setTrack(track), [track]);
+  useEffect(() => {
+    const music = arcadeMusic();
+    const start = () => {
+      if (musicEnabled()) music.start();
+    };
+    const visibility = () => music.setHidden(document.hidden);
+    window.addEventListener("pointerdown", start);
+    window.addEventListener("keydown", start);
+    document.addEventListener("visibilitychange", visibility);
+    return () => {
+      window.removeEventListener("pointerdown", start);
+      window.removeEventListener("keydown", start);
+      document.removeEventListener("visibilitychange", visibility);
+      music.stop(); // leaving the arcade (signing out) stops the music
+    };
+  }, []);
 
   // Each page opens at the top. The main column is its own scroll area on
   // desktop and the window scrolls on phones, so reset both; otherwise the
@@ -76,6 +100,16 @@ export function ArcadeLayout({ session }: { session: ArcadeSession }) {
                 </p>
               ) : null}
             </div>
+            <button
+              type="button"
+              className="participant-dashboard__sign-out arcade-music-toggle"
+              aria-pressed={musicOn}
+              aria-label={musicOn ? "Music on. Turn background music off" : "Music off. Turn background music on"}
+              title={musicOn ? "Music on" : "Music off"}
+              onClick={() => setMusicEnabled(!musicOn)}
+            >
+              {musicOn ? <MusicOnIcon /> : <MusicOffIcon />}
+            </button>
             <button
               type="button"
               className="participant-dashboard__sign-out"

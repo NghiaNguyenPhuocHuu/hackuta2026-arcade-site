@@ -130,3 +130,26 @@ export function NavWalletIcon({ className }: IconProps) {
     </Svg>
   );
 }
+
+/** Music on: two beamed eighth notes. */
+export function MusicOnIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M9 17.5V6l10-2v11.5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <circle cx="6.75" cy="17.5" r="2.25" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="16.75" cy="15.5" r="2.25" stroke="currentColor" strokeWidth="1.5" />
+    </Svg>
+  );
+}
+
+/** Music off: the notes, struck through. */
+export function MusicOffIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M9 17.5V6l10-2v11.5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" opacity="0.55" />
+      <circle cx="6.75" cy="17.5" r="2.25" stroke="currentColor" strokeWidth="1.5" opacity="0.55" />
+      <circle cx="16.75" cy="15.5" r="2.25" stroke="currentColor" strokeWidth="1.5" opacity="0.55" />
+      <path d="M4 4l16 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </Svg>
+  );
+}
