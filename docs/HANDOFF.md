@@ -230,3 +230,14 @@ the next `npm run convex:push-dev`; the site uses the registry names already.
   (`arcade/olympus21`), none lost; new indexes on `o21LiveTables`, `o21Queue`, `o21Seats`.
 - **Next:** an admin switches `pvp-blackjack` on in the arcade settings, then try
   two signed-in, checked-in accounts in two browsers.
+
+## Olympus 21 PvP switched on (2026-11-15)
+
+- `pvp-blackjack` had **no row** in `arcadeGames` on peccary, so the server treated it
+  as off ("paused" on the site). Switched on with
+  `convex run arcade/admin:updateArcadeGameInternal '{"key":"pvp-blackjack","enabled":true}'`;
+  `getMyTable` now reports `status: "live"`.
+- New backend test plays full PvP rounds through the real functions (seat, bets,
+  turns with play/draw, settle, zero-sum chips, out-of-turn refused, PLAY AGAIN,
+  cash-out): `backend:test` 73 pass.
+- Still to do by hand: two accepted, checked-in accounts in two browsers.

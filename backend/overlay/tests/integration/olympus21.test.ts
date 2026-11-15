@@ -11,6 +11,9 @@ const leave = makeFunctionReference<"mutation">("arcade/olympus21:leave");
 const placeWager = makeFunctionReference<"mutation">("arcade/olympus21:placeWagerMove");
 const trySeat = makeFunctionReference<"mutation">("arcade/olympus21:trySeat");
 const tick = makeFunctionReference<"mutation">("arcade/olympus21:tick");
+const playCard = makeFunctionReference<"mutation">("arcade/olympus21:playCard");
+const drawCard = makeFunctionReference<"mutation">("arcade/olympus21:drawCard");
+const playAgain = makeFunctionReference<"mutation">("arcade/olympus21:playAgain");
 const GAME = "pvp-blackjack";
 const BUY_IN = 50;
 
@@ -156,5 +159,86 @@ describe("Olympus 21 live tables", () => {
       const net = plays.filter((row) => row.checkedInId === id).reduce((sum, row) => sum + row.pointsDelta, 0);
       expect(250 + net).toBe(await walletOf(t, id));
     }
+  });
+
+  it("plays full PvP rounds: bets, turns, a settled pot that only moves chips between the two hackers, then play again", async () => {
+    const t = createConvexTest();
+    await openArcade(t, [GAME]);
+    const a = await seedPlayer(t, { arcadePoints: 200 });
+    const b = await seedPlayer(t, { arcadePoints: 200 });
+    await a.player.mutation(joinQueue, {});
+    await b.player.mutation(joinQueue, {});
+    let now = NOW + 2_500;
+    vi.setSystemTime(now);
+    await t.mutation(trySeat, {});
+    const [tableId] = await tableIds(t);
+    const players = [a, b];
+    const viewOf = async (p: typeof a) => (await p.player.query(getMyTable, {})).view;
+    // Moves the clock to the table's next deadline and lets the scheduled tick run.
+    const advance = async () => {
+      const deadline = (await viewOf(a))?.deadline;
+      now = Math.max(now + 1, (deadline ?? now) + 1);
+      vi.setSystemTime(now);
+      await t.mutation(tick, { tableId });
+    };
+
+    // Seat lock, then the bet window: both hackers bet.
+    for (let i = 0; i < 5 && (await viewOf(a))?.status !== "wagering"; i += 1) await advance();
+    expect((await viewOf(a))?.status).toBe("wagering");
+    for (const p of players) expect(await p.player.mutation(placeWager, { amount: 10 })).toMatchObject({ ok: true });
+
+    // Countdown, then turns. Whoever's turn it is plays a fitting card (Wild names red) or draws.
+    let outOfTurnChecked = false;
+    for (let step = 0; step < 400; step += 1) {
+      const view = await viewOf(a);
+      if (!view || view.status === "settled") break;
+      if (view.status !== "turns") {
+        await advance();
+        continue;
+      }
+      let acted = false;
+      for (const p of players) {
+        const mine = (await viewOf(p))?.me;
+        if (!mine) continue;
+        if (!mine.myTurn) {
+          if (!outOfTurnChecked) {
+            expect(await p.player.mutation(drawCard, {})).toMatchObject({ ok: false });
+            outOfTurnChecked = true;
+          }
+          continue;
+        }
+        const fit = mine.hand.find((h: { playable: boolean }) => h.playable);
+        const result = fit
+          ? await p.player.mutation(playCard, { card: fit.card, ...(fit.card === "W" ? { color: "R" } : {}) })
+          : await p.player.mutation(drawCard, {});
+        expect(result).toMatchObject({ ok: true });
+        acted = true;
+        break;
+      }
+      if (!acted) await advance();
+      now += 200;
+      vi.setSystemTime(now);
+    }
+    expect(outOfTurnChecked).toBe(true);
+    const settled = await viewOf(a);
+    expect(settled?.status).toBe("settled");
+    expect(settled?.result).not.toBeNull();
+
+    // Zero-sum: chips only moved between the two hackers.
+    const chips = await Promise.all(players.map(async (p) => (await viewOf(p))!.me!.balance as number));
+    expect(chips[0]! + chips[1]!).toBe(2 * BUY_IN);
+    expect(chips.every((c) => c >= 0)).toBe(true);
+
+    // PLAY AGAIN from both deals them into the next round.
+    for (const p of players) expect(await p.player.mutation(playAgain, {})).toMatchObject({ ok: true });
+    for (let i = 0; i < 3 && (await viewOf(a))?.status !== "wagering"; i += 1) await advance();
+    expect((await viewOf(a))?.status).toBe("wagering");
+    expect((await viewOf(a))?.roundNo).toBe(settled!.roundNo + 1);
+
+    // Standing up between bets pays each hacker their exact chips; the wallets still add up.
+    for (const p of players) await p.player.mutation(leave, {});
+    const wallets = await Promise.all(players.map((p) => walletOf(t, p.checkedInId!)));
+    expect(wallets[0]! + wallets[1]!).toBe(400);
+    expect(wallets).toEqual(chips.map((c) => 200 - BUY_IN + c));
   });
 });
