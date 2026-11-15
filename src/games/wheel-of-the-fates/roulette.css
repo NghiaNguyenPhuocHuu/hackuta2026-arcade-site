@@ -1352,3 +1352,54 @@
     visibility: hidden;
   }
 }
+/* ---- full screen: the shared switch (fullscreen.css) in the wheel's ghost-button look ---- */
+.wof__status .fullscreen-switch {
+  border-color: var(--mg-ocean);
+}
+
+/* Same height and 11px pixel type as the SOUND / THEMES ghosts beside it. */
+.wof .wof__status .fullscreen-switch .fullscreen-switch__option {
+  padding: 0 10px;
+  font: 11px/1 var(--mg-display);
+}
+
+.wof .wof__status .fullscreen-switch .fullscreen-switch__option + .fullscreen-switch__option {
+  border-left-color: var(--mg-ocean);
+}
+
+/* ---- browser full screen (the root is the fullscreen element; the UA sizes it) ---- */
+.wof--fullscreen {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 0;
+  padding: clamp(16px, 3vh, 40px) clamp(16px, 4vw, 56px);
+  gap: clamp(16px, 2.4vh, 28px);
+}
+
+/* The starfield covers the whole screen, not just the game box. */
+.wof--fullscreen .wof__stars {
+  position: fixed;
+}
+
+.wof--fullscreen > :not(.wof__stars) {
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+}
+
+@media (min-width: 1100px) {
+  /* More room for the wheel now that the arcade page isn't holding it back. */
+  .wof--fullscreen.wof--wide {
+    grid-template-columns: minmax(320px, 460px) minmax(0, 1fr);
+    gap: 24px 32px;
+  }
+
+  .wof--fullscreen .wof__title {
+    font-size: clamp(22px, 1.8vw, 30px);
+  }
+
+  .wof--fullscreen .wof__wheel {
+    max-width: 460px;
+  }
+}

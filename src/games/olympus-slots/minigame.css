@@ -888,56 +888,7 @@
   color: var(--mg-marble);
 }
 
-/* ---- display switch: NORMAL | FULL SCREEN (laptop/desktop browsers only; JS decides visibility) ---- */
-.minigame__display {
-  display: inline-flex;
-  border: 3px solid var(--mg-marble);
-  box-shadow: 3px 3px 0 #000;
-}
-
-.minigame__display[hidden] {
-  display: none;
-}
-
-.minigame__display-option {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 12px;
-  font-family: var(--mg-display);
-  font-size: 12px;
-  color: var(--mg-marble);
-  background: var(--mg-deep);
-  border: 0;
-}
-
-.minigame__display-option + .minigame__display-option {
-  border-left: 3px solid var(--mg-marble);
-}
-
-.minigame__display-option:hover {
-  background: var(--mg-ocean);
-}
-
-.minigame__display-option[aria-pressed="true"] {
-  background: var(--mg-gold);
-  color: var(--mg-ink);
-  cursor: default;
-}
-
-.minigame__display-option:focus-visible {
-  position: relative;
-  outline: 4px solid var(--mg-cyan);
-  outline-offset: 2px;
-}
-
-.minigame__fs-icon {
-  width: 14px;
-  height: 14px;
-  fill: currentColor;
-}
-
+/* The NORMAL | FULL SCREEN switch itself lives in ../fullscreen.css, shared by every game. */
 /* ---- browser full screen (the root is the fullscreen element; the UA sizes it) ---- */
 .minigame--fullscreen {
   overflow-x: hidden;

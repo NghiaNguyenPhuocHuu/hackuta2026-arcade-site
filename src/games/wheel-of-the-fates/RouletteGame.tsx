@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { PointsRevealPort } from "../types";
 import { checkBets, pocketColor, winningBetIds, type PlacedBet } from "../../../shared/roulette/rules";
+import { FullscreenSwitch } from "../FullscreenSwitch";
 import { hackerFrame } from "../olympus-slots/hacker";
+import { useGameFullscreen } from "../useGameFullscreen";
 import { Board, Chip, type Orientation } from "./Board";
 import { CLOSED, INTRO, SPINNING, errorLine, pocketName, resultLine, type Line } from "./dialogue";
 import { omenFor, type Omen } from "./omens";
@@ -58,6 +60,7 @@ export function RouletteGame({ adapter, points = NO_REVEAL }: { adapter: Roulett
   const [, setTick] = useState(0);
 
   const rootRef = useRef<HTMLDivElement>(null);
+  const fullscreen = useGameFullscreen(rootRef, "wof--fullscreen");
   const wheelBoxRef = useRef<HTMLDivElement>(null);
   const wheelRef = useRef<WheelHandle>(null);
   const mounted = useRef(true);
@@ -260,6 +263,7 @@ export function RouletteGame({ adapter, points = NO_REVEAL }: { adapter: Roulett
           >
             THEMES
           </button>
+          <FullscreenSwitch {...fullscreen} />
           <span className={`wof__badge wof__badge--${isLive ? "live" : "closed"}`}>
             <span className="wof__badge-dot" aria-hidden="true" />
             {isLive ? "LIVE" : "SEALED"}

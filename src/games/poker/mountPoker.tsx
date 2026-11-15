@@ -1,4 +1,5 @@
 import { createRoot, type Root } from "react-dom/client";
+import fullscreenCss from "../fullscreen.css?inline";
 import { PokerApp } from "./PokerTable";
 import pokerCss from "./poker.css?inline";
 
@@ -11,7 +12,7 @@ function acquireStylesheet() {
   if (stylesheetRefs === 1) {
     stylesheetEl = document.createElement("style");
     stylesheetEl.dataset.pokerStylesheet = "";
-    stylesheetEl.textContent = pokerCss;
+    stylesheetEl.textContent = `${fullscreenCss}\n${pokerCss}`;
     document.head.appendChild(stylesheetEl);
   }
 }

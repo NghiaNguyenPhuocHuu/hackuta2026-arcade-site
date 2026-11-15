@@ -14,6 +14,8 @@
 import { SLOT_DEFAULT_WAGER, SLOT_REEL_COUNT, SLOT_SPIN_COOLDOWN_MS, SLOT_SYMBOLS } from "../../../shared/admin/slotRules";
 import { dialogueFor, lossRun, TUTORIAL_STEPS, TUTORIAL_STORAGE_KEY, type Dialogue, type DialogTone, type ResultContext } from "./dialogue";
 import { hackerFrame, HACKER_FRAME_MS } from "./hacker";
+import { createFullscreenControl } from "../fullscreen";
+import fullscreenCss from "../fullscreen.css?inline";
 import minigameCss from "./minigame.css?inline";
 import { symbolLabel, symbolSvg } from "./symbols";
 import type { GameState, GameStatus, MountMinigameOptions, SpinFailureStatus, SpinResult, TutorialMode } from "./types";
@@ -66,7 +68,7 @@ function acquireStylesheet() {
   if (stylesheetRefs === 1) {
     stylesheetEl = document.createElement("style");
     stylesheetEl.dataset.minigameStylesheet = "";
-    stylesheetEl.textContent = minigameCss;
+    stylesheetEl.textContent = `${fullscreenCss}\n${minigameCss}`;
     document.head.appendChild(stylesheetEl);
   }
 }
@@ -202,10 +204,10 @@ function template({ uid }: { uid: number }) {
         </div>
       </div>
       <div class="minigame__status">
-        <div class="minigame__display" data-ref="display" role="group" aria-label="Display size" hidden>
-          <button type="button" class="minigame__display-option" data-display="normal" aria-pressed="true">NORMAL</button>
-          <button type="button" class="minigame__display-option" data-display="full" aria-pressed="false">
-            <svg class="minigame__fs-icon" viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path d="M0 0h3v1H1v2H0zM4 0h3v3H6V1H4zM0 4h1v2h2v1H0zM6 4h1v3H4V6h2z"/></svg>FULL SCREEN
+        <div class="fullscreen-switch" data-ref="display" role="group" aria-label="Display size" hidden>
+          <button type="button" class="fullscreen-switch__option" data-display="normal" aria-pressed="true">NORMAL</button>
+          <button type="button" class="fullscreen-switch__option" data-display="full" aria-pressed="false">
+            <svg class="fullscreen-switch__icon" viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true" focusable="false"><path d="M0 0h3v1H1v2H0zM4 0h3v3H6V1H4zM0 4h1v2h2v1H0zM6 4h1v3H4V6h2z"/></svg>FULL SCREEN
           </button>
         </div>
         <span class="minigame__badge" data-ref="badge"><span class="minigame__badge-dot" aria-hidden="true"></span><span data-ref="badge-text"></span></span>
@@ -291,8 +293,9 @@ function template({ uid }: { uid: number }) {
 /**
  * Mount the minigame into `el`. The game renders inline. On laptop/desktop
  * browsers (fine pointer, hover, ≥1024px wide, Fullscreen API available) a
- * NORMAL | FULL SCREEN switch puts the game into browser full screen; Esc or
- * NORMAL leaves it. Returns `unmount`, which is safe to call more than once.
+ * NORMAL | FULL SCREEN switch puts the game into browser full screen (the
+ * shared control in ../fullscreen.ts); Esc or NORMAL leaves it.
+ * Returns `unmount`, which is safe to call more than once.
  */
 export function mountMinigame(el: HTMLElement, options: MountMinigameOptions): () => void {
   if (!(el instanceof HTMLElement)) throw new TypeError("mountMinigame: a host element is required");
@@ -795,36 +798,26 @@ export function mountMinigame(el: HTMLElement, options: MountMinigameOptions): (
     renderMessage();
   });
 
-  // ---- optional full screen (laptop/desktop browsers only)
-  const laptopQuery =
-    typeof window.matchMedia === "function" ? window.matchMedia("(hover: hover) and (pointer: fine) and (min-width: 1024px)") : null;
-  const fullscreenSupported = typeof root.requestFullscreen === "function" && document.fullscreenEnabled !== false;
-  const isFullscreen = () => document.fullscreenElement === root;
-
+  // ---- optional full screen: the arcade-wide control does the browser work
+  const fullscreen = createFullscreenControl(root, { className: "minigame--fullscreen" });
   const displayOptions = Array.from(els.display.querySelectorAll<HTMLElement>("[data-display]"));
 
   function renderFullscreen() {
-    const full = isFullscreen();
-    const offered = fullscreenSupported && Boolean(laptopQuery?.matches);
-    els.display.hidden = !offered && !full;
+    const { offered, active } = fullscreen.getState();
+    els.display.hidden = !offered && !active;
     for (const option of displayOptions) {
-      option.setAttribute("aria-pressed", String((option.dataset.display === "full") === full));
+      option.setAttribute("aria-pressed", String((option.dataset.display === "full") === active));
     }
-    root.classList.toggle("minigame--fullscreen", full);
   }
 
   on(els.display, "click", (event) => {
     const target = event.target instanceof Element ? event.target : null;
     const option = target?.closest<HTMLElement>("[data-display]");
     if (!option) return;
-    const wantFull = option.dataset.display === "full";
-    if (wantFull === isFullscreen()) return;
-    const request = wantFull ? root.requestFullscreen?.() : document.exitFullscreen?.();
-    // Browsers can refuse (no user gesture, permissions policy); the game just stays as it is.
-    request?.catch(() => {});
+    if (option.dataset.display === "full") fullscreen.enter();
+    else fullscreen.exit();
   });
-  on(document, "fullscreenchange", renderFullscreen);
-  if (laptopQuery && typeof laptopQuery.addEventListener === "function") on(laptopQuery, "change", renderFullscreen);
+  const stopFullscreen = fullscreen.subscribe(renderFullscreen);
   renderFullscreen();
 
   if (!still()) {
@@ -857,7 +850,8 @@ export function mountMinigame(el: HTMLElement, options: MountMinigameOptions): (
     intervals.clear();
     for (const cleanup of cleanups.splice(0)) cleanup();
     unsubscribe();
-    if (document.fullscreenElement === root) document.exitFullscreen?.()?.catch(() => {});
+    stopFullscreen();
+    fullscreen.dispose();
     root.remove();
     releaseStylesheet();
     mountedElements.delete(el);

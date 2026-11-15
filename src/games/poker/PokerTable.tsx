@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   POKER_ACTION_TIMEOUT_MS,
   POKER_BIG_BLIND,
@@ -10,6 +10,8 @@ import {
   type PublicTable,
 } from "../../../shared/poker";
 import { convexClient } from "../../convex/client";
+import { FullscreenSwitch } from "../FullscreenSwitch";
+import { useGameFullscreen } from "../useGameFullscreen";
 import { createLivePokerClient } from "./liveMatchmaking";
 import { type PokerView } from "./matchmaking";
 import { PlayingCard } from "./PlayingCard";
@@ -350,6 +352,8 @@ export function PokerApp() {
     return createLivePokerClient({ convex: convexClient });
   }, []);
   const [view, setView] = useState<PokerView>(() => client.getView());
+  const rootRef = useRef<HTMLDivElement>(null);
+  const fullscreen = useGameFullscreen(rootRef, "minigame--fullscreen");
 
   useEffect(() => {
     const stop = client.subscribe(setView);
@@ -397,7 +401,7 @@ export function PokerApp() {
         : `Texas Hold'em. Buy-in ${POKER_BUY_IN}. Blinds ${POKER_SMALL_BLIND}/${POKER_BIG_BLIND}. ${POKER_ACTION_TIMEOUT_MS / 1000}s a turn.`);
 
   return (
-    <div className="minigame minigame--poker">
+    <div ref={rootRef} className="minigame minigame--poker">
       <div className="minigame__stars" aria-hidden="true">
         {stars}
       </div>
@@ -411,6 +415,7 @@ export function PokerApp() {
           </div>
         </div>
         <div className="minigame__status">
+          <FullscreenSwitch {...fullscreen} />
           <span
             className={`minigame__badge minigame__badge--${view.phase === "table" ? "live" : view.phase === "queued" ? "soon" : "closed"}`}
           >
