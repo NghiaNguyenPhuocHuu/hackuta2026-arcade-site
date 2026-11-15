@@ -1398,4 +1398,215 @@
     text-underline-offset: 3px;
     cursor: pointer;
   }
+
+  /* ---- Night theme everywhere: lobby, Wallet, dialog, sign-in (the game pages already had it) ---- */
+  .arcade-theme--night .participant-dashboard__section-title,
+  .arcade-theme--night .arcade-status__title {
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .arcade-status,
+  .arcade-theme--night .arcade-game-card,
+  .arcade-theme--night .participant-dashboard__panel,
+  .arcade-theme--night .participant-dashboard__section:not(.participant-dashboard__section--links) {
+    border-color: var(--night-faint);
+    background: rgb(11 29 51 / 0.82);
+    box-shadow: 0 10px 28px rgb(0 0 0 / 0.35);
+    backdrop-filter: blur(2px);
+  }
+
+  .arcade-theme--night .arcade-status__copy,
+  .arcade-theme--night .arcade-status__icon,
+  .arcade-theme--night .participant-dashboard__panel-copy,
+  .arcade-theme--night .arcade-wallet__balance-note,
+  .arcade-theme--night .arcade-wallet__help {
+    color: var(--night-text);
+  }
+
+  .arcade-theme--night .arcade-game-card:not(.arcade-game-card--locked):hover {
+    box-shadow: 0 16px 34px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(255 210 63 / 0.25);
+  }
+
+  .arcade-theme--night .arcade-game-card__art {
+    background:
+      radial-gradient(90% 120% at 50% 110%, rgb(255 210 63 / 0.16) 0%, transparent 60%),
+      var(--night-deep);
+    color: var(--night-gold);
+  }
+
+  .arcade-theme--night .arcade-game-card__facts li {
+    border-color: var(--night-faint);
+    color: var(--night-text);
+  }
+
+  .arcade-theme--night .arcade-game-card__cta:disabled {
+    background: var(--night-faint);
+    color: var(--night-text);
+  }
+
+  .arcade-theme--night .participant-dashboard__section--links {
+    background: rgb(7 21 38 / 0.9);
+    border-color: var(--night-faint);
+  }
+
+  /* Wallet */
+  .arcade-theme--night .arcade-wallet__balance-label,
+  .arcade-theme--night .arcade-wallet__table th {
+    color: var(--night-gold);
+  }
+
+  .arcade-theme--night .arcade-wallet__balance-value {
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .arcade-wallet__balance--arcade {
+    border-color: rgb(255 210 63 / 0.45);
+  }
+
+  .arcade-theme--night .arcade-wallet__label {
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .arcade-wallet__input,
+  .arcade-theme--night .arcade-sign-in__input {
+    border-color: var(--night-faint);
+    background: var(--night-sky);
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .arcade-wallet__input::placeholder {
+    color: rgb(246 237 223 / 0.4);
+  }
+
+  .arcade-theme--night .arcade-wallet__input:disabled {
+    background: rgb(7 21 38 / 0.5);
+  }
+
+  .arcade-theme--night .arcade-wallet__preset {
+    border-color: var(--night-faint);
+    background: var(--night-deep);
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .arcade-wallet__preset.is-active {
+    border-color: var(--night-gold);
+    background: rgb(255 210 63 / 0.14);
+  }
+
+  .arcade-theme--night .arcade-wallet__table td {
+    border-bottom-color: var(--night-faint);
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .arcade-wallet__table th {
+    border-bottom-color: var(--night-faint);
+  }
+
+  .arcade-theme--night .arcade-wallet__kind--deposit {
+    background: rgb(255 210 63 / 0.16);
+    color: var(--night-gold);
+  }
+
+  .arcade-theme--night .arcade-wallet__kind--withdraw {
+    background: var(--night-deep);
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .arcade-wallet__input:focus-visible,
+  .arcade-theme--night .arcade-wallet__preset:focus-visible,
+  .arcade-theme--night .arcade-confirm-dialog__cancel:focus-visible,
+  .arcade-theme--night .arcade-sign-in__input:focus-visible,
+  .arcade-theme--night .arcade-screen__link:focus-visible {
+    outline-color: var(--night-gold);
+  }
+
+  /* Errors on dark panels: the portal's error red is too dark, so a light red that reads on navy. */
+  .arcade-theme--night .arcade-wallet__help.is-error,
+  .arcade-theme--night .arcade-confirm-dialog__error,
+  .arcade-theme--night .arcade-sign-in__error {
+    color: #fca5a5;
+  }
+
+  .arcade-theme--night .arcade-wallet__input[aria-invalid="true"] {
+    border-color: #fca5a5;
+  }
+
+  /* Confirmation dialog */
+  .arcade-theme--night .arcade-confirm-dialog {
+    border-color: rgb(255 210 63 / 0.4);
+    background: var(--night-panel);
+    color: var(--night-marble);
+    box-shadow: 0 24px 60px rgb(0 0 0 / 0.55);
+  }
+
+  .arcade-theme--night .arcade-confirm-dialog::backdrop {
+    background: rgb(3 10 20 / 0.75);
+  }
+
+  .arcade-theme--night .arcade-confirm-dialog__title {
+    color: var(--night-gold);
+  }
+
+  .arcade-theme--night .arcade-confirm-dialog__copy {
+    color: var(--night-text);
+  }
+
+  .arcade-theme--night .arcade-confirm-dialog__balances {
+    background: var(--night-sky);
+  }
+
+  .arcade-theme--night .arcade-confirm-dialog__cancel {
+    border-color: var(--night-faint);
+    color: var(--night-marble);
+  }
+
+  /* Sign-in and status screens: the starry sky behind the temple, a dark card. */
+  .arcade-screen.arcade-theme--night {
+    background:
+      radial-gradient(1.5px 1.5px at 12% 18%, var(--arcade-star) 99%, transparent),
+      radial-gradient(1.5px 1.5px at 78% 9%, var(--arcade-star-gold) 99%, transparent),
+      radial-gradient(1px 1px at 41% 63%, var(--arcade-star) 99%, transparent),
+      radial-gradient(1px 1px at 88% 47%, var(--arcade-star) 99%, transparent),
+      radial-gradient(1.5px 1.5px at 23% 84%, var(--arcade-star) 99%, transparent),
+      radial-gradient(120% 60% at 50% -10%, var(--arcade-glow) 0%, transparent 60%),
+      var(--night-sky);
+    background-size: 420px 420px, 520px 520px, 360px 360px, 300px 300px, 460px 460px, 100% 100%, auto;
+  }
+
+  .arcade-screen.arcade-theme--night .arcade-screen__temple {
+    opacity: 0.16;
+    filter: invert(1);
+  }
+
+  .arcade-theme--night .sign-in-card {
+    border: 1px solid rgb(255 210 63 / 0.3);
+    background: rgb(11 29 51 / 0.92);
+    box-shadow: 0 24px 60px rgb(0 0 0 / 0.5);
+  }
+
+  .arcade-theme--night .sign-in-card__title {
+    color: var(--night-gold);
+  }
+
+  .arcade-theme--night .sign-in-card__subtitle,
+  .arcade-theme--night .arcade-screen__kicker {
+    color: var(--night-text);
+  }
+
+  .arcade-theme--night .arcade-sign-in__label {
+    color: var(--night-marble);
+  }
+
+  .arcade-theme--night .sign-in-btn {
+    background: var(--night-gold);
+    color: var(--night-sky);
+  }
+
+  .arcade-theme--night .sign-in-btn:hover:not(:disabled) {
+    background: #ffe27a;
+  }
+
+  .arcade-theme--night .arcade-screen__link {
+    color: var(--night-gold);
+  }
 }

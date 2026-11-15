@@ -46,10 +46,10 @@ export function StatusScreen({
   }[kind];
 
   return (
-    <div className="arcade-screen">
+    <div className="arcade-screen arcade-theme--night">
       <img className="arcade-screen__temple" src="/images/art/temple-clear.webp" alt="" aria-hidden="true" width={1800} height={1229} decoding="async" />
       <div className="sign-in-card arcade-screen__card" role={kind === "loading" ? "status" : undefined}>
-        <Logo className="sign-in-card__logo arcade-screen__logo" variant="light" layout="header" priority />
+        <Logo className="sign-in-card__logo arcade-screen__logo" variant="dark" layout="header" priority />
         <div className="sign-in-card__heading">
           <p className="arcade-screen__kicker">HackUTA Arcade</p>
           <h1 className="sign-in-card__title">{copy.title}</h1>
