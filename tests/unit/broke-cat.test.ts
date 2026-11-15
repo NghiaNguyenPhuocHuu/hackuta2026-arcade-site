@@ -26,7 +26,7 @@ describe("broke cat", () => {
     expect(gameKeyOf("/wallet")).toBeNull();
   });
 
-  it("draws the pixel cat on a 16×14 grid with known colours, and the meme picture is a local file", () => {
+  it("draws the pixel cat on a 16×14 grid with known colours, and the meme clip is a local file", () => {
     for (const frame of CAT_FRAMES) {
       expect(frame).toHaveLength(14);
       for (const row of frame) {
@@ -36,9 +36,9 @@ describe("broke cat", () => {
     }
     expect(TAUNTS.length).toBeGreaterThan(0);
     // Served from public/, never hotlinked from another site.
-    expect(BROKE_MEME.image).toBe("/memes/laughing-cat.jpg");
-    expect(existsSync(join("public", BROKE_MEME.image!))).toBe(true);
-    expect(BROKE_MEME.audio).toBe("/memes/laughing-cat.mp3");
-    expect(existsSync(join("public", BROKE_MEME.audio!))).toBe(true);
+    expect(BROKE_MEME.video).toBe("/memes/laughing-cat.mp4");
+    for (const path of [BROKE_MEME.video, BROKE_MEME.image, BROKE_MEME.audio]) {
+      if (path) expect(existsSync(join("public", path))).toBe(true);
+    }
   });
 });

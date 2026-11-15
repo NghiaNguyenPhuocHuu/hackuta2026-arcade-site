@@ -10,11 +10,15 @@ import { ChipTune } from "../games/sound";
 export const TAUNT_GAMES: ReadonlySet<string> = new Set(["olympus-slots", "wheel-of-the-fates"]);
 
 /**
- * Optional meme files, for organizers who have ones they're allowed to use:
- * put them in `public/` and set the paths (e.g. "/memes/laughing-cat.gif").
- * Left null, the pixel cat and the synthesized laugh track play instead.
+ * Meme files in `public/` (local, never hotlinked). The first one set wins:
+ * a `video` autoplays with its own sound; else an `image` (with `audio`, or the
+ * chiptune laugh); else the pixel cat and the chiptune laugh.
  */
-export const BROKE_MEME: { image: string | null; audio: string | null } = { image: "/memes/laughing-cat.jpg", audio: "/memes/laughing-cat.mp3" };
+export const BROKE_MEME: { video: string | null; image: string | null; audio: string | null } = {
+  video: "/memes/laughing-cat.mp4",
+  image: null,
+  audio: null,
+};
 
 export const TAUNTS: readonly string[] = [
   "The cat saw that. The cat will never forget.",

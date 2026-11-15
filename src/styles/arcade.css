@@ -1932,3 +1932,37 @@
     display: none;
   }
 }
+
+/* The meme clip, framed like the picture; tap it for sound if the browser muted it.
+   Square and centre-cropped: the clip has black bars baked in at the sides. */
+.broke-cat__clip {
+  position: relative;
+  display: block;
+  width: min(220px, 100%);
+  padding: 0;
+  background: var(--color-ink);
+  border: 3px solid var(--color-light);
+  cursor: pointer;
+}
+
+.broke-cat__video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.broke-cat__tap {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 4px 8px;
+  font: 600 13px/1 var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-sand);
+}
+
+.broke-cat__clip:focus-visible {
+  outline: 3px solid var(--color-sand);
+  outline-offset: 2px;
+}

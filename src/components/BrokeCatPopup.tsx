@@ -64,6 +64,9 @@ export function BrokeCatPopup({ arcadePoints }: { arcadePoints: number | null })
   const prev = useRef<number | null>(null);
   const [taunt, setTaunt] = useState<string | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  /** The browser refused autoplay with sound: the clip runs muted until tapped. */
+  const [needsTap, setNeedsTap] = useState(false);
 
   useEffect(() => {
     // While a reveal is on, the visible balance is held: wait for the real one.
@@ -78,7 +81,20 @@ export function BrokeCatPopup({ arcadePoints }: { arcadePoints: number | null })
     if (!taunt) return;
     closeRef.current?.focus();
     let audio: HTMLAudioElement | null = null;
-    if (gameSoundEnabled()) {
+    const video = videoRef.current;
+    if (video) {
+      // The clip carries its own laugh: with sound when game sounds are on and the
+      // browser allows it, else muted (tap the clip for sound).
+      const withSound = gameSoundEnabled();
+      video.muted = !withSound;
+      video.volume = 0.7;
+      setNeedsTap(!withSound);
+      void video.play().catch(() => {
+        video.muted = true;
+        setNeedsTap(true);
+        void video.play().catch(() => {});
+      });
+    } else if (gameSoundEnabled()) {
       if (BROKE_MEME.audio) {
         audio = new Audio(BROKE_MEME.audio);
         // Under the music and game sounds' level; ends with the pop-up.
@@ -95,6 +111,7 @@ export function BrokeCatPopup({ arcadePoints }: { arcadePoints: number | null })
     return () => {
       window.removeEventListener("keydown", onKey);
       audio?.pause();
+      video?.pause();
     };
   }, [taunt]);
 
@@ -116,7 +133,23 @@ export function BrokeCatPopup({ arcadePoints }: { arcadePoints: number | null })
             </span>
           ))}
         </p>
-        {BROKE_MEME.image ? (
+        {BROKE_MEME.video ? (
+          <button
+            type="button"
+            className="broke-cat__clip"
+            aria-label={needsTap ? "A cat laughing at you. Play with sound" : "A cat laughing at you"}
+            onClick={() => {
+              const video = videoRef.current;
+              if (!video) return;
+              video.muted = false;
+              setNeedsTap(false);
+              void video.play().catch(() => {});
+            }}
+          >
+            <video ref={videoRef} className="broke-cat__video" src={BROKE_MEME.video} loop playsInline preload="auto" aria-hidden="true" />
+            {needsTap ? <span className="broke-cat__tap">TAP FOR SOUND</span> : null}
+          </button>
+        ) : BROKE_MEME.image ? (
           <img className="broke-cat__img" src={BROKE_MEME.image} alt="A cat laughing and pointing at you" />
         ) : (
           <svg className="broke-cat__cat" viewBox="0 0 16 14" shapeRendering="crispEdges" role="img" aria-label="A pixel cat laughing at you">
