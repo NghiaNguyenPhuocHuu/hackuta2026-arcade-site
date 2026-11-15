@@ -700,8 +700,12 @@ export default defineSchema({
    * hash is stored. `points` is the player's off-table stack (starts at 200).
    */
   pokerPlayers: defineTable({
-    tokenHash: v.string(),
+    /** The signed-in hacker this player is. Unset only on legacy anonymous rows. */
+    checkedInId: v.optional(v.id("checkedIn")),
+    /** Legacy anonymous browser token (hash). New players are linked by `checkedInId`. */
+    tokenHash: v.optional(v.string()),
     displayName: v.string(),
+    /** Legacy practice chips. Linked players buy in from and cash out to the arcade wallet. */
     points: v.number(),
     lastResult: v.optional(
       v.object({
@@ -712,9 +716,11 @@ export default defineSchema({
     ),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_token_hash", ["tokenHash"]),
+  })
+    .index("by_token_hash", ["tokenHash"])
+    .index("by_checkedIn", ["checkedInId"]),
 
-  /** Humans waiting for a live table. Buy-in is already deducted from `pokerPlayers.points`. */
+  /** Humans waiting for a live table. The buy-in is already taken from the arcade wallet. */
   pokerQueue: defineTable({
     playerId: v.id("pokerPlayers"),
     joinedAt: v.number(),

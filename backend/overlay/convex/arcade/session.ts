@@ -10,15 +10,8 @@
 import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { normalizeEmail } from "../lib/normalizeEmail";
-import { loadArcade, loadGames, loadPlayer, playerProblem, type Player } from "./access";
+import { loadArcade, loadGames, loadPlayer, playerDisplayName, playerProblem } from "./access";
 import { arcadeBalance } from "./wallet";
-import type { QueryCtx } from "../lib/dataModel";
-
-async function displayNameFor(ctx: QueryCtx, player: Player) {
-  const application = player.participant ? await ctx.db.get(player.participant.applicationId) : null;
-  const name = [application?.firstName?.trim(), application?.lastName?.trim()].filter(Boolean).join(" ");
-  return name || player.user?.name?.trim() || normalizeEmail(player.user?.email) || "Hacker";
-}
 
 /**
  * Everything the arcade UI needs: the switch, the games, and the caller
@@ -39,7 +32,7 @@ export const getArcadeSession = query({
       games: games.map(({ key, name, enabled }) => ({ key, name, enabled })),
       player: player.user
         ? {
-            displayName: await displayNameFor(ctx, player),
+            displayName: await playerDisplayName(ctx, player),
             email: normalizeEmail(player.user.email) || null,
             /** First reason this account can't play, or null when it can (arcade and game switches aside). */
             problem: playerProblem(player),

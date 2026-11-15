@@ -1,11 +1,13 @@
 /**
- * Poker audit and reporting queries for admins.
+ * Poker audit and reporting queries for admins. Every query needs an
+ * administrator session (`requireAdminRole`): players are real hackers now.
  * 
  * Provides read-only access to gambling logs, transaction history,
  * and analytics for compliance and event management.
  */
 import { v } from "convex/values";
 import { query } from "../_generated/server";
+import { requireAdminRole, sessionTokenArgs } from "../admin/staffAuth";
 import {
   getPlayerTransactionHistory,
   getHandTransactions,
@@ -18,15 +20,12 @@ import {
  * Admin only - for audit and dispute resolution.
  */
 export const getPlayerHistory = query({
-  args: {
+  args: { ...sessionTokenArgs,
     playerId: v.id("pokerPlayers"),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, { playerId, limit }) => {
-    // TODO: Add admin authentication check here
-    // const admin = await getAdmin(ctx);
-    // if (!admin) throw new Error("Unauthorized");
-    
+  handler: async (ctx, { sessionToken, playerId, limit }) => {
+    await requireAdminRole(ctx, sessionToken);
     const transactions = await getPlayerTransactionHistory(ctx, playerId, limit ?? 100);
     const player = await ctx.db.get(playerId);
     const session = await ctx.db
@@ -53,13 +52,12 @@ export const getPlayerHistory = query({
  * Useful for reconstructing exactly what happened in a hand.
  */
 export const getHandHistory = query({
-  args: {
+  args: { ...sessionTokenArgs,
     tableId: v.id("pokerTables"),
     handNumber: v.number(),
   },
-  handler: async (ctx, { tableId, handNumber }) => {
-    // TODO: Add admin authentication check
-    
+  handler: async (ctx, { sessionToken, tableId, handNumber }) => {
+    await requireAdminRole(ctx, sessionToken);
     const transactions = await getHandTransactions(ctx, tableId, handNumber);
     const table = await ctx.db.get(tableId);
     
@@ -82,10 +80,9 @@ export const getHandHistory = query({
  * Dashboard view for admins to monitor the poker system.
  */
 export const getPokerEventStats = query({
-  args: {},
-  handler: async (ctx) => {
-    // TODO: Add admin authentication check
-    
+  args: { ...sessionTokenArgs,},
+  handler: async (ctx, { sessionToken }) => {
+    await requireAdminRole(ctx, sessionToken);
     const stats = await getEventWideStats(ctx);
     
     // Additional live stats
@@ -135,10 +132,9 @@ export const getPokerEventStats = query({
  * Shows who's currently playing.
  */
 export const getActiveSessions = query({
-  args: {},
-  handler: async (ctx) => {
-    // TODO: Add admin authentication check
-    
+  args: { ...sessionTokenArgs,},
+  handler: async (ctx, { sessionToken }) => {
+    await requireAdminRole(ctx, sessionToken);
     const sessions = await ctx.db
       .query("pokerSessionStats")
       .withIndex("by_last_activity")
@@ -167,12 +163,11 @@ export const getActiveSessions = query({
  * Checks if recorded balance matches sum of all transactions.
  */
 export const verifyBalance = query({
-  args: {
+  args: { ...sessionTokenArgs,
     playerId: v.id("pokerPlayers"),
   },
-  handler: async (ctx, { playerId }) => {
-    // TODO: Add admin authentication check
-    
+  handler: async (ctx, { sessionToken, playerId }) => {
+    await requireAdminRole(ctx, sessionToken);
     return await verifyPlayerBalance(ctx, playerId);
   },
 });
@@ -182,12 +177,11 @@ export const verifyBalance = query({
  * Live feed of all poker activity.
  */
 export const getRecentTransactions = query({
-  args: {
+  args: { ...sessionTokenArgs,
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, { limit }) => {
-    // TODO: Add admin authentication check
-    
+  handler: async (ctx, { sessionToken, limit }) => {
+    await requireAdminRole(ctx, sessionToken);
     return await ctx.db
       .query("pokerTransactions")
       .withIndex("by_timestamp")
@@ -200,12 +194,11 @@ export const getRecentTransactions = query({
  * Get detailed stats for a specific table.
  */
 export const getTableStats = query({
-  args: {
+  args: { ...sessionTokenArgs,
     tableId: v.id("pokerTables"),
   },
-  handler: async (ctx, { tableId }) => {
-    // TODO: Add admin authentication check
-    
+  handler: async (ctx, { sessionToken, tableId }) => {
+    await requireAdminRole(ctx, sessionToken);
     const table = await ctx.db.get(tableId);
     if (!table) return null;
     
@@ -265,12 +258,11 @@ export const getTableStats = query({
  * Flags things like rapid wins, unusual betting patterns, etc.
  */
 export const detectAnomalies = query({
-  args: {
+  args: { ...sessionTokenArgs,
     thresholdHours: v.optional(v.number()),
   },
-  handler: async (ctx, { thresholdHours }) => {
-    // TODO: Add admin authentication check
-    
+  handler: async (ctx, { sessionToken, thresholdHours }) => {
+    await requireAdminRole(ctx, sessionToken);
     const hours = thresholdHours ?? 24;
     const cutoff = Date.now() - hours * 60 * 60 * 1000;
     
@@ -373,13 +365,12 @@ export const detectAnomalies = query({
  * Returns all transactions in a format suitable for CSV export.
  */
 export const exportTransactionData = query({
-  args: {
+  args: { ...sessionTokenArgs,
     startTime: v.optional(v.number()),
     endTime: v.optional(v.number()),
   },
-  handler: async (ctx, { startTime, endTime }) => {
-    // TODO: Add admin authentication check
-    
+  handler: async (ctx, { sessionToken, startTime, endTime }) => {
+    await requireAdminRole(ctx, sessionToken);
     let query = ctx.db
       .query("pokerTransactions")
       .withIndex("by_timestamp")

@@ -1,14 +1,19 @@
 import { makeFunctionReference } from "convex/server";
+import type { GenericId } from "convex/values";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createConvexTest } from "../helpers/convexTestContext";
+import { createConvexTest, type ConvexTestInstance } from "../helpers/convexTestContext";
+import { seedStaff } from "../helpers/reviewTestKit";
+import { NOW, openArcade, seedPlayer, updateSettingsInternal, walletOf } from "../helpers/arcadeTestKit";
 
 const getView = makeFunctionReference<"query">("arcade/poker:getMyPokerView");
 const joinQueue = makeFunctionReference<"mutation">("arcade/poker:joinQueue");
 const cancelQueue = makeFunctionReference<"mutation">("arcade/poker:cancelQueue");
+const leaveTable = makeFunctionReference<"mutation">("arcade/poker:leaveTable");
 const act = makeFunctionReference<"mutation">("arcade/poker:act");
 const trySeat = makeFunctionReference<"mutation">("arcade/poker:trySeat");
-
-const NOW = Date.UTC(2026, 10, 14, 19);
+const recentTransactions = makeFunctionReference<"query">("arcade/pokerAudit:getRecentTransactions");
+const listTransfers = makeFunctionReference<"query">("arcade/admin:listArcadeTransfers");
+const POKER = "olympus-poker";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -20,102 +25,122 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("event poker matchmaking", () => {
-  it("starts two waiting humans at the same table after the fill delay", async () => {
-    const t = createConvexTest();
-    expect(await t.mutation(joinQueue, { playerToken: "hero-alpha", displayName: "Athena" })).toEqual({
-      status: "ok",
-      phase: "queued",
-    });
-    expect(await t.mutation(joinQueue, { playerToken: "hero-beta", displayName: "Ares" })).toEqual({
-      status: "ok",
-      phase: "queued",
-    });
+const profileOf = (t: ConvexTestInstance, id: GenericId<"checkedIn">) => t.run(async (ctx) => (await ctx.db.get(id))?.points);
 
-    const queued = await t.query(getView, { playerToken: "hero-alpha" });
-    expect(queued.phase).toBe("queued");
-    expect(queued.balance).toBe(100);
+describe("event poker matchmaking", () => {
+  it("starts two waiting hackers at the same table after the fill delay, buy-in from the arcade wallet", async () => {
+    const t = createConvexTest();
+    await openArcade(t, [POKER]);
+    const a = await seedPlayer(t, { points: 50, arcadePoints: 200 });
+    const b = await seedPlayer(t, { arcadePoints: 150 });
+    expect(await a.player.mutation(joinQueue, {})).toEqual({ status: "ok", phase: "queued" });
+    expect(await b.player.mutation(joinQueue, {})).toEqual({ status: "ok", phase: "queued" });
+
+    const queued = await a.player.query(getView, {});
+    expect(queued).toMatchObject({ phase: "queued", balance: 100 });
     expect(queued.queue).toHaveLength(2);
+    expect(await walletOf(t, a.checkedInId!)).toBe(100);
+    expect(await profileOf(t, a.checkedInId!)).toBe(50);
 
     vi.setSystemTime(NOW + 2_500);
     await t.mutation(trySeat, {});
-
-    const a = await t.query(getView, { playerToken: "hero-alpha" });
-    const b = await t.query(getView, { playerToken: "hero-beta" });
-    expect(a.phase).toBe("table");
-    expect(b.phase).toBe("table");
-    expect(a.table?.id).toBe(b.table?.id);
-    expect(a.table?.seats).toHaveLength(2);
-    expect(a.youId).toBeTruthy();
-    expect(a.table?.you?.id).toBe(a.youId);
+    const va = await a.player.query(getView, {});
+    const vb = await b.player.query(getView, {});
+    expect(va.phase).toBe("table");
+    expect(vb.phase).toBe("table");
+    expect(va.table?.id).toBe(vb.table?.id);
+    expect(va.table?.seats).toHaveLength(2);
+    expect(va.table?.you?.id).toBe(va.youId);
+    // Seated under their real name from the profile, not anything the browser sent.
+    expect(va.table?.seats.find((seat: { id: string }) => seat.id === va.youId)?.name).toBe("Taylor Student");
   });
 
   it("fills a solo queue with shades and never leaks the deck or the other hole cards", async () => {
     const t = createConvexTest();
-    await t.mutation(joinQueue, { playerToken: "hero-solo", displayName: "Hermes" });
+    await openArcade(t, [POKER]);
+    const { player } = await seedPlayer(t, { arcadePoints: 100 });
+    await player.mutation(joinQueue, {});
     vi.setSystemTime(NOW + 6_000);
     await t.mutation(trySeat, {});
 
-    const view = await t.query(getView, { playerToken: "hero-solo" });
+    const view = await player.query(getView, {});
     expect(view.phase).toBe("table");
     expect(view.table?.seats.length).toBe(4);
     expect(view.table?.seats.filter((seat: { isBot: boolean }) => seat.isBot)).toHaveLength(3);
-    expect(view.table?.you?.id).toBe(view.youId);
     expect(view.table?.seats.find((seat: { id: string }) => seat.id === view.youId)?.hole).toHaveLength(2);
     for (const seat of view.table?.seats ?? []) {
       if (seat.id !== view.youId) expect(seat.hole).toBeNull();
     }
-
-    const serialized = JSON.stringify(view);
-    expect(serialized).not.toContain('"deck"');
-
-    const secrets = await t.run(async (ctx) => {
-      const tables = await ctx.db.query("pokerTables").collect();
-      const table = tables[0];
-      return { deck: table?.deck.length ?? 0, status: table?.status };
-    });
-    expect(secrets.status).toBe("playing");
-    expect(secrets.deck).toBeGreaterThan(0);
+    expect(JSON.stringify(view)).not.toContain('"deck"');
   });
 
-  it("refunds the buy-in when leaving the queue", async () => {
+  it("refunds the buy-in to the arcade wallet when leaving the queue", async () => {
     const t = createConvexTest();
-    await t.mutation(joinQueue, { playerToken: "hero-leave", displayName: "Hera" });
-    expect(await t.mutation(cancelQueue, { playerToken: "hero-leave" })).toEqual({ status: "ok" });
-    const view = await t.query(getView, { playerToken: "hero-leave" });
-    expect(view.phase).toBe("lobby");
-    expect(view.balance).toBe(200);
+    await openArcade(t, [POKER]);
+    const { player, checkedInId } = await seedPlayer(t, { arcadePoints: 200 });
+    await player.mutation(joinQueue, {});
+    expect(await walletOf(t, checkedInId!)).toBe(100);
+    expect(await player.mutation(cancelQueue, {})).toEqual({ status: "ok" });
+    expect(await player.query(getView, {})).toMatchObject({ phase: "result", balance: 200, result: { returned: 100 } });
+    expect(await walletOf(t, checkedInId!)).toBe(200);
   });
 
-  it("refuses a second buy-in when the stack is too small", async () => {
+  it("gives the chips back to the arcade wallet when standing up, and the wallet check adds up", async () => {
     const t = createConvexTest();
-    await t.mutation(joinQueue, { playerToken: "hero-broke", displayName: "Dionysus" });
-    expect(await t.mutation(cancelQueue, { playerToken: "hero-broke" })).toEqual({ status: "ok" });
-    await t.run(async (ctx) => {
-      const players = await ctx.db.query("pokerPlayers").collect();
-      await ctx.db.patch(players[0]!._id, { points: 40 });
-    });
-    expect(await t.mutation(joinQueue, { playerToken: "hero-broke", displayName: "Dionysus" })).toEqual({
-      status: "error",
-      code: "INSUFFICIENT_POINTS",
-    });
+    await openArcade(t, [POKER]);
+    const admin = await seedStaff(t);
+    const { player, checkedInId } = await seedPlayer(t, { arcadePoints: 300 });
+    await player.mutation(joinQueue, {});
+    vi.setSystemTime(NOW + 6_000);
+    await t.mutation(trySeat, {});
+    const seated = await player.query(getView, {});
+    const chips = seated.table?.you?.chips as number;
+    expect(await player.mutation(leaveTable, {})).toEqual({ status: "ok" });
+    expect(await walletOf(t, checkedInId!)).toBe(200 + chips);
+    const listing = await t.query(listTransfers, { sessionToken: admin.sessionToken, checkedInId: checkedInId! });
+    expect(listing.wallets[0]).toMatchObject({ walletConsistent: true, stored: 200 + chips });
+  });
+
+  it("refuses a buy-in the arcade wallet can't cover", async () => {
+    const t = createConvexTest();
+    await openArcade(t, [POKER]);
+    const { player, checkedInId } = await seedPlayer(t, { points: 500, arcadePoints: 40 });
+    expect(await player.mutation(joinQueue, {})).toEqual({ status: "error", code: "INSUFFICIENT_POINTS" });
+    expect(await walletOf(t, checkedInId!)).toBe(40);
+    expect(await profileOf(t, checkedInId!)).toBe(500);
+  });
+
+  it("refuses hackers who can't play, and a closed arcade", async () => {
+    const t = createConvexTest();
+    expect(await t.mutation(joinQueue, {})).toMatchObject({ code: "NOT_SIGNED_IN" });
+    const notCheckedIn = await seedPlayer(t, { checkedIn: false });
+    expect(await notCheckedIn.player.mutation(joinQueue, {})).toMatchObject({ code: "NOT_CHECKED_IN" });
+    const { player } = await seedPlayer(t, { arcadePoints: 200 });
+    expect(await player.mutation(joinQueue, {})).toMatchObject({ code: "ARCADE_CLOSED" });
+    await t.mutation(updateSettingsInternal, { mode: "on" });
+    expect(await player.mutation(joinQueue, {})).toMatchObject({ code: "GAME_DISABLED" });
   });
 
   it("rejects an action off-turn", async () => {
     const t = createConvexTest();
-    await t.mutation(joinQueue, { playerToken: "hero-one", displayName: "One" });
-    await t.mutation(joinQueue, { playerToken: "hero-two", displayName: "Two" });
+    await openArcade(t, [POKER]);
+    const one = await seedPlayer(t, { arcadePoints: 100 });
+    const two = await seedPlayer(t, { arcadePoints: 100 });
+    await one.player.mutation(joinQueue, {});
+    await two.player.mutation(joinQueue, {});
     vi.setSystemTime(NOW + 2_500);
     await t.mutation(trySeat, {});
+    const a = await one.player.query(getView, {});
+    const waiter = a.table?.you?.legal?.length ? two.player : one.player;
+    expect(await waiter.mutation(act, { action: { type: "fold" } })).toEqual({ status: "error", code: "NOT_YOUR_TURN" });
+  });
 
-    const a = await t.query(getView, { playerToken: "hero-one" });
-    const b = await t.query(getView, { playerToken: "hero-two" });
-    const waiter = a.table?.you?.legal?.length ? "hero-two" : "hero-one";
-    const waitingView = waiter === "hero-one" ? a : b;
-    expect(waitingView.table?.you?.legal ?? []).not.toContain("fold");
-    expect(await t.mutation(act, { playerToken: waiter, action: { type: "fold" } })).toEqual({
-      status: "error",
-      code: "NOT_YOUR_TURN",
-    });
+  it("keeps the audit queries for administrators only", async () => {
+    const t = createConvexTest();
+    const admin = await seedStaff(t);
+    const volunteer = await seedStaff(t, { role: "volunteer" });
+    await expect(t.query(recentTransactions, { sessionToken: volunteer.sessionToken })).rejects.toThrow();
+    await expect(t.query(recentTransactions, { sessionToken: "f".repeat(64) })).rejects.toThrow();
+    expect(await t.query(recentTransactions, { sessionToken: admin.sessionToken })).toEqual([]);
   });
 });

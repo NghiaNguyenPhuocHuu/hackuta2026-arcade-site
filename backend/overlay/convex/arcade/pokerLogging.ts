@@ -4,7 +4,7 @@
  * Provides comprehensive audit trail for all poker transactions including
  * bets, wins, buy-ins, and cash-outs. Critical for compliance and dispute resolution.
  */
-import type { Id } from "../_generated/dataModel";
+import type { GenericId as Id } from "convex/values";
 import type { MutationCtx, QueryCtx } from "../lib/dataModel";
 
 type TransactionEvent =

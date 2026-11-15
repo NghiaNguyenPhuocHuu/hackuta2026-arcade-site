@@ -113,3 +113,31 @@ export async function applyPlay(ctx: MutationCtx, input: ApplyPlayInput): Promis
   await setArcadeBalance(ctx, checkedIn, newPoints, now);
   return { ok: true, play: (await ctx.db.get(id))! };
 }
+
+/**
+ * Pays `amount` arcade points into the wallet with no stake: a game handing
+ * chips back (poker cash-out, a queue refund). Logged in `arcadePlays` like
+ * any play, so the admin wallet check still adds up. 0 writes nothing.
+ */
+export async function creditWallet(
+  ctx: MutationCtx,
+  input: { checkedIn: Pick<CheckedInDoc, "_id">; game: ArcadeGameKey; playId: string; amount: number; now: number },
+) {
+  const { checkedIn, game, playId, amount, now } = input;
+  if (!isPoints(amount)) throw new Error(`arcade: ${game} produced an invalid credit`);
+  if (amount === 0) return;
+  const previousPoints = await arcadeBalance(ctx, checkedIn);
+  const newPoints = previousPoints + amount;
+  await ctx.db.insert("arcadePlays", {
+    checkedInId: checkedIn._id,
+    game,
+    playId,
+    stake: 0,
+    payout: amount,
+    pointsDelta: amount,
+    previousPoints,
+    newPoints,
+    createdAt: now,
+  });
+  await setArcadeBalance(ctx, checkedIn, newPoints, now);
+}
