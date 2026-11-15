@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { NavCardsIcon, NavSlotsIcon, NavWheelIcon } from '../components/brand/ArcadeIcons'
+import { NavCardsIcon, NavPokerIcon, NavSlotsIcon, NavWheelIcon } from '../components/brand/ArcadeIcons'
 import type { GameModule } from './types'
 import type { ArcadeGameKey } from '../../shared/arcade/rules'
 
@@ -47,6 +47,16 @@ export const GAMES: readonly GameEntry[] = [
     icon: NavWheelIcon,
     theme: 'night',
     load: () => import('./wheel-of-the-fates/index').then((m) => m.game),
+  },
+  {
+    key: 'olympus-poker',
+    name: 'Olympus Poker',
+    shortName: 'Poker',
+    tagline: 'Live Texas Hold\'em. The Fates seat you, 100 points on the felt.',
+    facts: ['Multiplayer', 'Buy-in 100 pts'],
+    icon: NavPokerIcon,
+    theme: 'night',
+    load: () => import('./poker/index').then((m) => m.game),
   },
   {
     key: 'pvp-blackjack',

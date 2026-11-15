@@ -21,7 +21,9 @@ const ROOT = realpathSync.native(resolve(dirname(fileURLToPath(import.meta.url))
 execFileSync(process.execPath, [join(ROOT, "scripts", "assemble-backend.mjs"), "--with-stubs"], { cwd: ROOT, stdio: "inherit" });
 
 const cwd = realpathSync.native(join(ROOT, "build", "peccary"));
-const targets = process.argv.includes("--all") ? ["tests/integration", "tests/unit"] : ["tests/integration/slot", "tests/integration/arcade"];
+const targets = process.argv.includes("--all")
+  ? ["tests/integration", "tests/unit"]
+  : ["tests/integration/slot", "tests/integration/arcade", "tests/integration/poker"];
 try {
   execFileSync(process.execPath, [join(cwd, "node_modules", "vitest", "vitest.mjs"), "run", ...targets, "--project", "profile"], {
     cwd,

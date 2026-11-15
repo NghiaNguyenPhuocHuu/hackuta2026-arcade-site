@@ -57,14 +57,14 @@ export default function PlayPage() {
           </Link>
         </div>
       ) : (
-        <GameStage game={game} />
+        <GameStage game={game} player={session.player} />
       )}
     </section>
   );
 }
 
 /** Lazy-loads the game and mounts it. Mock points until step 3 swaps in the Convex adapter. */
-function GameStage({ game }: { game: GameEntry }) {
+function GameStage({ game, player }: { game: GameEntry; player: ArcadeSession["player"] }) {
   const ref = useRef<HTMLDivElement>(null);
   // A spin from another game (or this one, left mid-spin) is still being
   // revealed: show this game at once, but veiled, so its balance can't give
@@ -87,7 +87,9 @@ function GameStage({ game }: { game: GameEntry }) {
         if (cancelled || !ref.current) return;
         // The visit's shared mock wallet: balance and history survive leaving the
         // game, and the lobby's points pill follows.
-        unmount = module.mountMock(ref.current, mockWalletPort(game.key));
+        unmount = module.mountMock(ref.current, mockWalletPort(game.key), {
+          player: player ? { displayName: player.displayName } : undefined,
+        });
         setReady(true);
       })
       .catch(() => {
@@ -97,7 +99,7 @@ function GameStage({ game }: { game: GameEntry }) {
       cancelled = true;
       unmount?.();
     };
-  }, [game]);
+  }, [game, player?.displayName]);
 
   return (
     <div className={`arcade-stage${waiting ? " arcade-stage--veiled" : ""}`}>

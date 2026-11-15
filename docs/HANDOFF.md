@@ -120,7 +120,7 @@ end in step 2.
   `backend:assemble`, pinned at `4ec8892` in `backend/BASE.json`),
   `hackuta-2026-admin`, and the old prototype `hackuta-2026-gambling-mini_game`
   (frozen; its own `npm run sandbox` serves on port 5380).
-- Arcade dev server: `npm run dev` → http://127.0.0.1:5473 (strict port).
+- Arcade dev server: `npm run dev` → http://127.0.0.1:5573 (strict port).
 - Screenshots: headless Google Chrome won't go below 500px wide, so use
   Playwright for phone sizes. A copy is at
   `../hackuta-2026-admin/node_modules/playwright-core`, with Chromium in

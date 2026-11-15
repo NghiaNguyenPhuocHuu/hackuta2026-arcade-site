@@ -65,7 +65,13 @@ export const staffConfigLogAction = v.union(
   v.literal("flash_sale_cancelled"),
   v.literal("arcade_settings_updated"),
   v.literal("arcade_game_updated"),
-  // Historical rows from the removed notification admin. New writes never use these.
+  v.literal("o21_window_created"),
+  v.literal("o21_window_updated"),
+  v.literal("o21_window_cancelled"),
+  // Historical rows from removed slot windows / notification admin. New writes never use these.
+  v.literal("slot_window_created"),
+  v.literal("slot_window_updated"),
+  v.literal("slot_window_cancelled"),
   v.literal("notification_created"),
   v.literal("notification_updated"),
   v.literal("notification_published"),

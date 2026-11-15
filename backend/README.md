@@ -13,30 +13,37 @@ runs, plus the game.
 | `overlay/convex/arcade/session.ts` | `getArcadeSession` (switch, games, the caller's name and points; works signed out) and `getLauncherState` (profile's Arcade button) |
 | `overlay/convex/arcade/admin.ts` | Admin-only `getArcadeAdmin`, `updateArcadeSettings`, `updateArcadeGame`, plus `*Internal` versions for the CLI. Audited in `staffConfigLogs` |
 | `overlay/convex/arcade/launch.ts`, `launchProvider.ts` | One-time launch codes (`createLaunchCode`, `consumeLaunchCode`) and the `arcade-launch` Convex Auth provider |
+| `overlay/convex/arcade/poker.ts` | Event-wide Texas Hold'em matchmaking (queue, table, bots, 15s kick). Hole cards and the deck never leave the server. |
+| `overlay/convex/admin/o21*.ts` | Preserve peccary's live Olympus 21 functions (windows, tables, seed). Do not drop these on push. |
 | `overlay/convex/admin/slotSpin.ts` | Olympus Slots `getMyGameState` and `spin`, built on the arcade code above |
-| `../shared/arcade/rules.ts`, `../shared/admin/slotRules.ts` (repo root) | Arcade and slot rules, one copy shared by the site and the backend. The assemble script copies `shared/` into the build. |
-| `overlay/convex/schema.ts`, `overlay/convex/admin/pointsLedger.ts`, `overlay/convex/admin/fields.ts`, `overlay/convex/auth.ts` | Full copies of the pinned files with additive edits only: the `arcadeSettings`, `arcadeGames`, `arcadePlays`, `arcadeLaunchCodes` and `slotSpins` tables, the optional `staffConfigLogs.targetArcadeGameKey` field, `arcadePlays` deltas in `computeLedgerPoints`, the 2 `arcade_*` audit actions, and the `arcade-launch` provider |
-| `overlay/tests/integration/arcade.test.ts`, `slot-spin.test.ts`, `overlay/tests/helpers/arcadeTestKit.ts` | convex-test integration tests |
+| `../shared/arcade/rules.ts`, `../shared/admin/slotRules.ts`, `../shared/poker/` (repo root) | Arcade, slot, and poker rules, one copy shared by the site and the backend. The assemble script copies `shared/` into the build. |
+| `overlay/convex/schema.ts`, `overlay/convex/admin/pointsLedger.ts`, `overlay/convex/admin/fields.ts`, `overlay/convex/auth.ts` | Full copies of the pinned files with additive edits only: arcade + poker + o21 tables, `arcadePlays` deltas in `computeLedgerPoints`, arcade/o21 audit actions, and the `arcade-launch` provider |
+| `overlay/tests/integration/arcade.test.ts`, `slot-spin.test.ts`, `poker-matchmaking.test.ts`, `overlay/tests/helpers/arcadeTestKit.ts` | convex-test integration tests |
 
 ## Commands
 
 ```bash
 npm run backend:assemble   # build/peccary = pinned profile backend + overlay + shared/ (+ npm ci on first run)
-npm run backend:test       # assemble with offline codegen stubs, run the arcade + slot integration tests
+npm run backend:test       # assemble with offline codegen stubs, run arcade + slot + poker integration tests
 npm run backend:check      # read-only: live function list vs build; fails if anything would be lost
+npm run convex:push-dev    # assemble (no stubs) + no-function-loss check + push peccary
 ```
 
-## Push sequence (sandbox only; needs the user's go-ahead)
+## Push from arcade-site (sandbox only)
 
-Run from the repo root. Every step targets `dev:brazen-peccary-506`, and the
-guard refuses anything else.
+Run from this repo's root. The script assembles `build/peccary` first, so the
+push never deletes profile functions. It targets `dev:brazen-peccary-506` only.
+
+```bash
+npm run convex:push-dev
+```
+
+That is:
 
 ```bash
 node scripts/assemble-backend.mjs                     # fresh build, NO stubs (convex dev generates _generated)
 node scripts/check-no-function-loss.mjs --save build/spec-pre.json
 cd build/peccary
-# backup (data snapshot) before the push
-CONVEX_DEPLOYMENT=dev:brazen-peccary-506 npx convex export --path ../../backups/peccary-<timestamp>.zip
 # push (typechecks, regenerates _generated, deploys schema + functions)
 CONVEX_DEPLOYMENT=dev:brazen-peccary-506 npx convex dev --once --typecheck enable --tail-logs disable
 cd ../..

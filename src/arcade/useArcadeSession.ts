@@ -45,6 +45,7 @@ function mockSession(status: ArcadeStatus, now: number): ArcadeSession {
     games: [
       { key: "olympus-slots", enabled: true },
       { key: "wheel-of-the-fates", enabled: true },
+      { key: "olympus-poker", enabled: true },
       { key: "pvp-blackjack", enabled: false },
     ],
   };

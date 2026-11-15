@@ -25,7 +25,11 @@ export type PointsRevealPort = {
   release(): void;
 };
 
+export type MountGameOptions = {
+  player?: { id?: string; displayName: string };
+};
+
 export type GameModule = {
   /** Mount on mock points. Returns `unmount`, safe to call more than once. */
-  mountMock(element: HTMLElement, wallet: MockWalletPort): () => void;
+  mountMock(element: HTMLElement, wallet: MockWalletPort, options?: MountGameOptions): () => void;
 };

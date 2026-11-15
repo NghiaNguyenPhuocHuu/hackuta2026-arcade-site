@@ -21,6 +21,17 @@ function setMockWallet(next: MockWallet): void {
   for (const listener of listeners) listener();
 }
 
+export function spendMockPoints(amount: number): boolean {
+  if (amount <= 0 || wallet.balance < amount) return false;
+  setMockWallet({ ...wallet, balance: wallet.balance - amount });
+  return true;
+}
+
+export function creditMockPoints(amount: number): void {
+  if (amount <= 0) return;
+  setMockWallet({ ...wallet, balance: wallet.balance + amount });
+}
+
 export function subscribeMockWallet(listener: () => void): () => void {
   listeners.add(listener);
   return () => {

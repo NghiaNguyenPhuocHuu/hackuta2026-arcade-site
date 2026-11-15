@@ -127,3 +127,51 @@ export function payoutFor(wager: number, outcome: SlotOutcome): number {
 export function expectedRtp(): number {
   return SLOT_OUTCOMES.reduce((sum, outcome) => sum + (outcome.weight / SLOT_WEIGHT_TOTAL) * outcome.multiplier, 0);
 }
+
+// Slot window management utilities
+
+export type SlotWindowErrorCode =
+  | "SLOT_WINDOW_NOT_FOUND"
+  | "SLOT_WINDOW_OVERLAP"
+  | "SLOT_WINDOW_CANCELLED"
+  | "SLOT_WINDOW_PAST_START"
+  | "SLOT_WINDOW_INVALID_TIME"
+  | "SLOT_WINDOW_NOT_EDITABLE";
+
+export class SlotWindowError extends Error {
+  constructor(public code: SlotWindowErrorCode, message?: string) {
+    super(message || code);
+    this.name = "SlotWindowError";
+  }
+}
+
+export function slotWindowError(code: SlotWindowErrorCode, message?: string): SlotWindowError {
+  return new SlotWindowError(code, message);
+}
+
+export function assertSlotWindowTimes(opensAt: number, closesAt: number, now: number): void {
+  if (!Number.isInteger(opensAt) || !Number.isInteger(closesAt)) {
+    throw slotWindowError("SLOT_WINDOW_INVALID_TIME", "Window times must be integers");
+  }
+  if (opensAt < now) {
+    throw slotWindowError("SLOT_WINDOW_PAST_START", "Window cannot start in the past");
+  }
+  if (closesAt <= opensAt) {
+    throw slotWindowError("SLOT_WINDOW_INVALID_TIME", "Window must close after it opens");
+  }
+  const duration = closesAt - opensAt;
+  const minDuration = 60 * 1000; // 1 minute
+  const maxDuration = 7 * 24 * 60 * 60 * 1000; // 7 days
+  if (duration < minDuration) {
+    throw slotWindowError("SLOT_WINDOW_INVALID_TIME", "Window must be at least 1 minute long");
+  }
+  if (duration > maxDuration) {
+    throw slotWindowError("SLOT_WINDOW_INVALID_TIME", "Window cannot be longer than 7 days");
+  }
+}
+
+export function normalizeSlotWindowLabel(label?: string): string {
+  if (!label) return "";
+  const normalized = label.trim().slice(0, 100);
+  return normalized;
+}
