@@ -5,6 +5,7 @@ import { BackIcon } from "../components/brand/ArcadeIcons";
 import { formatClock, type ArcadeSession } from "../arcade/useArcadeSession";
 import { findGame, type GameEntry } from "../games/registry";
 import { mockWalletPort } from "../arcade/mockWallet";
+import { useRevealWait, useSecondsLeft } from "../arcade/pointsReveal";
 
 export default function PlayPage() {
   const session = useOutletContext<ArcadeSession>();
@@ -56,9 +57,28 @@ export default function PlayPage() {
           </Link>
         </div>
       ) : (
-        <GameStage game={game} />
+        <RevealGate game={game} />
       )}
     </section>
+  );
+}
+
+/**
+ * A spin from another game (or this one, left mid-spin) is still being
+ * revealed: wait for it before mounting, so this game can't show its result
+ * early. Only a few seconds; the game opens by itself.
+ */
+function RevealGate({ game }: { game: GameEntry }) {
+  const waiting = useRevealWait();
+  const seconds = useSecondsLeft(waiting ? waiting.until : null);
+  if (!waiting) return <GameStage game={game} />;
+  const from = findGame(waiting.game);
+  return (
+    <div className="arcade-stage">
+      <p className="arcade-stage__loading" role="status">
+        The Fates are still deciding your {from && from.key !== game.key ? `${from.shortName.toLowerCase()} ` : ""}spin… {game.name} opens in {seconds}s.
+      </p>
+    </div>
   );
 }
 

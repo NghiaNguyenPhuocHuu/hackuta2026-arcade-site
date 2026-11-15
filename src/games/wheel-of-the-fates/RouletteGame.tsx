@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import type { PointsRevealPort } from "../types";
 import { checkBets, pocketColor, winningBetIds, type PlacedBet } from "../../../shared/roulette/rules";
 import { hackerFrame } from "../olympus-slots/hacker";
 import { Board, Chip, type Orientation } from "./Board";
@@ -7,7 +8,7 @@ import { omenFor, type Omen } from "./omens";
 import { Sfx } from "./sound";
 import { TABLE_CLOTHS, WHEEL_SKINS, loadSettings, saveSettings, type RouletteSettings } from "./themes";
 import type { RouletteAdapter, RouletteSpin, RouletteState } from "./types";
-import { Wheel, type WheelHandle } from "./Wheel";
+import { Wheel, maxRevealMs, type WheelHandle } from "./Wheel";
 
 type Bets = Readonly<Record<string, number>>;
 
@@ -30,7 +31,12 @@ function usePrefersReducedMotion() {
 /** "tall" table layout when the game is narrower than this. */
 const TALL_BELOW = 640;
 
-export function RouletteGame({ adapter }: { adapter: RouletteAdapter }) {
+/** No arcade around it (tests, previews): nothing to hold. */
+const NO_REVEAL: PointsRevealPort = { hold() {}, release() {} };
+/** Until the server answers, hold for at most this long (a stuck request shouldn't hide points forever). */
+const ANSWER_WAIT_MS = 15_000;
+
+export function RouletteGame({ adapter, points = NO_REVEAL }: { adapter: RouletteAdapter; points?: PointsRevealPort }) {
   const live = useSyncExternalStore(adapter.subscribe, adapter.getState);
   const reducedMotion = usePrefersReducedMotion();
   const [settings, setSettings] = useState<RouletteSettings>(loadSettings);
@@ -162,6 +168,8 @@ export function RouletteGame({ adapter }: { adapter: RouletteAdapter }) {
     sfx.spinStart();
     setSpinning(true);
     setFrozen(live);
+    // Keep the rest of the arcade on "stake taken" until the ball lands.
+    points.hold(live.balance - verdict.stake, ANSWER_WAIT_MS);
     setResult(null);
     setLine(SPINNING);
     setAnnounce("The wheel is spinning.");
@@ -180,6 +188,7 @@ export function RouletteGame({ adapter }: { adapter: RouletteAdapter }) {
       outcome = { status: "error" as const, code: "ERROR" as const };
     }
     if (outcome.status === "error") {
+      points.release();
       await wheelRef.current?.land(null);
       if (!mounted.current) return;
       setLine(errorLine(outcome.code, live.limits, outcome.retryAfterMs));
@@ -189,8 +198,11 @@ export function RouletteGame({ adapter }: { adapter: RouletteAdapter }) {
       setSpinning(false);
       return;
     }
+    // The answer is in: hold only as long as the landing can take (also if the player leaves now).
+    points.hold(live.balance - verdict.stake, reducedMotion ? 0 : maxRevealMs(settings.fast));
     await wheelRef.current?.land(outcome.spin.pocket);
     if (!mounted.current) return;
+    points.release();
     sfx.clack();
     const said = resultLine(outcome.spin);
     const appears = omenFor(outcome.spin);

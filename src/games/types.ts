@@ -12,6 +12,17 @@ export type MockWalletPort = {
   balance: number;
   saved: unknown;
   save(next: { balance: number; saved: unknown }): void;
+} & PointsRevealPort;
+
+/**
+ * Keeps a spin's result off the rest of the arcade until the game shows it
+ * (src/arcade/pointsReveal.ts). Call `hold` when a spin starts, with the
+ * balance the game is showing (stake taken) and the longest the reveal can
+ * take; call `release` once the result is on screen or the spin failed.
+ */
+export type PointsRevealPort = {
+  hold(shown: number, maxMs: number): void;
+  release(): void;
 };
 
 export type GameModule = {

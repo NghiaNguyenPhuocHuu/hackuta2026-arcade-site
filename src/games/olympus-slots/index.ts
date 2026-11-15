@@ -11,7 +11,7 @@ export const game: GameModule = {
       recentSpins: Array.isArray(wallet.saved) ? (wallet.saved as RecentSpin[]) : [],
     });
     const stopSync = adapter.subscribe(({ balance, recentSpins }) => wallet.save({ balance, saved: recentSpins }));
-    const unmountGame = mountMinigame(element, { adapter });
+    const unmountGame = mountMinigame(element, { adapter, points: wallet });
     let done = false;
     return () => {
       if (done) return;

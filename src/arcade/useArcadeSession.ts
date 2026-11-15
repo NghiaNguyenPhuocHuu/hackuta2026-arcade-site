@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { getMockWallet, subscribeMockWallet } from "./mockWallet";
+import { shownPoints, usePointsHold } from "./pointsReveal";
 import type { GameKey } from "../games/registry";
 
 /**
@@ -52,7 +53,9 @@ function mockSession(status: ArcadeStatus, now: number): ArcadeSession {
 export function useArcadeSession(): ArcadeSession {
   const [session] = useState(() => mockSession(previewStatus(), Date.now()));
   const wallet = useSyncExternalStore(subscribeMockWallet, getMockWallet);
-  return session.player ? { ...session, player: { ...session.player, points: wallet.balance } } : session;
+  // During a spin's reveal every screen shows the held balance, not the result.
+  const hold = usePointsHold();
+  return session.player ? { ...session, player: { ...session.player, points: shownPoints(wallet.balance, hold) } } : session;
 }
 
 /** Re-renders every `intervalMs` so countdowns stay current. */

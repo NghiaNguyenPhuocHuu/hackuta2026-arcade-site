@@ -1,4 +1,5 @@
 import type { MockWalletPort } from "../games/types";
+import { holdPoints, releasePoints } from "./pointsReveal";
 
 /**
  * Mock points for the whole visit, until the Convex adapters (step 3 of
@@ -36,5 +37,7 @@ export function mockWalletPort(gameKey: string): MockWalletPort {
       if (balance === wallet.balance && saved === wallet.saved[gameKey]) return;
       setMockWallet({ balance, saved: { ...wallet.saved, [gameKey]: saved } });
     },
+    hold: (shown, maxMs) => holdPoints(gameKey, shown, maxMs),
+    release: () => releasePoints(gameKey),
   };
 }

@@ -68,4 +68,6 @@ export type TutorialMode = "first-visit" | "always" | "off";
 export type MountMinigameOptions = {
   adapter: MinigameAdapter;
   tutorial?: TutorialMode;
+  /** The arcade's reveal hold (src/games/types.ts): keeps the result off other screens until the reels land. */
+  points?: { hold(shown: number, maxMs: number): void; release(): void };
 };

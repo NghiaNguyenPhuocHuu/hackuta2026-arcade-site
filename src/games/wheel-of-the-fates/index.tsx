@@ -12,7 +12,7 @@ export const game: GameModule = {
     const container = document.createElement("div");
     element.appendChild(container);
     const root = createRoot(container);
-    root.render(<RouletteGame adapter={adapter} />);
+    root.render(<RouletteGame adapter={adapter} points={wallet} />);
     let done = false;
     return () => {
       if (done) return;

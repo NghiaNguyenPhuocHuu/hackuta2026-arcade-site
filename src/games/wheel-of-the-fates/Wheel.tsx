@@ -38,6 +38,15 @@ export function pocketAngle(pocket: number): number {
   return WHEEL_ORDER.indexOf(pocket) * STEP;
 }
 
+/**
+ * Longest time from the server's answer to the ball stopping: the rest of the
+ * minimum spin, then the longest landing (minimum + one extra lap), plus slack.
+ */
+export function maxRevealMs(fast: boolean): number {
+  const p = fast ? FAST : NORMAL;
+  return p.minSpinMs + (p.minLand + (3 * 360) / (p.wheel + p.ball)) * 1000 + 500;
+}
+
 /** Landing time T ≥ minimum for which ball and pocket meet (see file comment). */
 export function landingTime(wheelAngle: number, ballAngle: number, wheelSpeed: number, ballSpeed: number, pocket: number, minimum: number) {
   const sum = wheelSpeed + ballSpeed;
