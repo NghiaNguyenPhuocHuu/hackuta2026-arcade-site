@@ -38,6 +38,7 @@ describe("broke cat", () => {
     // Served from public/, never hotlinked from another site.
     expect(BROKE_MEME.image).toBe("/memes/laughing-cat.jpg");
     expect(existsSync(join("public", BROKE_MEME.image!))).toBe(true);
-    expect(BROKE_MEME.audio).toBeNull();
+    expect(BROKE_MEME.audio).toBe("/memes/laughing-cat.mp3");
+    expect(existsSync(join("public", BROKE_MEME.audio!))).toBe(true);
   });
 });

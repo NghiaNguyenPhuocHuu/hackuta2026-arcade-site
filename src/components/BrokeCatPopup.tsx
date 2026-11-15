@@ -81,6 +81,8 @@ export function BrokeCatPopup({ arcadePoints }: { arcadePoints: number | null })
     if (gameSoundEnabled()) {
       if (BROKE_MEME.audio) {
         audio = new Audio(BROKE_MEME.audio);
+        // Under the music and game sounds' level; ends with the pop-up.
+        audio.volume = 0.7;
         void audio.play().catch(() => {});
       } else {
         laughTrack().laugh();
