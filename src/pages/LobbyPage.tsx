@@ -1,7 +1,7 @@
 import { Link, useOutletContext } from "react-router-dom";
+import { ArcadeStatusBanner } from "../components/ArcadeStatusBanner";
 import { DepositPrompt, PageHeader, PointsPill } from "../components/PageHeader";
-import { ClockIcon } from "../components/brand/ArcadeIcons";
-import { formatClock, formatCountdown, useNow, type ArcadeSession } from "../arcade/useArcadeSession";
+import { formatClock, type ArcadeSession } from "../arcade/useArcadeSession";
 import { GAMES, type GameEntry } from "../games/registry";
 
 export default function LobbyPage() {
@@ -18,7 +18,7 @@ export default function LobbyPage() {
       />
 
       <div className="participant-portal__inner arcade-lobby__inner">
-        <StatusBanner session={session} />
+        <ArcadeStatusBanner session={session} />
         {session.player && session.player.arcadePoints === 0 ? <DepositPrompt /> : null}
 
         <section className="arcade-section" aria-labelledby="arcade-games-title">
@@ -45,7 +45,7 @@ export default function LobbyPage() {
               <strong>Real stakes.</strong> Deposit points from your HackUTA profile into the arcade. Games bet from your arcade points, and you can withdraw them back to your profile any time.
             </li>
             <li>
-              <strong>Open hours only.</strong> Games run only while organizers hold the gates open. Spins in progress finish when they close.
+              <strong>Open hours only.</strong> Games run only while organizers hold the gates open. Trials already in progress can finish when they close; new wagers are refused.
             </li>
             <li>
               <strong>Checked-in hackers.</strong> Only accepted, checked-in hackers may enter the trials.
@@ -60,40 +60,6 @@ export default function LobbyPage() {
   );
 }
 
-function StatusBanner({ session }: { session: ArcadeSession }) {
-  const now = useNow();
-
-  if (session.status === "scheduled" && session.opensAt) {
-    return (
-      <div className="arcade-status arcade-status--scheduled" role="status">
-        <ClockIcon className="arcade-status__icon" />
-        <div>
-          <p className="arcade-status__title">Opens at {formatClock(session.opensAt)}</p>
-          <p className="arcade-status__copy">The gates open in {formatCountdown(session.opensAt - now)}. Scout the temple until then.</p>
-        </div>
-        <span className="participant-dashboard__badge participant-dashboard__badge--waitlisted">Scheduled</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="arcade-status arcade-status--open" role="status">
-      <span className="arcade-status__pulse" aria-hidden="true" />
-      <div>
-        <p className="arcade-status__title">The gates are open</p>
-        {session.closesAt ? (
-          <p className="arcade-status__copy">
-            Closes at {formatClock(session.closesAt)} · {formatCountdown(session.closesAt - now)} left
-          </p>
-        ) : (
-          <p className="arcade-status__copy">Choose your trial below, hero.</p>
-        )}
-      </div>
-      <span className="participant-dashboard__badge participant-dashboard__badge--accepted">Open</span>
-    </div>
-  );
-}
-
 function GameCard({ game, session }: { game: GameEntry; session: ArcadeSession }) {
   const Icon = game.icon;
   const serverEnabled = session.games.find((g) => g.key === game.key)?.enabled ?? false;
@@ -104,6 +70,7 @@ function GameCard({ game, session }: { game: GameEntry; session: ArcadeSession }
   if (!built) badge = { label: "Coming soon", tone: "neutral" };
   else if (!serverEnabled) badge = { label: "Paused", tone: "rejected" };
   else if (session.status === "scheduled") badge = { label: "Opens soon", tone: "waitlisted" };
+  else if (session.status === "off") badge = { label: "Closed", tone: "rejected" };
 
   return (
     <article className={`arcade-game-card${playable ? "" : " arcade-game-card--locked"}`}>

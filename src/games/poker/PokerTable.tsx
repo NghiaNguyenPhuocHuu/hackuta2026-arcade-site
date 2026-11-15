@@ -410,7 +410,7 @@ export function PokerApp() {
           <div className="minigame__brand-copy">
             <h1 className="minigame__title">OLYMPUS POKER</h1>
             <p className="minigame__tagline">
-              A real 52-card deck. Live seats. Fixed 100-point buy-in.
+              A real 52-card deck. Live seats. Fixed {POKER_BUY_IN}-point buy-in.
             </p>
           </div>
         </div>
@@ -467,8 +467,8 @@ export function PokerApp() {
                     </p>
                     <p className="poker-queue__copy">
                       {view.phase === "queued"
-                        ? "You are auto-seated as soon as a table fills."
-                        : "Put in 100 points. The Fates seat you with whoever else is waiting — any laptop at the event."}
+                        ? "Waiting for another hacker. Tables start with at least two live players."
+                        : `Put in ${POKER_BUY_IN} arcade points. Join the queue — the Fates seat you with other hackers at the event.`}
                     </p>
                     {view.queue.length > 0 ? (
                       <ul className="poker-queue__list">

@@ -21,10 +21,6 @@ import {
   applyAction,
   chooseBotAction,
   POKER_ACTION_TIMEOUT_MS,
-  POKER_BOT_FILL_MS,
-  POKER_BOT_NAMES,
-  POKER_BOT_THINK_MAX_MS,
-  POKER_BOT_THINK_MIN_MS,
   POKER_BUY_IN,
   POKER_INSTANT_SEATS,
   POKER_MAX_PLAYERS,
@@ -96,10 +92,6 @@ function random01(): number {
     return buffer[0]! / 2 ** 32;
   }
   return Math.random();
-}
-
-function randomBetween(min: number, max: number): number {
-  return min + Math.floor(random01() * (max - min + 1));
 }
 
 function asCard(card: { rank: string; suit: string }): Card {
@@ -351,27 +343,8 @@ async function persistAndAdvance(ctx: MutationCtx, table: TableDoc, seats: SeatD
   await scheduleAdvance(ctx, table._id);
 }
 
-function makeBotSeats(needed: number): Seat[] {
-  return POKER_BOT_NAMES.slice(0, needed).map((name, index) => ({
-    id: `bot-${index}-${name.split(" ").slice(-1)[0]!.toLowerCase()}`,
-    name,
-    chips: POKER_BUY_IN,
-    hole: [],
-    folded: false,
-    allIn: false,
-    streetBet: 0,
-    committed: 0,
-    actedThisStreet: false,
-    isBot: true,
-  }));
-}
-
-async function openTable(
-  ctx: MutationCtx,
-  humans: Array<{ playerId: Id<"pokerPlayers">; name: string }>,
-  botCount: number,
-) {
-  const humanSeats: Seat[] = humans.map((human) => ({
+async function openTable(ctx: MutationCtx, humans: Array<{ playerId: Id<"pokerPlayers">; name: string }>) {
+  const seats: Seat[] = humans.map((human) => ({
     id: human.playerId,
     name: human.name,
     chips: POKER_BUY_IN,
@@ -383,7 +356,6 @@ async function openTable(
     actedThisStreet: false,
     isBot: false,
   }));
-  const seats = [...humanSeats, ...makeBotSeats(botCount)];
   if (seats.length < POKER_MIN_PLAYERS) return null;
   const now = Date.now();
   const tableId = await ctx.db.insert("pokerTables", {
@@ -526,7 +498,6 @@ export const joinQueue = mutation({
     if (!paid.ok) throw new Error(`poker: buy-in refused (${paid.code})`);
     await ctx.scheduler.runAfter(0, api.arcade.poker.trySeat, {});
     await ctx.scheduler.runAfter(POKER_QUEUE_FILL_MS, api.arcade.poker.trySeat, {});
-    await ctx.scheduler.runAfter(POKER_BOT_FILL_MS, api.arcade.poker.trySeat, {});
     return { status: "ok" as const, phase: "queued" as const };
   },
 });
@@ -593,21 +564,19 @@ export const leaveTable = mutation({
 export const trySeat = mutation({
   args: {},
   handler: async (ctx) => {
+    const now = Date.now();
+    const { code } = await gameGate(ctx, GAME, now);
+    if (code) return;
     const waiting = await waitingQueue(ctx);
     if (waiting.length === 0) return;
-    const now = Date.now();
     const take = waiting.slice(0, POKER_MAX_PLAYERS);
     const oldest = take[0]!;
     const waited = now - oldest.joinedAt;
-    let humans = take;
-    let bots = 0;
+    let humans: typeof take;
     if (take.length >= POKER_INSTANT_SEATS) {
       humans = take.slice(0, POKER_MAX_PLAYERS);
     } else if (take.length >= POKER_MIN_PLAYERS && waited >= POKER_QUEUE_FILL_MS) {
       humans = take.slice(0, POKER_MAX_PLAYERS);
-    } else if (take.length >= 1 && waited >= POKER_BOT_FILL_MS) {
-      humans = take.slice(0, 1);
-      bots = POKER_MAX_PLAYERS - humans.length;
     } else {
       return;
     }
@@ -617,7 +586,6 @@ export const trySeat = mutation({
     await openTable(
       ctx,
       humans.map((row) => ({ playerId: row.playerId, name: row.name })),
-      bots,
     );
   },
 });
@@ -642,12 +610,10 @@ export const advanceTurn = internalMutation({
     }
     const actor = state.seats[state.toAct];
     if (!actor) return;
+    // Legacy bot seats (no longer created): fold immediately so humans can finish the hand.
     if (actor.isBot) {
-      await persistState(ctx, table, loaded.seats, { ...state, actionDeadlineAt: null });
-      await ctx.scheduler.runAfter(randomBetween(POKER_BOT_THINK_MIN_MS, POKER_BOT_THINK_MAX_MS), internal.arcade.poker.playBot, {
-        tableId,
-        turnNonce: table.turnNonce,
-      });
+      const next = applyAction(state, actor.id, { type: "fold" });
+      await persistAndAdvance(ctx, table, loaded.seats, next);
       return;
     }
     const deadlineAt = Date.now() + POKER_ACTION_TIMEOUT_MS;

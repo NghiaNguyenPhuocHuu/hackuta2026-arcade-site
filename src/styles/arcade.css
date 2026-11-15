@@ -253,6 +253,15 @@
     color: var(--color-ocean);
   }
 
+  .arcade-status--closed {
+    border-color: rgb(180 83 9 / 0.2);
+    background: rgb(255 251 235 / 0.95);
+  }
+
+  .arcade-status--closed .arcade-status__icon {
+    color: #b45309;
+  }
+
   .arcade-status__pulse {
     position: relative;
     flex-shrink: 0;
