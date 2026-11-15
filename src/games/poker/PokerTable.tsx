@@ -11,7 +11,7 @@ import {
 } from "../../../shared/poker";
 import { convexClient } from "../../convex/client";
 import { createLivePokerClient } from "./liveMatchmaking";
-import { type PokerView, type PokerWallet } from "./matchmaking";
+import { type PokerView } from "./matchmaking";
 import { PlayingCard } from "./PlayingCard";
 
 const STARS = (() => {
@@ -283,19 +283,14 @@ function ActionPanel({
   );
 }
 
-export function PokerApp({
-  player,
-}: {
-  player: { id: string; name: string };
-  /** Still passed by mountPoker; the live table keeps chips on the server, so it is unused here. */
-  wallet: PokerWallet;
-}) {
+/** The poker app for the signed-in hacker. The table, chips and buy-in all live on the server. */
+export function PokerApp() {
   const client = useMemo(() => {
     if (!convexClient) {
       throw new Error("Poker requires a live Convex connection");
     }
-    return createLivePokerClient({ convex: convexClient, player });
-  }, [player]);
+    return createLivePokerClient({ convex: convexClient });
+  }, []);
   const [view, setView] = useState<PokerView>(() => client.getView());
 
   useEffect(() => {

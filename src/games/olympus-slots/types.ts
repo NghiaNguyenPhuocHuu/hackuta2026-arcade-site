@@ -1,6 +1,6 @@
 /**
  * Shapes shared by the Olympus Slots SPA and its adapters.
- * The SPA never decides outcomes: an adapter (Convex or mock) is the source of truth.
+ * The SPA never decides outcomes: the Convex adapter (admin/slotSpin) is the source of truth.
  */
 
 /** What the game screen shows. The backend's "none" (nothing scheduled) maps to "closed". */

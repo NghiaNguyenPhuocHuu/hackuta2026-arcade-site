@@ -1,11 +1,11 @@
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { useOutletContext } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { ConfirmTransferDialog, TRANSFER_ERROR_TEXT } from "../components/ConfirmTransferDialog";
 import { formatClock, type ArcadeSession } from "../arcade/useArcadeSession";
-import { getMockWallet, mockTransfer, subscribeMockWallet } from "../arcade/mockWallet";
 import { usePointsHold } from "../arcade/pointsReveal";
-import type { ArcadeTransfer } from "../convex/arcadeApi";
+import { depositRef, getMyTransfersRef, withdrawRef, type ArcadeTransfer } from "../convex/arcadeApi";
 import { MAX_TRANSFER, checkDeposit, checkWithdraw, type TransferKind } from "../../shared/arcade/rules";
 
 const PRESETS = [25, 50, 100] as const;
@@ -24,12 +24,15 @@ const fmt = (n: number) => n.toLocaleString("en-US");
 
 /**
  * Moves points between the hacker's HackUTA profile and their arcade balance.
- * Every move is confirmed in a modal first and listed in the log below.
- * Mock data until the site reads Convex (arcade/transfers).
+ * Every move is confirmed in a modal first, runs on the server
+ * (arcade/transfers: one transaction, one log row) and is listed below.
  */
 export default function WalletPage() {
   const session = useOutletContext<ArcadeSession>();
-  const wallet = useSyncExternalStore(subscribeMockWallet, getMockWallet);
+  const log = useQuery(getMyTransfersRef, { limit: 20 });
+  const deposit = useMutation(depositRef);
+  const withdraw = useMutation(withdrawRef);
+  const transfers = log?.transfers ?? [];
   const hold = usePointsHold();
   const player = session.player;
   const profilePoints = player?.points ?? 0;
@@ -188,7 +191,9 @@ export default function WalletPage() {
           <h2 id="arcade-wallet-log-title" className="participant-dashboard__section-title">
             Transfer log
           </h2>
-          {wallet.transfers.length === 0 ? (
+          {log === undefined ? (
+            <p className="participant-dashboard__panel-copy" role="status">Loading your transfers…</p>
+          ) : transfers.length === 0 ? (
             <p className="participant-dashboard__panel-copy">No transfers yet. Deposit some points to start playing.</p>
           ) : (
             <div className="arcade-wallet__table-wrap">
@@ -203,7 +208,7 @@ export default function WalletPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {wallet.transfers.map((t) => (
+                  {transfers.map((t) => (
                     <tr key={t.transferId}>
                       <td>{formatClock(t.createdAt)}</td>
                       <td>
@@ -229,7 +234,9 @@ export default function WalletPage() {
         request={request}
         profilePoints={profilePoints}
         arcadePoints={arcadePoints}
-        onConfirm={() => mockTransfer(request!.kind, request!.amount, request!.transferId, { arcadeOpen })}
+        onConfirm={() =>
+          (request!.kind === "deposit" ? deposit : withdraw)({ transferId: request!.transferId, amount: request!.amount })
+        }
         onClose={finish}
       />
     </section>

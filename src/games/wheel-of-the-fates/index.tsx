@@ -1,23 +1,21 @@
 import { createRoot } from "react-dom/client";
 import type { GameModule } from "../types";
-import { createRouletteMockAdapter } from "./adapters/mockAdapter";
+import { createRouletteConvexAdapter } from "./adapters/convexAdapter";
 import { RouletteGame } from "./RouletteGame";
 import "./roulette.css";
 
-/** Wheel of the Fates as an arcade game module. */
+/** Wheel of the Fates as an arcade game module, on the live server (arcade/roulette). */
 export const game: GameModule = {
-  mountMock(element, wallet) {
-    const adapter = createRouletteMockAdapter({ balance: wallet.balance, saved: wallet.saved });
-    const stopSync = adapter.subscribe(() => wallet.save({ balance: adapter.getState().balance, saved: adapter.saved() }));
+  mount(element, host) {
+    const adapter = createRouletteConvexAdapter({ client: host.client, onError: (error) => console.error("[wheel]", error) });
     const container = document.createElement("div");
     element.appendChild(container);
     const root = createRoot(container);
-    root.render(<RouletteGame adapter={adapter} points={wallet} />);
+    root.render(<RouletteGame adapter={adapter} points={host.reveal} />);
     let done = false;
     return () => {
       if (done) return;
       done = true;
-      stopSync();
       adapter.dispose();
       // Unmount after the current render pass (React warns on synchronous unmount during one).
       queueMicrotask(() => {

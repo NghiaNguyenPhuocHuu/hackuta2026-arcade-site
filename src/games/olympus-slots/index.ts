@@ -1,23 +1,17 @@
 import type { GameModule } from "../types";
-import { createMockAdapter } from "./adapters/mockAdapter";
+import { createConvexAdapter } from "./adapters/convexAdapter";
 import { mountMinigame } from "./mountMinigame";
-import type { RecentSpin } from "./types";
 
-/** Olympus Slots as an arcade game module. */
+/** Olympus Slots as an arcade game module, on the live server (admin/slotSpin). */
 export const game: GameModule = {
-  mountMock(element, wallet) {
-    const adapter = createMockAdapter({
-      balance: wallet.balance,
-      recentSpins: Array.isArray(wallet.saved) ? (wallet.saved as RecentSpin[]) : [],
-    });
-    const stopSync = adapter.subscribe(({ balance, recentSpins }) => wallet.save({ balance, saved: recentSpins }));
-    const unmountGame = mountMinigame(element, { adapter, points: wallet });
+  mount(element, host) {
+    const adapter = createConvexAdapter({ client: host.client, onError: (error) => console.error("[slots]", error) });
+    const unmountGame = mountMinigame(element, { adapter, points: host.reveal });
     let done = false;
     return () => {
       if (done) return;
       done = true;
       unmountGame();
-      stopSync();
       adapter.dispose();
     };
   },

@@ -4,8 +4,8 @@ import { DepositPrompt, PageHeader, PointsPill } from "../components/PageHeader"
 import { BackIcon } from "../components/brand/ArcadeIcons";
 import { formatClock, type ArcadeSession } from "../arcade/useArcadeSession";
 import { findGame, type GameEntry } from "../games/registry";
-import { mockWalletPort } from "../arcade/mockWallet";
-import { useRevealWait, useSecondsLeft } from "../arcade/pointsReveal";
+import { holdPoints, releasePoints, useRevealWait, useSecondsLeft } from "../arcade/pointsReveal";
+import { convexClient } from "../convex/client";
 
 export default function PlayPage() {
   const session = useOutletContext<ArcadeSession>();
@@ -48,8 +48,8 @@ export default function PlayPage() {
         description={game.tagline}
         actions={session.player ? <PointsPill points={session.player.arcadePoints} /> : null}
       />
-      {/* Poker seats players with its own table chips, so only the arcade-balance games need a deposit. */}
-      {!reason && game.key !== "olympus-poker" && session.player?.arcadePoints === 0 ? <DepositPrompt /> : null}
+      {/* Every game, poker's buy-in included, bets from the arcade wallet. */}
+      {!reason && session.player?.arcadePoints === 0 ? <DepositPrompt /> : null}
       {reason ? (
         <div className="participant-dashboard__notice arcade-play__notice" role="status">
           <h2 className="participant-dashboard__panel-title">{reason.title}</h2>
@@ -65,7 +65,7 @@ export default function PlayPage() {
   );
 }
 
-/** Lazy-loads the game and mounts it. Mock points until step 3 swaps in the Convex adapter. */
+/** Lazy-loads the game and mounts it on the live server. */
 function GameStage({ game, player }: { game: GameEntry; player: ArcadeSession["player"] }) {
   const ref = useRef<HTMLDivElement>(null);
   // A spin from another game (or this one, left mid-spin) is still being
@@ -87,10 +87,12 @@ function GameStage({ game, player }: { game: GameEntry; player: ArcadeSession["p
       .load()
       .then((module) => {
         if (cancelled || !ref.current) return;
-        // The visit's shared mock wallet: balance and history survive leaving the
-        // game, and the lobby's points pill follows.
-        unmount = module.mountMock(ref.current, mockWalletPort(game.key), {
-          player: player ? { displayName: player.displayName } : undefined,
+        // The game talks to its server functions through the signed-in client;
+        // the reveal hold keeps a spin's result off other screens until shown.
+        unmount = module.mount(ref.current, {
+          client: convexClient!,
+          reveal: { hold: (shown, maxMs) => holdPoints(game.key, shown, maxMs), release: () => releasePoints(game.key) },
+          player: player ? { displayName: player.displayName } : null,
         });
         setReady(true);
       })
