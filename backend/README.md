@@ -9,9 +9,10 @@ runs, plus the game.
 | --- | --- |
 | `BASE.json` | Pinned profile commit (`4ec8892`, the merge of profile PR #26). Its backend matches peccary's live function list exactly (143 functions/routes). It also records the base hashes of the 4 profile files we edit. |
 | `overlay/convex/arcade/access.ts` | Who may play (`loadPlayer`: signed in → participant → accepted → checked in, always from the session) and whether it's open (`gameGate`, `requireGameOpen`: arcade switch by the server clock + the game's switch) |
-| `overlay/convex/arcade/points.ts` | **The only place games change points.** `beginPlay` (identity, replay of a repeated `playId`, then the open check), `cooldownLeft`, `applyPlay` (refuses a stake above the balance, writes `arcadePlays`, updates `checkedIn.points`) |
-| `overlay/convex/arcade/session.ts` | `getArcadeSession` (switch, games, the caller's name and points; works signed out) and `getLauncherState` (profile's Arcade button) |
-| `overlay/convex/arcade/admin.ts` | Admin-only `getArcadeAdmin`, `updateArcadeSettings`, `updateArcadeGame`, plus `*Internal` versions for the CLI. Audited in `staffConfigLogs` |
+| `overlay/convex/arcade/points.ts` | **The only place games change points.** `beginPlay` (identity, replay of a repeated `playId`, then the open check), `cooldownLeft`, `applyPlay` (refuses a stake above the arcade wallet, writes `arcadePlays`, updates the wallet; never `checkedIn.points`) |
+| `overlay/convex/arcade/wallet.ts`, `transfers.ts` | The arcade wallet (`arcadeWallets`) and the only bridge to the profile balance: `deposit`, `withdraw`, `getMyTransfers`, logged in `arcadeTransfers` |
+| `overlay/convex/arcade/session.ts` | `getArcadeSession` (switch, games, the caller's name, profile `points` and `arcadePoints`; works signed out) and `getLauncherState` (profile's Arcade button) |
+| `overlay/convex/arcade/admin.ts` | Admin-only `getArcadeAdmin`, `updateArcadeSettings`, `updateArcadeGame`, `listArcadeTransfers` (transfer log + per-wallet check), plus `*Internal` versions for the CLI. Audited in `staffConfigLogs` |
 | `overlay/convex/arcade/launch.ts`, `launchProvider.ts` | One-time launch codes (`createLaunchCode`, `consumeLaunchCode`) and the `arcade-launch` Convex Auth provider |
 | `overlay/convex/arcade/poker.ts` | Event-wide Texas Hold'em matchmaking (queue, table, bots, 15s kick). Hole cards and the deck never leave the server. |
 | `overlay/convex/admin/o21*.ts` | Preserve peccary's live Olympus 21 functions (windows, tables, seed). Do not drop these on push. |

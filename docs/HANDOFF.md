@@ -42,6 +42,22 @@ Copied from `hackuta-2026-profile` (commit `d838016`), not recreated:
 - `public/` fonts, logos, favicons; `public/images/art/` pillars + temple.
 - `src/components/brand/` Logo, LogoMark, NavIcons from profile.
 
+## Arcade wallet: deposit and withdraw (2026-11-14, on `main`, not deployed)
+
+- **Backend** (`backend/overlay/convex/arcade/`): `wallet.ts` (`arcadeWallets`),
+  `transfers.ts` (`deposit`, `withdraw`, `getMyTransfers`, logged in
+  `arcadeTransfers`), admin `listArcadeTransfers` with a per-wallet check.
+  `applyPlay` uses the wallet only; `computeLedgerPoints` counts transfers.
+  `npm run backend:test`: 49 pass.
+- **Site:** the `/wallet` page (balances, deposit, withdraw, transfer log),
+  `ConfirmTransferDialog` (native modal), the "Deposit points to play" prompt,
+  the mock wallet with both balances (profile 200, arcade 0). `npm test`: 50 pass.
+- **Not done:** wiring the site to Convex (step 2); deploying (the sandbox's
+  function-loss issue still stands). Poker keeps its own chips.
+- Known: kolorless's `convex/arcade/poker*.ts` fail the offline Convex
+  typecheck (they import `_generated/dataModel`, which the stubs don't
+  provide); the tests still pass. Dev server port is now **5573**.
+
 ## Open items (need the user)
 
 1. **Convex access is blocked.** `npm run backend:check` fails with "You don't
