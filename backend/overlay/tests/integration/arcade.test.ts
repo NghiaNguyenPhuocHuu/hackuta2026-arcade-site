@@ -76,6 +76,7 @@ describe("getArcadeSession", () => {
     expect(session.games.map((g: { key: string; enabled: boolean }) => [g.key, g.enabled])).toEqual([
       ["olympus-slots", false],
       ["wheel-of-the-fates", false],
+      ["olympus-poker", false],
       ["pvp-blackjack", false],
     ]);
   });
@@ -323,7 +324,7 @@ describe("the game list", () => {
     await t.mutation(updateGameInternal, { key: "pvp-blackjack", enabled: true });
     await expect(t.mutation(updateGameInternal, { key: "../olympus-slots", enabled: true })).rejects.toThrow();
     const games = (await t.query(getSession, {})).games;
-    expect(games.map((g: { key: string }) => g.key)).toEqual(["olympus-slots", "wheel-of-the-fates", "pvp-blackjack"]);
-    expect(games[2]).toMatchObject({ enabled: true });
+    expect(games.map((g: { key: string }) => g.key)).toEqual(["olympus-slots", "wheel-of-the-fates", "olympus-poker", "pvp-blackjack"]);
+    expect(games[3]).toMatchObject({ key: "pvp-blackjack", enabled: true });
   });
 });
