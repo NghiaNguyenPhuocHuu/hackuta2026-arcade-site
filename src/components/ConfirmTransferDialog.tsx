@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { balancesAfter, type TransferErrorCode, type TransferKind } from "../../shared/arcade/rules";
 import type { ArcadeTransfer, TransferResponse } from "../convex/arcadeApi";
 
@@ -48,13 +49,13 @@ export function ConfirmTransferDialog({ request, profilePoints, arcadePoints, on
     }
   }, [request]);
 
-  if (!request) return <dialog ref={ref} className="arcade-confirm-dialog" aria-labelledby="arcade-confirm-title" />;
-
-  const deposit = request.kind === "deposit";
-  const after = balancesAfter(request.kind, request.amount, profilePoints, arcadePoints);
+  const deposit = request?.kind === "deposit";
+  const after =
+    request !== null ? balancesAfter(request.kind, request.amount, profilePoints, arcadePoints) : { profile: 0, arcade: 0 };
   const verb = deposit ? "Deposit" : "Withdraw";
 
   const confirm = async () => {
+    if (!request) return;
     if (pending) return;
     setPending(true);
     setError(null);
@@ -71,54 +72,60 @@ export function ConfirmTransferDialog({ request, profilePoints, arcadePoints, on
     else setError(TRANSFER_ERROR_TEXT[result.code] ?? "That didn't work. Try again.");
   };
 
-  return (
+  const dialog = (
     <dialog
       ref={ref}
       className="arcade-confirm-dialog"
       aria-labelledby="arcade-confirm-title"
-      aria-describedby="arcade-confirm-copy"
+      aria-describedby={request ? "arcade-confirm-copy" : undefined}
       onCancel={(event) => {
         event.preventDefault();
         if (!pending) onClose(null);
       }}
     >
-      <h2 id="arcade-confirm-title" className="arcade-confirm-dialog__title">
-        {verb} {request.amount.toLocaleString("en-US")} points?
-      </h2>
-      <p id="arcade-confirm-copy" className="arcade-confirm-dialog__copy">
-        {deposit
-          ? "These points leave your HackUTA profile and go into your arcade balance, where the games can use them."
-          : "These points leave your arcade balance and go back onto your HackUTA profile."}
-      </p>
-      <dl className="arcade-confirm-dialog__balances">
-        <div>
-          <dt>Profile points</dt>
-          <dd>
-            {profilePoints.toLocaleString("en-US")} <span aria-hidden="true">→</span>
-            <span className="visually-hidden"> becomes </span> <strong>{after.profile.toLocaleString("en-US")}</strong>
-          </dd>
-        </div>
-        <div>
-          <dt>Arcade points</dt>
-          <dd>
-            {arcadePoints.toLocaleString("en-US")} <span aria-hidden="true">→</span>
-            <span className="visually-hidden"> becomes </span> <strong>{after.arcade.toLocaleString("en-US")}</strong>
-          </dd>
-        </div>
-      </dl>
-      {error ? (
-        <p className="arcade-confirm-dialog__error" role="alert">
-          {error}
-        </p>
+      {request ? (
+        <>
+          <h2 id="arcade-confirm-title" className="arcade-confirm-dialog__title">
+            {verb} {request.amount.toLocaleString("en-US")} points?
+          </h2>
+          <p id="arcade-confirm-copy" className="arcade-confirm-dialog__copy">
+            {deposit
+              ? "These points leave your HackUTA profile and go into your arcade balance, where the games can use them."
+              : "These points leave your arcade balance and go back onto your HackUTA profile."}
+          </p>
+          <dl className="arcade-confirm-dialog__balances">
+            <div>
+              <dt>Profile points</dt>
+              <dd>
+                {profilePoints.toLocaleString("en-US")} <span aria-hidden="true">→</span>
+                <span className="visually-hidden"> becomes </span> <strong>{after.profile.toLocaleString("en-US")}</strong>
+              </dd>
+            </div>
+            <div>
+              <dt>Arcade points</dt>
+              <dd>
+                {arcadePoints.toLocaleString("en-US")} <span aria-hidden="true">→</span>
+                <span className="visually-hidden"> becomes </span> <strong>{after.arcade.toLocaleString("en-US")}</strong>
+              </dd>
+            </div>
+          </dl>
+          {error ? (
+            <p className="arcade-confirm-dialog__error" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <div className="arcade-confirm-dialog__actions">
+            <button type="button" className="arcade-confirm-dialog__cancel" onClick={() => onClose(null)} disabled={pending}>
+              Cancel
+            </button>
+            <button type="button" className="participant-dashboard__cta" onClick={confirm} disabled={pending} autoFocus>
+              {pending ? (deposit ? "Depositing…" : "Withdrawing…") : `${verb} ${request.amount.toLocaleString("en-US")}`}
+            </button>
+          </div>
+        </>
       ) : null}
-      <div className="arcade-confirm-dialog__actions">
-        <button type="button" className="arcade-confirm-dialog__cancel" onClick={() => onClose(null)} disabled={pending}>
-          Cancel
-        </button>
-        <button type="button" className="participant-dashboard__cta" onClick={confirm} disabled={pending} autoFocus>
-          {pending ? (deposit ? "Depositing…" : "Withdrawing…") : `${verb} ${request.amount.toLocaleString("en-US")}`}
-        </button>
-      </div>
     </dialog>
   );
+
+  return createPortal(dialog, document.body);
 }
