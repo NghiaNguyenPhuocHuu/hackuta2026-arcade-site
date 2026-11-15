@@ -55,18 +55,28 @@ describe("event poker matchmaking", () => {
     expect(va.table?.seats.find((seat: { id: string }) => seat.id === va.youId)?.name).toBe("Taylor Student");
   });
 
-  it("fills a solo queue with shades and never leaks the deck or the other hole cards", async () => {
+  it("does not seat a lone player — needs at least two hackers in the queue", async () => {
     const t = createConvexTest();
     await openArcade(t, [POKER]);
     const { player } = await seedPlayer(t, { arcadePoints: 100 });
     await player.mutation(joinQueue, {});
-    vi.setSystemTime(NOW + 6_000);
+    vi.setSystemTime(NOW + 60_000);
     await t.mutation(trySeat, {});
+    expect(await player.query(getView, {})).toMatchObject({ phase: "queued" });
+  });
 
-    const view = await player.query(getView, {});
+  it("never leaks other hole cards or the deck once seated", async () => {
+    const t = createConvexTest();
+    await openArcade(t, [POKER]);
+    const one = await seedPlayer(t, { arcadePoints: 100 });
+    const two = await seedPlayer(t, { arcadePoints: 100 });
+    await one.player.mutation(joinQueue, {});
+    await two.player.mutation(joinQueue, {});
+    vi.setSystemTime(NOW + 2_500);
+    await t.mutation(trySeat, {});
+    const view = await one.player.query(getView, {});
     expect(view.phase).toBe("table");
-    expect(view.table?.seats.length).toBe(4);
-    expect(view.table?.seats.filter((seat: { isBot: boolean }) => seat.isBot)).toHaveLength(3);
+    expect(view.table?.seats.every((seat: { isBot: boolean }) => !seat.isBot)).toBe(true);
     expect(view.table?.seats.find((seat: { id: string }) => seat.id === view.youId)?.hole).toHaveLength(2);
     for (const seat of view.table?.seats ?? []) {
       if (seat.id !== view.youId) expect(seat.hole).toBeNull();
@@ -90,8 +100,10 @@ describe("event poker matchmaking", () => {
     await openArcade(t, [POKER]);
     const admin = await seedStaff(t);
     const { player, checkedInId } = await seedPlayer(t, { arcadePoints: 300 });
+    const other = await seedPlayer(t, { arcadePoints: 100 });
     await player.mutation(joinQueue, {});
-    vi.setSystemTime(NOW + 6_000);
+    await other.player.mutation(joinQueue, {});
+    vi.setSystemTime(NOW + 2_500);
     await t.mutation(trySeat, {});
     const seated = await player.query(getView, {});
     const chips = seated.table?.you?.chips as number;
