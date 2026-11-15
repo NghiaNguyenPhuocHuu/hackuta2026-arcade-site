@@ -23,7 +23,7 @@ execFileSync(process.execPath, [join(ROOT, "scripts", "assemble-backend.mjs"), "
 const cwd = realpathSync.native(join(ROOT, "build", "peccary"));
 const targets = process.argv.includes("--all")
   ? ["tests/integration", "tests/unit"]
-  : ["tests/integration/slot", "tests/integration/arcade", "tests/integration/poker"];
+  : ["tests/integration/slot", "tests/integration/arcade", "tests/integration/poker", "tests/integration/olympus21"];
 try {
   execFileSync(process.execPath, [join(cwd, "node_modules", "vitest", "vitest.mjs"), "run", ...targets, "--project", "profile"], {
     cwd,

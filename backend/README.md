@@ -15,11 +15,12 @@ runs, plus the game.
 | `overlay/convex/arcade/admin.ts` | Admin-only `getArcadeAdmin`, `updateArcadeSettings`, `updateArcadeGame`, `listArcadeTransfers` (transfer log + per-wallet check), plus `*Internal` versions for the CLI. Audited in `staffConfigLogs` |
 | `overlay/convex/arcade/launch.ts`, `launchProvider.ts` | One-time launch codes (`createLaunchCode`, `consumeLaunchCode`) and the `arcade-launch` Convex Auth provider |
 | `overlay/convex/arcade/poker.ts` | Event-wide Texas Hold'em matchmaking (queue, table, bots, 15s kick). Hole cards and the deck never leave the server. |
-| `overlay/convex/admin/o21*.ts` | Preserve peccary's live Olympus 21 functions (windows, tables, seed). Do not drop these on push. |
+| `overlay/convex/arcade/olympus21.ts` | Live Olympus 21 with poker's matchmaking (queue, buy-in from the arcade wallet, humans only, table chips, cash-outs). Hands and piles never leave the server. Rules in `../shared/olympus21/live.ts`. |
+| `overlay/convex/admin/o21*.ts` | Preserve peccary's legacy Olympus 21 functions (windows, tables, seed). Unused; do not drop these on push. |
 | `overlay/convex/admin/slotSpin.ts` | Olympus Slots `getMyGameState` and `spin`, built on the arcade code above |
-| `../shared/arcade/rules.ts`, `../shared/admin/slotRules.ts`, `../shared/poker/` (repo root) | Arcade, slot, and poker rules, one copy shared by the site and the backend. The assemble script copies `shared/` into the build. |
+| `../shared/arcade/rules.ts`, `../shared/admin/slotRules.ts`, `../shared/poker/`, `../shared/olympus21/` (repo root) | Arcade, slot, and poker rules, one copy shared by the site and the backend. The assemble script copies `shared/` into the build. |
 | `overlay/convex/schema.ts`, `overlay/convex/admin/pointsLedger.ts`, `overlay/convex/admin/fields.ts`, `overlay/convex/auth.ts` | Full copies of the pinned files with additive edits only: arcade + poker + o21 tables, `arcadePlays` deltas in `computeLedgerPoints`, arcade/o21 audit actions, and the `arcade-launch` provider |
-| `overlay/tests/integration/arcade.test.ts`, `slot-spin.test.ts`, `poker-matchmaking.test.ts`, `overlay/tests/helpers/arcadeTestKit.ts` | convex-test integration tests |
+| `overlay/tests/integration/arcade.test.ts`, `slot-spin.test.ts`, `poker-matchmaking.test.ts`, `olympus21.test.ts`, `overlay/tests/helpers/arcadeTestKit.ts` | convex-test integration tests |
 
 ## Commands
 

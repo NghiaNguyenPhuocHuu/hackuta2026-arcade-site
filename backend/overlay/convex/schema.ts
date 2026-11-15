@@ -696,6 +696,48 @@ export default defineSchema({
   }).index("by_actionId", ["actionId"]),
 
   /**
+   * Live Olympus 21 (`convex/arcade/olympus21.ts`). Same model as poker: one
+   * queue, the buy-in taken from the arcade wallet on joining, table chips
+   * paid back to it on leaving. The legacy `o21Tables` / `o21Hands` /
+   * `o21Actions` above are kept (never deleted) but unused.
+   */
+  o21Queue: defineTable({
+    checkedInId: v.id("checkedIn"),
+    name: v.string(),
+    joinedAt: v.number(),
+  })
+    .index("by_checkedIn", ["checkedInId"])
+    .index("by_joinedAt", ["joinedAt"]),
+
+  /** One live table. `state` is the serialized engine (hands and piles): never returned to a browser. */
+  o21LiveTables: defineTable({
+    status: v.string(),
+    state: v.string(),
+    humans: v.number(),
+    /** Pending scheduled tick, if any. */
+    wakeAt: v.optional(v.number()),
+    /** Since when no human has been ready to play (idle tables close). */
+    idleSince: v.optional(v.number()),
+    version: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_status", ["status"]),
+
+  /** A hacker's stay at a live table, from buy-in to cash-out. */
+  o21Seats: defineTable({
+    tableId: v.id("o21LiveTables"),
+    checkedInId: v.id("checkedIn"),
+    buyIn: v.number(),
+    status: v.union(v.literal("seated"), v.literal("cashed_out")),
+    returned: v.optional(v.number()),
+    reason: v.optional(v.string()),
+    createdAt: v.number(),
+    cashedOutAt: v.optional(v.number()),
+  })
+    .index("by_table", ["tableId"])
+    .index("by_checkedIn_createdAt", ["checkedInId", "createdAt"]),
+
+  /**
    * Arcade poker identity. The browser keeps a session token; only the SHA-256
    * hash is stored. `points` is the player's off-table stack (starts at 200).
    */
