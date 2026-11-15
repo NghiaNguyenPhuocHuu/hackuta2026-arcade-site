@@ -151,17 +151,17 @@ new commits (merging the old `blackjack` branch again would drop it silently).
 - **Site:** the game mounts live only; the mock adapter, the bots/name lobby,
   the LAN sandbox paths and phone QR pairing are removed. The lobby shows the
   buy-in, the queue (with a leave-the-queue refund), "leaving" and the last result.
-- **Not run:** `backend:test` / `backend:check` (the profile repo isn't on
-  this machine). Site: tests, typecheck and build pass.
+- **Checked (2026-11-14):** `backend:test` 72 passed (7 new Olympus 21),
+  the profile's full suite (`--all`) 148 passed, `tsc` on the assembled backend
+  clean, `backend:check`: 202 live functions kept, 10 new (`arcade/olympus21`).
+  Site: 159 tests, typecheck and build pass. **Not pushed.**
 
 ## Next steps
 
 - `/launch` flow for `arcade-launch` codes (when organizers use backup sign-in).
 - Sidebar sign-out wired to Convex Auth.
-- Olympus 21: clone `../hackuta-2026-profile`, run `npm run backend:test`
-  (new `backend/overlay/tests/integration/olympus21.test.ts`) and
-  `npm run backend:check`, then `npm run convex:push-dev`, switch
-  `pvp-blackjack` on, and try two accounts in two browsers.
+- Olympus 21: `npm run convex:push-dev`, switch `pvp-blackjack` on, and try
+  two accounts in two browsers.
 
 ## Environment notes
 
