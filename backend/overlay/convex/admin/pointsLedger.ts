@@ -220,7 +220,7 @@ export async function adjustPoints(
 
 /**
  * Awards plus signed `admin_adjust`, `shop_purchase`, and `shop_refund` deltas,
- * plus arcade game deltas (`arcadePlays`). `point_scan` logs are not added again.
+ * plus arcade deposits and withdrawals (`arcadeTransfers`). `point_scan` logs are not added again.
  */
 export async function computeLedgerPoints(
   ctx: QueryCtx | MutationCtx,
@@ -251,15 +251,17 @@ export async function computeLedgerPoints(
     }
     total += log.pointsDelta;
   }
-  const plays = await ctx.db
-    .query("arcadePlays")
+  // Arcade games bet from their own wallet; only deposits (−) and withdrawals (+)
+  // move points between it and this balance.
+  const transfers = await ctx.db
+    .query("arcadeTransfers")
     .withIndex("by_checkedIn_createdAt", (q) => q.eq("checkedInId", checkedInId))
     .collect();
-  for (const play of plays) {
-    if (!Number.isSafeInteger(play.pointsDelta)) {
+  for (const transfer of transfers) {
+    if (!Number.isSafeInteger(transfer.amount) || transfer.amount <= 0) {
       throw adminError("INVALID_POINTS");
     }
-    total += play.pointsDelta;
+    total += transfer.kind === "deposit" ? -transfer.amount : transfer.amount;
   }
   return assertPointBalance(total);
 }

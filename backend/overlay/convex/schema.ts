@@ -513,10 +513,43 @@ export default defineSchema({
   }).index("by_key", ["key"]),
 
   /**
-   * Every change to points made by an arcade game, one row per play. The only
-   * place games write points (convex/arcade/points.ts); `pointsDelta`
-   * (payout − stake) counts toward the balance in `computeLedgerPoints`.
-   * `playId` is the client's idempotency key, unique per attendee and game.
+   * Each checked-in attendee's arcade balance, in points. Games bet only from
+   * here; points move between the profile balance (`checkedIn.points`) and
+   * this wallet only through `arcadeTransfers`. No row yet means 0.
+   */
+  arcadeWallets: defineTable({
+    checkedInId: v.id("checkedIn"),
+    points: v.number(),
+    updatedAt: v.number(),
+  }).index("by_checkedIn", ["checkedInId"]),
+
+  /**
+   * The deposit / withdraw log: every move between the profile balance and the
+   * arcade wallet, with both balances before and after. A deposit counts as
+   * −amount and a withdraw as +amount in `computeLedgerPoints`. `transferId`
+   * is the client's idempotency key, unique per attendee.
+   */
+  arcadeTransfers: defineTable({
+    checkedInId: v.id("checkedIn"),
+    transferId: v.string(),
+    kind: v.union(v.literal("deposit"), v.literal("withdraw")),
+    amount: v.number(),
+    profileBefore: v.number(),
+    profileAfter: v.number(),
+    arcadeBefore: v.number(),
+    arcadeAfter: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_checkedIn_createdAt", ["checkedInId", "createdAt"])
+    .index("by_checkedIn_transferId", ["checkedInId", "transferId"])
+    .index("by_createdAt", ["createdAt"]),
+
+  /**
+   * Every arcade game play, one row per play. The numbers are the arcade
+   * wallet's (`arcadeWallets`), never the profile balance: `pointsDelta` is
+   * payout − stake, `previousPoints` / `newPoints` the wallet before and after.
+   * The only place games write is convex/arcade/points.ts. `playId` is the
+   * client's idempotency key, unique per attendee and game.
    */
   arcadePlays: defineTable({
     checkedInId: v.id("checkedIn"),

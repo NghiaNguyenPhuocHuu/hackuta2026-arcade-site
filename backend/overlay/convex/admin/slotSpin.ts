@@ -25,6 +25,7 @@ import {
 import type { ArcadePlayErrorCode, ArcadeState } from "../../shared/arcade/rules";
 import { gameRow, loadArcade, loadPlayer, playerProblem, type CheckedInDoc } from "../arcade/access";
 import { applyPlay, beginPlay, cooldownLeft, type PlayDoc } from "../arcade/points";
+import { arcadeBalance } from "../arcade/wallet";
 
 const GAME = "olympus-slots" as const;
 
@@ -112,7 +113,8 @@ export const getMyGameState = query({
         participant: player.participant !== null,
         eligible: player.eligible,
         checkedIn: checkedIn !== null,
-        balance: checkedIn ? checkedIn.points : null,
+        /** The arcade wallet (games bet from it; the profile balance is untouched). */
+        balance: checkedIn ? await arcadeBalance(ctx, checkedIn) : null,
         canPlay: playerProblem(player) === null,
       },
       wagers: [...SLOT_WAGERS],

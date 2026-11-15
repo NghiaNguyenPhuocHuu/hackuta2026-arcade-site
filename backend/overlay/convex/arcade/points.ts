@@ -5,7 +5,7 @@
  *                        charge nothing); is the arcade open and the game on?
  *   2. `cooldownLeft`  — too soon after this player's last play of this game?
  *   3. decides the result on the server
- *   4. `applyPlay`     — logs the play and updates checkedIn.points
+ *   4. `applyPlay`     — logs the play and updates the arcade wallet (never checkedIn.points)
  *
  * all inside one Convex mutation, so it is one transaction: two plays at once
  * (two tabs, or a spin while the shop deducts) run as if one after the other,
@@ -14,10 +14,9 @@
  */
 import type { DocumentByName } from "convex/server";
 import type { DataModel, MutationCtx, QueryCtx } from "../lib/dataModel";
-import { assertPointBalance } from "../../shared/admin/volunteerRules";
-import { computeLedgerPoints, pointBalancePatch } from "../admin/pointsLedger";
 import { normalizePlayId, type ArcadeGameKey, type ArcadePlayErrorCode } from "../../shared/arcade/rules";
 import { gameGate, loadPlayer, playerProblem, type CheckedInDoc } from "./access";
+import { arcadeBalance, setArcadeBalance } from "./wallet";
 
 export type PlayDoc = DocumentByName<DataModel, "arcadePlays">;
 
@@ -69,20 +68,15 @@ export async function cooldownLeft(ctx: MutationCtx, checkedIn: CheckedInDoc, ga
   return since < cooldownMs ? cooldownMs - since : 0;
 }
 
-/** Current balance; rows from before the cached field fall back to the ledger. */
-export async function currentPoints(ctx: MutationCtx, checkedIn: CheckedInDoc) {
-  return assertPointBalance(checkedIn.points ?? (await computeLedgerPoints(ctx, checkedIn._id)));
-}
-
 const isPoints = (value: number) => Number.isSafeInteger(value) && value >= 0;
 
 export type ApplyPlayInput = {
   checkedIn: CheckedInDoc;
   game: ArcadeGameKey;
   playId: string;
-  /** Points taken for this play (> 0). */
+  /** Arcade points taken for this play (> 0). */
   stake: number;
-  /** Points given back, stake included (0 = lost everything). */
+  /** Arcade points given back, stake included (0 = lost everything). */
   payout: number;
   now: number;
 };
@@ -92,18 +86,19 @@ export type ApplyPlayResult =
   | { ok: false; code: "INVALID_STAKE" | "INSUFFICIENT_POINTS" };
 
 /**
- * Takes the stake, adds the payout, writes the `arcadePlays` row and the new
- * balance. Refuses a bad stake or one bigger than the balance; nothing is
+ * Takes the stake from the arcade wallet, adds the payout, writes the
+ * `arcadePlays` row and the new wallet balance. Never touches the profile
+ * balance. Refuses a bad stake or one bigger than the wallet; nothing is
  * written then. Throws (rolling back the whole mutation) only on corrupt data.
  */
 export async function applyPlay(ctx: MutationCtx, input: ApplyPlayInput): Promise<ApplyPlayResult> {
   const { checkedIn, game, playId, stake, payout, now } = input;
   if (!isPoints(stake) || stake === 0) return { ok: false, code: "INVALID_STAKE" };
   if (!isPoints(payout)) throw new Error(`arcade: ${game} produced an invalid payout`);
-  const previousPoints = await currentPoints(ctx, checkedIn);
+  const previousPoints = await arcadeBalance(ctx, checkedIn);
   if (previousPoints < stake) return { ok: false, code: "INSUFFICIENT_POINTS" };
   const pointsDelta = payout - stake;
-  const newPoints = assertPointBalance(previousPoints + pointsDelta);
+  const newPoints = previousPoints + pointsDelta;
   const id = await ctx.db.insert("arcadePlays", {
     checkedInId: checkedIn._id,
     game,
@@ -115,6 +110,6 @@ export async function applyPlay(ctx: MutationCtx, input: ApplyPlayInput): Promis
     newPoints,
     createdAt: now,
   });
-  await ctx.db.patch(checkedIn._id, pointBalancePatch(previousPoints, newPoints, now));
+  await setArcadeBalance(ctx, checkedIn, newPoints, now);
   return { ok: true, play: (await ctx.db.get(id))! };
 }

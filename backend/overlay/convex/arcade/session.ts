@@ -11,6 +11,7 @@ import { v } from "convex/values";
 import { query } from "../_generated/server";
 import { normalizeEmail } from "../lib/normalizeEmail";
 import { loadArcade, loadGames, loadPlayer, playerProblem, type Player } from "./access";
+import { arcadeBalance } from "./wallet";
 import type { QueryCtx } from "../lib/dataModel";
 
 async function displayNameFor(ctx: QueryCtx, player: Player) {
@@ -42,7 +43,10 @@ export const getArcadeSession = query({
             email: normalizeEmail(player.user.email) || null,
             /** First reason this account can't play, or null when it can (arcade and game switches aside). */
             problem: playerProblem(player),
+            /** Profile balance (`checkedIn.points`). Null when not checked in. */
             points: player.checkedIn ? player.checkedIn.points : null,
+            /** Arcade wallet: what the games bet from. Null when not checked in. */
+            arcadePoints: player.checkedIn ? await arcadeBalance(ctx, player.checkedIn) : null,
           }
         : null,
     };

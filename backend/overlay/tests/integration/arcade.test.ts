@@ -6,7 +6,7 @@ import { sha256Hex } from "../../convex/lib/sha256Hex";
 import { applyPlay, beginPlay, cooldownLeft } from "../../convex/arcade/points";
 import { createConvexTest, type ConvexTestInstance } from "../helpers/convexTestContext";
 import { seedStaff } from "../helpers/reviewTestKit";
-import { HOUR, MINUTE, NOW, forceRandom, openArcade, seedPlayer, updateGameInternal, updateSettingsInternal } from "../helpers/arcadeTestKit";
+import { HOUR, MINUTE, NOW, forceRandom, openArcade, seedPlayer, updateGameInternal, updateSettingsInternal, walletOf } from "../helpers/arcadeTestKit";
 import { LAUNCH_CODE_TTL_MS, arcadeStateAt, checkArcadeSettings, normalizePlayId } from "../../shared/arcade/rules";
 
 const getSession = makeFunctionReference<"query">("arcade/session:getArcadeSession");
@@ -95,13 +95,13 @@ describe("getArcadeSession", () => {
     expect((await notCheckedIn.player.query(getSession, {})).player).toMatchObject({ points: null, problem: "NOT_CHECKED_IN" });
   });
 
-  it("returns the same balance a game just wrote (one shared value)", async () => {
+  it("returns the arcade balance a game just wrote, and the untouched profile balance", async () => {
     const t = createConvexTest();
     await openArcade(t);
-    const { player, checkedInId } = await seedPlayer(t, { points: 100 });
+    const { player, checkedInId } = await seedPlayer(t, { points: 100, arcadePoints: 100 });
     forceRandom(LOSE);
     await player.mutation(slotSpin, { spinId: "s1", wager: 25 });
-    expect((await player.query(getSession, {})).player.points).toBe(75);
+    expect((await player.query(getSession, {})).player).toMatchObject({ points: 100, arcadePoints: 75 });
     // A change made outside the arcade (a volunteer, the shop) shows up too.
     await t.run((ctx) => ctx.db.patch(checkedInId!, { points: 175 }));
     expect((await player.query(getSession, {})).player.points).toBe(175);
@@ -172,7 +172,7 @@ describe("shared points (applyPlay)", () => {
   it("never lets a stake take the balance below zero, and refuses bad stakes", async () => {
     const t = createConvexTest();
     await openArcade(t, ["wheel-of-the-fates"]);
-    const { player, checkedInId } = await seedPlayer(t, { points: 30 });
+    const { player, checkedInId } = await seedPlayer(t, { arcadePoints: 30 });
     const results = await t.run(async (ctx) => {
       const checkedIn = (await ctx.db.get(checkedInId!))!;
       const base = { checkedIn, game: "wheel-of-the-fates" as const, now: NOW };
@@ -184,14 +184,14 @@ describe("shared points (applyPlay)", () => {
       ];
     });
     expect(results.map((r) => (r.ok ? "ok" : r.code))).toEqual(["INSUFFICIENT_POINTS", "INVALID_STAKE", "INVALID_STAKE", "INVALID_STAKE"]);
-    expect(await balanceOf(t, checkedInId!)).toBe(30);
+    expect(await walletOf(t, checkedInId!)).toBe(30);
     expect(player).toBeTruthy();
   });
 
-  it("keeps one balance across games, with cooldowns per game and the ledger in step", async () => {
+  it("keeps one arcade balance across games, with cooldowns per game, and never touches the profile", async () => {
     const t = createConvexTest();
     await openArcade(t, ["olympus-slots", "wheel-of-the-fates"]);
-    const { player, checkedInId } = await seedPlayer(t, { points: 100 });
+    const { player, checkedInId } = await seedPlayer(t, { points: 100, arcadePoints: 100 });
     forceRandom(LOSE);
     expect(await player.mutation(slotSpin, { spinId: "slot-1", wager: 10 })).toMatchObject({ newPoints: 90 });
 
@@ -206,15 +206,16 @@ describe("shared points (applyPlay)", () => {
     expect(roulette.wait).toBe(0);
     expect(roulette.applied).toMatchObject({ ok: true, play: { previousPoints: 90, newPoints: 130, pointsDelta: 40 } });
     expect(roulette.slotWait).toBe(1500);
-    expect(await balanceOf(t, checkedInId!)).toBe(130);
-    expect(await ledgerOf(t, checkedInId!)).toBe(130);
-    expect((await player.query(getSession, {})).player.points).toBe(130);
+    expect(await walletOf(t, checkedInId!)).toBe(130);
+    expect(await balanceOf(t, checkedInId!)).toBe(100);
+    expect(await ledgerOf(t, checkedInId!)).toBe(100);
+    expect((await player.query(getSession, {})).player).toMatchObject({ points: 100, arcadePoints: 130 });
   });
 
   it("treats the same play id in two games as two plays, and in one game as a replay", async () => {
     const t = createConvexTest();
     await openArcade(t, ["olympus-slots", "wheel-of-the-fates"]);
-    const { player, checkedInId } = await seedPlayer(t, { points: 100 });
+    const { player, checkedInId } = await seedPlayer(t, { arcadePoints: 100 });
     forceRandom(LOSE);
     await player.mutation(slotSpin, { spinId: "same", wager: 10 });
     const kinds = await player.run(async (ctx) => [
@@ -222,7 +223,7 @@ describe("shared points (applyPlay)", () => {
       (await beginPlay(ctx, "wheel-of-the-fates", "same", NOW)).kind,
     ]);
     expect(kinds).toEqual(["replay", "new"]);
-    expect(await balanceOf(t, checkedInId!)).toBe(90);
+    expect(await walletOf(t, checkedInId!)).toBe(90);
   });
 });
 

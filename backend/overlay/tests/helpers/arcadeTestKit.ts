@@ -5,6 +5,7 @@
  */
 import { makeFunctionReference } from "convex/server";
 import { vi } from "vitest";
+import type { GenericId } from "convex/values";
 import type { ConvexTestInstance } from "./convexTestContext";
 import { seedApplicant, seedStaff } from "./reviewTestKit";
 
@@ -17,7 +18,16 @@ export const updateGameInternal = makeFunctionReference<"mutation">("arcade/admi
 
 let tokenCounter = 0;
 
-export type SeedOptions = { points?: number; checkedIn?: boolean; review?: string; participant?: boolean; ledger?: boolean };
+export type SeedOptions = {
+  /** Profile balance (`checkedIn.points`) after any seeded deposit. Default 100. */
+  points?: number;
+  /** Arcade wallet, seeded as one earlier deposit (log row + matching profile move). Default 0. */
+  arcadePoints?: number;
+  checkedIn?: boolean;
+  review?: string;
+  participant?: boolean;
+  ledger?: boolean;
+};
 
 export async function seedPlayer(t: ConvexTestInstance, options: SeedOptions = {}) {
   const admin = await seedStaff(t);
@@ -27,6 +37,7 @@ export async function seedPlayer(t: ConvexTestInstance, options: SeedOptions = {
   tokenCounter += 1;
   const registrationQr = tokenCounter.toString(16).padStart(64, "a");
   const points = options.points ?? 100;
+  const arcadePoints = options.arcadePoints ?? 0;
   const ids = await t.run(async (ctx) => {
     const participantId = await ctx.db.insert("participants", {
       applicationId: applicant.applicationId,
@@ -52,16 +63,33 @@ export async function seedPlayer(t: ConvexTestInstance, options: SeedOptions = {
       createdAt: 1,
       updatedAt: 1,
     });
-    if (options.ledger !== false && points > 0) {
+    const earned = points + arcadePoints;
+    if (options.ledger !== false && earned > 0) {
       // Make the cached balance match the ledger so parity checks are meaningful.
       await ctx.db.insert("volunteerActionLogs", {
         actorAdminId: admin.adminId,
         checkedInId,
         action: "admin_adjust",
-        pointsDelta: points,
+        pointsDelta: earned,
         previousPoints: 0,
-        newPoints: points,
+        newPoints: earned,
         reason: "seed",
+        createdAt: 1,
+      });
+    }
+    if (arcadePoints > 0) {
+      // As if the hacker had deposited `arcadePoints` earlier: the wallet, the log row,
+      // and the profile already reduced by it.
+      await ctx.db.insert("arcadeWallets", { checkedInId, points: arcadePoints, updatedAt: 1 });
+      await ctx.db.insert("arcadeTransfers", {
+        checkedInId,
+        transferId: `seed-${tokenCounter}`,
+        kind: "deposit",
+        amount: arcadePoints,
+        profileBefore: earned,
+        profileAfter: points,
+        arcadeBefore: 0,
+        arcadeAfter: arcadePoints,
         createdAt: 1,
       });
     }
@@ -87,4 +115,15 @@ export function forceRandom(value: number) {
     }
     return real(array as Uint8Array);
   }) as typeof globalThis.crypto.getRandomValues);
+}
+
+/** The arcade wallet balance (0 when there's no wallet yet). */
+export function walletOf(t: ConvexTestInstance, checkedInId: GenericId<"checkedIn">) {
+  return t.run(async (ctx) => {
+    const row = await ctx.db
+      .query("arcadeWallets")
+      .withIndex("by_checkedIn", (q) => q.eq("checkedInId", checkedInId))
+      .unique();
+    return row?.points ?? 0;
+  });
 }

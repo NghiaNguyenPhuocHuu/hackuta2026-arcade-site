@@ -117,7 +117,9 @@ export async function loadPlayer(ctx: Ctx): Promise<Player> {
 }
 
 /** First reason this player can't play (identity only), or null. */
-export function playerProblem(player: Player): ArcadePlayErrorCode | null {
+export type PlayerProblem = Extract<ArcadePlayErrorCode, "NOT_SIGNED_IN" | "NOT_PARTICIPANT" | "NOT_ELIGIBLE" | "NOT_CHECKED_IN">;
+
+export function playerProblem(player: Player): PlayerProblem | null {
   if (!player.user) return "NOT_SIGNED_IN";
   if (!player.participant) return "NOT_PARTICIPANT";
   if (!player.eligible) return "NOT_ELIGIBLE";
