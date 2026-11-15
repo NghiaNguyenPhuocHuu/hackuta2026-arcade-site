@@ -10,10 +10,9 @@ Standalone site for the HackUTA points games. Read these first:
 
 - Convex work targets **only** the sandbox `dev:brazen-peccary-506`.
   Never `standing-manatee-425` or production.
-- **Never push from the repo root.** A Convex push replaces every function on a
-  deployment and this repo holds only the game's part of the backend.
-  Push only from the assembled `build/peccary`, following `backend/README.md`,
-  and only with the user's go-ahead.
+- **Never push arcade `src/` as a Convex backend.** A Convex push replaces every
+  function on a deployment. From this repo, push only with `npm run convex:push-dev`,
+  which assembles `build/peccary` (pinned profile + overlay) and deploys that.
 - **Never delete a table or function** on the deployment. Schema changes are
   additive. Run `npm run backend:check` before any push.
 - Never run `npx convex dev` without `--once` in `build/peccary`, and never to
@@ -52,13 +51,14 @@ The backend scripts expect `../hackuta-2026-profile` (cloned next to this repo).
 ## Commands
 
 ```bash
-npm run dev               # site at http://127.0.0.1:5473
+npm run dev               # site at http://127.0.0.1:5573
 npm test                  # site tests
 npm run typecheck
 npm run build
 npm run backend:test      # assemble build/peccary with stubs + run backend tests
 npm run backend:assemble  # fresh build for a push (no stubs)
 npm run backend:check     # read-only: would a push lose any live function?
+npm run convex:push-dev   # assemble + check + push peccary (never from src/)
 ```
 
 `backend:test` leaves offline stubs in the build: always re-run

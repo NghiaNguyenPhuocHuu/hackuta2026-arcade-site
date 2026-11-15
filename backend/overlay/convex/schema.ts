@@ -16,10 +16,9 @@ import {
 import { emailDeliveryKind } from "./lib/emailDeliveries";
 
 /**
- * Deployment schema for standing-manatee-425 / production.
- *
- * Register-owned tables must match hackuta-2026-register/convex/schema.ts
- * (see convex/REGISTER_SCHEMA.md). Admin-owned tables are listed in REGISTER_SCHEMA.md.
+ * Overlay schema for the peccary sandbox: profile's schema plus arcade tables.
+ * Additive only — never drop a table or field. Register-owned tables must
+ * match hackuta-2026-register/convex/schema.ts (see convex/REGISTER_SCHEMA.md).
  */
 export default defineSchema({
   // --- REGISTER-LOCKED (do not edit) ---
@@ -39,6 +38,13 @@ export default defineSchema({
     decisionsReleasedAt: v.optional(v.union(v.number(), v.null())),
     startsAt: v.optional(v.union(v.number(), v.null())),
     endsAt: v.optional(v.union(v.number(), v.null())),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
+
+  mailConfig: defineTable({
+    key: v.literal("current"),
+    confirmationEmail: v.boolean(),
+    decisionEmail: v.boolean(),
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
 
@@ -348,6 +354,8 @@ export default defineSchema({
     targetFlashSaleId: v.optional(v.id("shopFlashSales")),
     /** Set on `slot_window_*` rows. */
     targetSlotWindowId: v.optional(v.id("slotWindows")),
+    /** Set on `o21_window_*` rows. */
+    targetO21WindowId: v.optional(v.id("o21Windows")),
     details: v.optional(v.string()),
     createdAt: v.number(),
   })
@@ -406,6 +414,7 @@ export default defineSchema({
     name: v.string(),
     description: v.string(),
     pointsCost: v.number(),
+    purchaseCooldownMinutes: v.optional(v.number()),
     status: shopItemStatus,
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -440,6 +449,7 @@ export default defineSchema({
     })),
   })
     .index("by_idempotency_key", ["idempotencyKey"])
+    .index("by_checkedIn_item_redeemedAt", ["checkedInId", "itemId", "redeemedAt"])
     .index("by_checkedIn_redeemedAt", ["checkedInId", "redeemedAt"])
     .index("by_item_redeemedAt", ["itemId", "redeemedAt"])
     .index("by_volunteer_redeemedAt", ["redeemedBy", "redeemedAt"])
@@ -512,4 +522,150 @@ export default defineSchema({
   })
     .index("by_checkedIn_createdAt", ["checkedInId", "createdAt"])
     .index("by_checkedIn_spinId", ["checkedInId", "spinId"]),
+
+  /**
+   * Olympus 21 play windows (already live on peccary). Same shape as slot
+   * windows; keep every field so a push never fails schema validation.
+   */
+  o21Windows: defineTable({
+    opensAt: v.number(),
+    closesAt: v.number(),
+    label: v.optional(v.string()),
+    createdBy: v.optional(v.id("admins")),
+    cancelledAt: v.optional(v.number()),
+    cancelledBy: v.optional(v.id("admins")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_opensAt", ["opensAt"])
+    .index("by_closesAt", ["closesAt"]),
+
+  /** One Olympus 21 table. `state` is the serialized engine blob. */
+  o21Tables: defineTable({
+    windowId: v.id("o21Windows"),
+    status: v.string(),
+    seatCount: v.number(),
+    state: v.string(),
+    tableKey: v.string(),
+    version: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_window", ["windowId"])
+    .index("by_status", ["status"])
+    .index("by_tableKey", ["tableKey"]),
+
+  /** Settled Olympus 21 round for one checked-in player. */
+  o21Hands: defineTable({
+    checkedInId: v.id("checkedIn"),
+    tableId: v.id("o21Tables"),
+    windowId: v.id("o21Windows"),
+    roundNo: v.number(),
+    wager: v.number(),
+    pointsDelta: v.number(),
+    settledAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_checkedIn_createdAt", ["checkedInId", "createdAt"])
+    .index("by_table", ["tableId"])
+    .index("by_window", ["windowId"]),
+
+  /** Idempotency rows for Olympus 21 client actions. */
+  o21Actions: defineTable({
+    actionId: v.string(),
+    checkedInId: v.id("checkedIn"),
+    kind: v.string(),
+    createdAt: v.number(),
+  }).index("by_actionId", ["actionId"]),
+
+  /**
+   * Arcade poker identity. The browser keeps a session token; only the SHA-256
+   * hash is stored. `points` is the player's off-table stack (starts at 200).
+   */
+  pokerPlayers: defineTable({
+    tokenHash: v.string(),
+    displayName: v.string(),
+    points: v.number(),
+    lastResult: v.optional(
+      v.object({
+        returned: v.number(),
+        reason: v.string(),
+        at: v.number(),
+      }),
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_token_hash", ["tokenHash"]),
+
+  /** Humans waiting for a live table. Buy-in is already deducted from `pokerPlayers.points`. */
+  pokerQueue: defineTable({
+    playerId: v.id("pokerPlayers"),
+    joinedAt: v.number(),
+  })
+    .index("by_player", ["playerId"])
+    .index("by_joinedAt", ["joinedAt"]),
+
+  /**
+   * One live (or just-ended) Texas Hold'em table. `deck` never leaves this
+   * document — public queries rebuild a stripped view per caller.
+   */
+  pokerTables: defineTable({
+    status: v.union(v.literal("playing"), v.literal("ended")),
+    street: v.union(
+      v.literal("preflop"),
+      v.literal("flop"),
+      v.literal("turn"),
+      v.literal("river"),
+      v.literal("showdown"),
+    ),
+    community: v.array(v.object({ rank: v.string(), suit: v.string() })),
+    deck: v.array(v.object({ rank: v.string(), suit: v.string() })),
+    pot: v.number(),
+    currentBet: v.number(),
+    minRaise: v.number(),
+    dealerIndex: v.number(),
+    toAct: v.union(v.number(), v.null()),
+    actionDeadlineAt: v.union(v.number(), v.null()),
+    turnNonce: v.number(),
+    handNumber: v.number(),
+    log: v.string(),
+    winners: v.optional(
+      v.array(
+        v.object({
+          playerId: v.string(),
+          amount: v.number(),
+          hand: v.optional(
+            v.object({
+              category: v.string(),
+              kickers: v.array(v.number()),
+              label: v.string(),
+            }),
+          ),
+        }),
+      ),
+    ),
+    endedReason: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_status", ["status"]),
+
+  /** One seat at a poker table. `hole` is secret except to that player (and at showdown). */
+  pokerSeats: defineTable({
+    tableId: v.id("pokerTables"),
+    playerId: v.optional(v.id("pokerPlayers")),
+    botKey: v.optional(v.string()),
+    seatIndex: v.number(),
+    name: v.string(),
+    chips: v.number(),
+    hole: v.array(v.object({ rank: v.string(), suit: v.string() })),
+    folded: v.boolean(),
+    allIn: v.boolean(),
+    streetBet: v.number(),
+    committed: v.number(),
+    actedThisStreet: v.boolean(),
+    isBot: v.boolean(),
+    sittingOut: v.boolean(),
+  })
+    .index("by_table", ["tableId"])
+    .index("by_player", ["playerId"]),
 });

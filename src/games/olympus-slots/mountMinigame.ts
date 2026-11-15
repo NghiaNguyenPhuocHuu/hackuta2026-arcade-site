@@ -295,7 +295,8 @@ export function mountMinigame(el: HTMLElement, options: MountMinigameOptions): (
   if (mountedElements.has(el)) throw new Error("mountMinigame: this element already has a mounted minigame");
   mountedElements.add(el);
 
-  const { adapter } = options;
+  if (!options.adapter) throw new Error("mountMinigame: an adapter is required");
+  const adapter = options.adapter;
   const timeouts = new Set<ReturnType<typeof setTimeout>>();
   const intervals = new Set<ReturnType<typeof setInterval>>();
   const cleanups: Array<() => void> = [];

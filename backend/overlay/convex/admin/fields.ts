@@ -66,6 +66,9 @@ export const staffConfigLogAction = v.union(
   v.literal("slot_window_created"),
   v.literal("slot_window_updated"),
   v.literal("slot_window_cancelled"),
+  v.literal("o21_window_created"),
+  v.literal("o21_window_updated"),
+  v.literal("o21_window_cancelled"),
   // Historical rows from the removed notification admin. New writes never use these.
   v.literal("notification_created"),
   v.literal("notification_updated"),

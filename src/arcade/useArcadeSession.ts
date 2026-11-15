@@ -10,7 +10,7 @@ import type { GameKey } from "../games/registry";
 export type ArcadeStatus = "loading" | "signed-out" | "off" | "scheduled" | "on";
 
 export type ArcadeGameState = {
-  key: GameKey | "pvp-blackjack";
+  key: GameKey;
   enabled: boolean;
 };
 
@@ -43,6 +43,7 @@ function mockSession(status: ArcadeStatus, now: number): ArcadeSession {
     player: status === "signed-out" || status === "loading" ? null : { displayName: "Alex Rivera", email: "alex@example.com", points: 200 },
     games: [
       { key: "olympus-slots", enabled: true },
+      { key: "olympus-poker", enabled: true },
       { key: "pvp-blackjack", enabled: false },
     ],
   };

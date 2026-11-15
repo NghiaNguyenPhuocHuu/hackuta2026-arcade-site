@@ -14,7 +14,8 @@
     "backend:test": "node scripts/test-backend.mjs",
     "backend:check": "node scripts/check-no-function-loss.mjs",
     "convex:guard": "node scripts/guard-convex-target.mjs",
-    "convex:push": "node -e \"console.error('Refusing: this repo has no full backend, so pushing from here would delete every function on peccary. Assemble with npm run backend:assemble and push from build/peccary (see backend/README.md).');process.exit(1)\""
+    "convex:push": "node scripts/push-arcade-backend.mjs",
+    "convex:push-dev": "node scripts/push-arcade-backend.mjs"
   },
   "dependencies": {
     "convex": "^1.49.0",

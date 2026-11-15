@@ -15,10 +15,27 @@ export function getMockWallet(): MockWallet {
   return wallet;
 }
 
+function notify() {
+  for (const listener of listeners) listener();
+}
+
 export function setMockWallet(next: MockWallet): void {
   if (next.balance === wallet.balance && next.recentSpins === wallet.recentSpins) return;
   wallet = next;
-  for (const listener of listeners) listener();
+  notify();
+}
+
+export function spendMockPoints(amount: number): boolean {
+  if (amount <= 0 || wallet.balance < amount) return false;
+  wallet = { ...wallet, balance: wallet.balance - amount };
+  notify();
+  return true;
+}
+
+export function creditMockPoints(amount: number): void {
+  if (amount <= 0) return;
+  wallet = { ...wallet, balance: wallet.balance + amount };
+  notify();
 }
 
 export function subscribeMockWallet(listener: () => void): () => void {

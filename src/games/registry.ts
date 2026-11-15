@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { NavCardsIcon, NavSlotsIcon } from '../components/brand/ArcadeIcons'
+import { NavCardsIcon, NavPokerIcon, NavSlotsIcon } from '../components/brand/ArcadeIcons'
 import type { MountMinigameOptions } from './olympus-slots/types'
 
 /**
@@ -7,7 +7,7 @@ import type { MountMinigameOptions } from './olympus-slots/types'
  * playable right now comes from the server (arcadeGames, step 1 of the plan).
  * Each game is lazy-loaded so the hub never downloads code for games nobody opens.
  */
-export type GameKey = 'olympus-slots' | 'pvp-blackjack'
+export type GameKey = 'olympus-slots' | 'olympus-poker' | 'pvp-blackjack'
 
 export type MountGame = (element: HTMLElement, options: MountMinigameOptions) => () => void
 
@@ -34,6 +34,15 @@ export const GAMES: readonly GameEntry[] = [
     icon: NavSlotsIcon,
     theme: 'night',
     load: () => import('./olympus-slots/mountMinigame').then((m) => m.mountMinigame),
+  },
+  {
+    key: 'olympus-poker',
+    name: 'Olympus Poker',
+    tagline: 'Live Texas Hold\'em. The Fates seat you, 100 points on the felt.',
+    facts: ['Multiplayer', 'Buy-in 100 pts'],
+    icon: NavPokerIcon,
+    theme: 'night',
+    load: () => import('./poker/mountPoker').then((m) => m.mountPoker),
   },
   {
     key: 'pvp-blackjack',

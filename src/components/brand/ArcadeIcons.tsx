@@ -72,6 +72,18 @@ export function ExternalIcon({ className }: IconProps) {
   );
 }
 
+/** Poker: two hole cards and a chip. */
+export function NavPokerIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <rect x="3.5" y="5" width="9.5" height="13" rx="1.4" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="9" y="7" width="9.5" height="13" rx="1.4" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="18.5" cy="17.5" r="2.4" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M13.75 11.5c-.9.85-1.65 1.45-1.65 2.15a.9.9 0 0 0 1.65.4.9.9 0 0 0 1.65-.4c0-.7-.75-1.3-1.65-2.15Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 /** Back arrow for the play view. */
 export function BackIcon({ className }: IconProps) {
   return (

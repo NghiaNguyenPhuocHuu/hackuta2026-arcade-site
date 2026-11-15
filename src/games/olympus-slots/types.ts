@@ -66,6 +66,7 @@ export interface MinigameAdapter {
 export type TutorialMode = "first-visit" | "always" | "off";
 
 export type MountMinigameOptions = {
-  adapter: MinigameAdapter;
+  adapter?: MinigameAdapter;
   tutorial?: TutorialMode;
+  player?: { id?: string; displayName: string };
 };

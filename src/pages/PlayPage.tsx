@@ -57,14 +57,14 @@ export default function PlayPage() {
           </Link>
         </div>
       ) : (
-        <GameStage game={game} />
+        <GameStage game={game} player={session.player} />
       )}
     </section>
   );
 }
 
 /** Lazy-loads the game and mounts it. Mock points until step 3 swaps in the Convex adapter. */
-function GameStage({ game }: { game: GameEntry }) {
+function GameStage({ game, player }: { game: GameEntry; player: ArcadeSession["player"] }) {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -73,17 +73,26 @@ function GameStage({ game }: { game: GameEntry }) {
     if (!game.load) return;
     let unmount: (() => void) | undefined;
     let cancelled = false;
-    // Start from the visit's wallet and write every change back, so the balance
-    // and history survive leaving the game and the lobby's points pill follows.
-    const adapter = createMockAdapter(getMockWallet());
-    const stopSync = adapter.subscribe(({ balance, recentSpins }) => setMockWallet({ balance, recentSpins }));
+    let stopSync: (() => void) | undefined;
+    let disposeAdapter: (() => void) | undefined;
     setReady(false);
     setError(null);
     game
       .load()
       .then((mount) => {
         if (cancelled || !ref.current) return;
-        unmount = mount(ref.current, { adapter });
+        if (game.key === "olympus-poker") {
+          unmount = mount(ref.current, {
+            player: player ? { displayName: player.displayName } : undefined,
+          });
+        } else {
+          // Start from the visit's wallet and write every change back, so the balance
+          // and history survive leaving the game and the lobby's points pill follows.
+          const adapter = createMockAdapter(getMockWallet());
+          stopSync = adapter.subscribe(({ balance, recentSpins }) => setMockWallet({ balance, recentSpins }));
+          disposeAdapter = () => adapter.dispose();
+          unmount = mount(ref.current, { adapter });
+        }
         setReady(true);
       })
       .catch(() => {
@@ -92,10 +101,10 @@ function GameStage({ game }: { game: GameEntry }) {
     return () => {
       cancelled = true;
       unmount?.();
-      stopSync();
-      adapter.dispose();
+      stopSync?.();
+      disposeAdapter?.();
     };
-  }, [game]);
+  }, [game, player?.displayName]);
 
   return (
     <div className="arcade-stage">
