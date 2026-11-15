@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ComponentType } from "react";
 import { NavLink, Outlet, useLocation, useMatch } from "react-router-dom";
 import { ArcadeBrand } from "../components/ArcadeBrand";
-import { ExternalIcon, NavTempleIcon } from "../components/brand/ArcadeIcons";
+import { ExternalIcon, NavTempleIcon, NavWalletIcon } from "../components/brand/ArcadeIcons";
 import { NavSignOutIcon } from "../components/brand/NavIcons";
 import { initials, type ArcadeSession } from "../arcade/useArcadeSession";
 import { PROFILE_URL } from "../constants/site";
@@ -27,6 +27,12 @@ export function ArcadeLayout({ session }: { session: ArcadeSession }) {
   useEffect(() => {
     mainRef.current?.scrollTo(0, 0);
     window.scrollTo(0, 0);
+    // Phones: the tab bar may scroll sideways; keep the current tab in view.
+    const active = document.querySelector<HTMLElement>(".participant-dashboard__nav-item--active");
+    const nav = active?.parentElement;
+    if (active && nav && nav.scrollWidth > nav.clientWidth) {
+      nav.scrollLeft = active.offsetLeft - (nav.clientWidth - active.offsetWidth) / 2;
+    }
   }, [pathname]);
 
   // The page behind the app (overscroll) and the phone's browser bar follow the theme.
@@ -50,6 +56,7 @@ export function ArcadeLayout({ session }: { session: ArcadeSession }) {
         </div>
         <nav className="participant-dashboard__nav">
           <NavItem to="/" end label="Lobby" icon={NavTempleIcon} />
+          <NavItem to="/wallet" label="Wallet" icon={NavWalletIcon} />
           {GAMES.map((game) => (
             <NavItem
               key={game.key}

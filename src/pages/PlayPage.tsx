@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useOutletContext, useParams } from "react-router-dom";
-import { PageHeader, PointsPill } from "../components/PageHeader";
+import { DepositPrompt, PageHeader, PointsPill } from "../components/PageHeader";
 import { BackIcon } from "../components/brand/ArcadeIcons";
 import { formatClock, type ArcadeSession } from "../arcade/useArcadeSession";
 import { findGame, type GameEntry } from "../games/registry";
@@ -48,6 +48,8 @@ export default function PlayPage() {
         description={game.tagline}
         actions={session.player ? <PointsPill points={session.player.arcadePoints} /> : null}
       />
+      {/* Poker seats players with its own table chips, so only the arcade-balance games need a deposit. */}
+      {!reason && game.key !== "olympus-poker" && session.player?.arcadePoints === 0 ? <DepositPrompt /> : null}
       {reason ? (
         <div className="participant-dashboard__notice arcade-play__notice" role="status">
           <h2 className="participant-dashboard__panel-title">{reason.title}</h2>

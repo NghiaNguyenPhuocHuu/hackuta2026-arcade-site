@@ -3,6 +3,7 @@ import { useArcadeSession } from './arcade/useArcadeSession'
 import { ArcadeLayout } from './layout/ArcadeLayout'
 import LobbyPage from './pages/LobbyPage'
 import PlayPage from './pages/PlayPage'
+import WalletPage from './pages/WalletPage'
 import { StatusScreen } from './pages/StatusScreen'
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
         <Route element={<ArcadeLayout session={session} />}>
           <Route index element={<LobbyPage />} />
           <Route path="play/:gameKey" element={<PlayPage />} />
+          <Route path="wallet" element={<WalletPage />} />
           <Route path="*" element={<LobbyPage />} />
         </Route>
       </Routes>

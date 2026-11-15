@@ -119,3 +119,14 @@ export function ClockIcon({ className }: IconProps) {
     </Svg>
   );
 }
+
+/** Wallet: a pouch body with its flap and clasp. */
+export function NavWalletIcon({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M4 7.5h14.5A1.5 1.5 0 0 1 20 9v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18V7.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M4 7.5 15.5 4.5v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M20 11.5h-3.5a1.75 1.75 0 0 0 0 3.5H20" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </Svg>
+  );
+}
