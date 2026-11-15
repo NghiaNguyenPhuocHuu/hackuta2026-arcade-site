@@ -20,7 +20,14 @@ export type ArcadeSession = {
   /** ms epoch; set when status is "scheduled" or "on" with an end time. */
   opensAt: number | null;
   closesAt: number | null;
-  player: { displayName: string; email: string | null; points: number } | null;
+  player: {
+    displayName: string;
+    email: string | null;
+    /** Profile balance (HackUTA points). */
+    points: number;
+    /** Arcade wallet: what the games bet. Deposit and withdraw move points between the two. */
+    arcadePoints: number;
+  } | null;
   games: ArcadeGameState[];
 };
 
@@ -41,7 +48,7 @@ function mockSession(status: ArcadeStatus, now: number): ArcadeSession {
     status,
     opensAt: status === "scheduled" ? now + hour : status === "on" ? now - hour : null,
     closesAt: status === "scheduled" ? now + 3 * hour : status === "on" ? now + 2 * hour : null,
-    player: status === "signed-out" || status === "loading" ? null : { displayName: "Alex Rivera", email: "alex@example.com", points: 200 },
+    player: status === "signed-out" || status === "loading" ? null : { displayName: "Alex Rivera", email: "alex@example.com", points: 200, arcadePoints: 0 },
     games: [
       { key: "olympus-slots", enabled: true },
       { key: "wheel-of-the-fates", enabled: true },
@@ -56,7 +63,9 @@ export function useArcadeSession(): ArcadeSession {
   const wallet = useSyncExternalStore(subscribeMockWallet, getMockWallet);
   // During a spin's reveal every screen shows the held balance, not the result.
   const hold = usePointsHold();
-  return session.player ? { ...session, player: { ...session.player, points: shownPoints(wallet.balance, hold) } } : session;
+  return session.player
+    ? { ...session, player: { ...session.player, points: wallet.profilePoints, arcadePoints: shownPoints(wallet.balance, hold) } }
+    : session;
 }
 
 /** Re-renders every `intervalMs` so countdowns stay current. */

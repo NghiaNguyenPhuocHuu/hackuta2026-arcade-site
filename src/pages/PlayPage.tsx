@@ -46,7 +46,7 @@ export default function PlayPage() {
         eyebrow={back}
         title={game.name}
         description={game.tagline}
-        actions={session.player ? <PointsPill points={session.player.points} /> : null}
+        actions={session.player ? <PointsPill points={session.player.arcadePoints} /> : null}
       />
       {reason ? (
         <div className="participant-dashboard__notice arcade-play__notice" role="status">

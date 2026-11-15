@@ -14,7 +14,7 @@ export default function LobbyPage() {
         id="arcade-lobby-title"
         title={`Enter the Arcade, ${firstName}`}
         description="Wager the points you've earned at HackUTA. Every triumph and every fall lands on your real balance."
-        actions={session.player ? <PointsPill points={session.player.points} /> : null}
+        actions={session.player ? <PointsPill points={session.player.arcadePoints} /> : null}
       />
 
       <div className="participant-portal__inner arcade-lobby__inner">
