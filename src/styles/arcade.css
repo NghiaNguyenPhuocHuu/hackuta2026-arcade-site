@@ -1774,6 +1774,13 @@
   animation: broke-cat-wobble 0.32s steps(2, end) infinite alternate;
 }
 
+/* A photo meme scales smoothly; only the pixel cat stays pixelated. */
+.broke-cat__img {
+  width: 200px;
+  image-rendering: auto;
+  border: 3px solid var(--color-light);
+}
+
 .broke-cat__cat {
   aspect-ratio: 16 / 14;
   padding: 10px;

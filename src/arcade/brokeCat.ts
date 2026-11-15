@@ -14,7 +14,7 @@ export const TAUNT_GAMES: ReadonlySet<string> = new Set(["olympus-slots", "wheel
  * put them in `public/` and set the paths (e.g. "/memes/laughing-cat.gif").
  * Left null, the pixel cat and the synthesized laugh track play instead.
  */
-export const BROKE_MEME: { image: string | null; audio: string | null } = { image: null, audio: null };
+export const BROKE_MEME: { image: string | null; audio: string | null } = { image: "/memes/laughing-cat.jpg", audio: null };
 
 export const TAUNTS: readonly string[] = [
   "The cat saw that. The cat will never forget.",

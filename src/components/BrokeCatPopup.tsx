@@ -115,7 +115,7 @@ export function BrokeCatPopup({ arcadePoints }: { arcadePoints: number | null })
           ))}
         </p>
         {BROKE_MEME.image ? (
-          <img className="broke-cat__img" src={BROKE_MEME.image} alt="A cat laughing at you" />
+          <img className="broke-cat__img" src={BROKE_MEME.image} alt="A cat laughing and pointing at you" />
         ) : (
           <svg className="broke-cat__cat" viewBox="0 0 16 14" shapeRendering="crispEdges" role="img" aria-label="A pixel cat laughing at you">
             <CatFrame rows={CAT_FRAMES[0]!} className="broke-cat__frame broke-cat__frame--a" />

@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BROKE_MEME, gameKeyOf, shouldTaunt, TAUNT_GAMES, TAUNTS } from "../../src/arcade/brokeCat";
 import { CAT_FRAMES } from "../../src/components/BrokeCatPopup";
@@ -24,7 +26,7 @@ describe("broke cat", () => {
     expect(gameKeyOf("/wallet")).toBeNull();
   });
 
-  it("draws the cat on a 16×14 grid with known colours, and uses no outside media by default", () => {
+  it("draws the pixel cat on a 16×14 grid with known colours, and the meme picture is a local file", () => {
     for (const frame of CAT_FRAMES) {
       expect(frame).toHaveLength(14);
       for (const row of frame) {
@@ -33,6 +35,9 @@ describe("broke cat", () => {
       }
     }
     expect(TAUNTS.length).toBeGreaterThan(0);
-    expect(BROKE_MEME).toEqual({ image: null, audio: null });
+    // Served from public/, never hotlinked from another site.
+    expect(BROKE_MEME.image).toBe("/memes/laughing-cat.jpg");
+    expect(existsSync(join("public", BROKE_MEME.image!))).toBe(true);
+    expect(BROKE_MEME.audio).toBeNull();
   });
 });
