@@ -52,7 +52,7 @@ export const GAMES: readonly GameEntry[] = [
     key: 'olympus-poker',
     name: 'Olympus Poker',
     shortName: 'Poker',
-    tagline: 'Live Texas Hold\'em. The Fates seat you, 100 points on the felt.',
+    tagline: 'Live Texas Hold\'em. The Fates seat you, 50 points on the felt.',
     facts: ['Multiplayer', 'Buy-in 50 pts'],
     icon: NavPokerIcon,
     theme: 'night',

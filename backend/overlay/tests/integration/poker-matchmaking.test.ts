@@ -37,9 +37,9 @@ describe("event poker matchmaking", () => {
     expect(await b.player.mutation(joinQueue, {})).toEqual({ status: "ok", phase: "queued" });
 
     const queued = await a.player.query(getView, {});
-    expect(queued).toMatchObject({ phase: "queued", balance: 100 });
+    expect(queued).toMatchObject({ phase: "queued", balance: 150 });
     expect(queued.queue).toHaveLength(2);
-    expect(await walletOf(t, a.checkedInId!)).toBe(100);
+    expect(await walletOf(t, a.checkedInId!)).toBe(150);
     expect(await profileOf(t, a.checkedInId!)).toBe(50);
 
     vi.setSystemTime(NOW + 2_500);
@@ -55,18 +55,28 @@ describe("event poker matchmaking", () => {
     expect(va.table?.seats.find((seat: { id: string }) => seat.id === va.youId)?.name).toBe("Taylor Student");
   });
 
-  it("fills a solo queue with shades and never leaks the deck or the other hole cards", async () => {
+  it("does not seat a lone player — needs at least two hackers in the queue", async () => {
     const t = createConvexTest();
     await openArcade(t, [POKER]);
     const { player } = await seedPlayer(t, { arcadePoints: 100 });
     await player.mutation(joinQueue, {});
-    vi.setSystemTime(NOW + 6_000);
+    vi.setSystemTime(NOW + 60_000);
     await t.mutation(trySeat, {});
+    expect(await player.query(getView, {})).toMatchObject({ phase: "queued" });
+  });
 
-    const view = await player.query(getView, {});
+  it("never leaks other hole cards or the deck once seated", async () => {
+    const t = createConvexTest();
+    await openArcade(t, [POKER]);
+    const one = await seedPlayer(t, { arcadePoints: 100 });
+    const two = await seedPlayer(t, { arcadePoints: 100 });
+    await one.player.mutation(joinQueue, {});
+    await two.player.mutation(joinQueue, {});
+    vi.setSystemTime(NOW + 2_500);
+    await t.mutation(trySeat, {});
+    const view = await one.player.query(getView, {});
     expect(view.phase).toBe("table");
-    expect(view.table?.seats.length).toBe(4);
-    expect(view.table?.seats.filter((seat: { isBot: boolean }) => seat.isBot)).toHaveLength(3);
+    expect(view.table?.seats.every((seat: { isBot: boolean }) => !seat.isBot)).toBe(true);
     expect(view.table?.seats.find((seat: { id: string }) => seat.id === view.youId)?.hole).toHaveLength(2);
     for (const seat of view.table?.seats ?? []) {
       if (seat.id !== view.youId) expect(seat.hole).toBeNull();
@@ -79,9 +89,9 @@ describe("event poker matchmaking", () => {
     await openArcade(t, [POKER]);
     const { player, checkedInId } = await seedPlayer(t, { arcadePoints: 200 });
     await player.mutation(joinQueue, {});
-    expect(await walletOf(t, checkedInId!)).toBe(100);
+    expect(await walletOf(t, checkedInId!)).toBe(150);
     expect(await player.mutation(cancelQueue, {})).toEqual({ status: "ok" });
-    expect(await player.query(getView, {})).toMatchObject({ phase: "result", balance: 200, result: { returned: 100 } });
+    expect(await player.query(getView, {})).toMatchObject({ phase: "result", balance: 200, result: { returned: 50 } });
     expect(await walletOf(t, checkedInId!)).toBe(200);
   });
 
@@ -90,23 +100,25 @@ describe("event poker matchmaking", () => {
     await openArcade(t, [POKER]);
     const admin = await seedStaff(t);
     const { player, checkedInId } = await seedPlayer(t, { arcadePoints: 300 });
+    const other = await seedPlayer(t, { arcadePoints: 100 });
     await player.mutation(joinQueue, {});
-    vi.setSystemTime(NOW + 6_000);
+    await other.player.mutation(joinQueue, {});
+    vi.setSystemTime(NOW + 2_500);
     await t.mutation(trySeat, {});
     const seated = await player.query(getView, {});
     const chips = seated.table?.you?.chips as number;
     expect(await player.mutation(leaveTable, {})).toEqual({ status: "ok" });
-    expect(await walletOf(t, checkedInId!)).toBe(200 + chips);
+    expect(await walletOf(t, checkedInId!)).toBe(250 + chips);
     const listing = await t.query(listTransfers, { sessionToken: admin.sessionToken, checkedInId: checkedInId! });
-    expect(listing.wallets[0]).toMatchObject({ walletConsistent: true, stored: 200 + chips });
+    expect(listing.wallets[0]).toMatchObject({ walletConsistent: true, stored: 250 + chips });
   });
 
   it("refuses a buy-in the arcade wallet can't cover", async () => {
     const t = createConvexTest();
     await openArcade(t, [POKER]);
-    const { player, checkedInId } = await seedPlayer(t, { points: 500, arcadePoints: 40 });
+    const { player, checkedInId } = await seedPlayer(t, { points: 500, arcadePoints: 30 });
     expect(await player.mutation(joinQueue, {})).toEqual({ status: "error", code: "INSUFFICIENT_POINTS" });
-    expect(await walletOf(t, checkedInId!)).toBe(40);
+    expect(await walletOf(t, checkedInId!)).toBe(30);
     expect(await profileOf(t, checkedInId!)).toBe(500);
   });
 
