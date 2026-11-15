@@ -285,9 +285,9 @@ function ActionPanel({
 
 export function PokerApp({
   player,
-  wallet,
 }: {
   player: { id: string; name: string };
+  /** Still passed by mountPoker; the live table keeps chips on the server, so it is unused here. */
   wallet: PokerWallet;
 }) {
   const client = useMemo(() => {
